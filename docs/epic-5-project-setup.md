@@ -801,12 +801,12 @@ vercel
 - [x] Sign up/Sign in authentication working
 - [x] Development environment running locally (port 5175)
 - [x] Storage buckets created with policies (product-images, blog-images, workshop-images)
+- [x] Git repository initialized
 
 ### Optional/Future Tasks (Can be done later)
 - [ ] Stripe account created and configured (when ready for payments)
 - [ ] Webhook endpoint created and tested (when Stripe is set up)
 - [ ] ESLint and Prettier configured (code quality - optional)
-- [ ] Git repository initialized (recommended before next epic)
 - [ ] Deployment pipeline configured (Vercel - when ready to deploy)
 
 ---

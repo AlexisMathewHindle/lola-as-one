@@ -1,6 +1,6 @@
 # Subscription Model
 
-**Last Updated:** 2026-01-31
+**Last Updated:** 2026-02-04
 **Status:** ✅ Confirmed - Monthly subscriptions with Stripe
 
 ## Purpose
@@ -34,8 +34,9 @@ Define how recurring box subscriptions work in v1. **This is an existing feature
 - ✅ **Order history** accessible to logged-in customers
 
 ### Subscription Tiers
-- ✅ **Single tier** — One monthly box subscription type
-- 🔄 v2: Multiple tiers/box types (if needed)
+- ✅ **Curated subscription plans** — 3-month, 6-month, and every-other-month plans
+- ✅ **Plan-specific box limits** — 3-month → max 3 boxes; 6-month → max 6 boxes; every-other-month → max 6 boxes (6 shipments over 12 months)
+- ✅ **Backend-configured eligible boxes** — For each plan, admin selects which physical boxes are available to subscribers
 
 ### Billing Details
 - ✅ **Anniversary date billing** — Customers charged monthly on their signup date
@@ -75,7 +76,8 @@ Define how recurring box subscriptions work in v1. **This is an existing feature
 
 **v1 Features:**
 - ✅ Customer accounts (email/password login)
-- ✅ Subscribe to monthly boxes (single tier)
+- ✅ Curated subscription plans (3-month, 6-month, every-other-month)
+- ✅ Per-plan box selection limits enforced in the application
 - ✅ **Pause subscription** (NEW FEATURE - temporarily stop deliveries)
 - ✅ **Resume subscription** (NEW FEATURE - restart deliveries)
 - ✅ Cancel subscription (end recurring billing)
@@ -121,6 +123,15 @@ SUBSCRIPTION
 - cancelled_at (timestamp, nullable)
 ```
 
+**Curated subscription box configuration:**
+- Subscription offerings (3-month, 6-month, every-other-month) are stored in `offerings` with `type = 'subscription'`.
+- The set of physical boxes each plan can use is stored in `subscription_plan_boxes` (join between `offerings` and `offering_products`).
+- Per-plan max boxes are enforced in the application:
+  - 3-month → up to 3 boxes
+  - 6-month → up to 6 boxes
+  - Every-other-month → up to 6 boxes (6 shipments over 12 months)
+- Admin configures eligible boxes for each plan via the subscription detail CMS UI.
+
 **Webhook events we handle:**
 - `customer.subscription.created` — New subscription
 - `customer.subscription.updated` — Status change (pause, resume)
@@ -133,15 +144,38 @@ SUBSCRIPTION
 ## Subscription Flow (Draft)
 
 ### Subscribe Flow
-1. User browses subscription options
-2. User selects subscription interval (monthly, quarterly, etc.)
-3. User clicks "Subscribe"
-4. Redirected to Stripe Checkout (subscription mode)
-5. User enters payment info
-6. Stripe creates subscription
-7. Webhook creates subscription record in our DB
-8. Confirmation email sent
-9. First box ships immediately (or on next billing cycle)
+1. User browses subscription options (3-month, 6-month, every-other-month)
+2. User selects a plan and quantity (number of parallel subscriptions)
+3. User chooses boxes for that plan from the curated list (up to the plan's max boxes)
+4. The configured subscription (plan + selected boxes) is validated via a Supabase Edge Function (`validate-subscription-boxes`); if all boxes are still eligible/available it is added to the same basket as any one-time products on `/checkout`. If some boxes are unavailable, the flow surfaces an error and suggestions and requires the user to adjust their selection before continuing.
+5. User proceeds to checkout and is redirected to Stripe Checkout (subscription mode, with mixed subscription + one-time line items)
+6. User enters payment info
+7. Stripe creates the subscription and charges the first invoice
+8. Webhook creates subscription record in our DB (and, where needed, an initial order/shipment record)
+9. Confirmation email sent
+10. First box ships immediately (or on next billing cycle)
+
+#### Current frontend implementation (2026-02-04)
+
+- **Route & plan page**
+  - Subscription offerings (`offerings.type = 'subscription'`) are listed on `/shop` and route to `/subscriptions/:slug`, implemented by `SubscriptionDetail.vue`.
+- **Curated box selection**
+  - Eligible boxes for each plan come from `subscription_plan_boxes` joined to `offering_products` / `offerings`; the UI enforces per-plan max box counts using `offerings.metadata.max_boxes` or slug/title heuristics (3-month, 6-month, every-other-month).
+- **Server-side availability validation**
+  - Before adding to cart, `SubscriptionDetail.vue` calls Supabase Edge Function `validate-subscription-boxes` with:
+    - `subscription_offering_id`
+    - `selected_box_product_ids` (array of `offering_products.id`)
+  - The function checks plan membership, offering `status`, `available_for_subscription`, and basic inventory (`track_inventory`, `stock_quantity`), returning:
+    - `allAvailable`
+    - `unavailable[]` with per-product reasons
+    - `suggestions[]` with other curated boxes that are currently selectable.
+- **Suggestions and swap UX**
+  - On partial failure, the page shows a clear error listing unavailable selections and renders a Try one of these boxes instead suggestion list.
+  - When the user is already at the max box count and has unavailable selections, clicking a suggestion swaps an unavailable box out for the suggested one and clears the error.
+- **Cart behaviour**
+  - On success, the subscription is added to the shared cart as a single item with `type = 'subscription'` and `subscriptionConfig` (plan label, `max_boxes`, `selected_box_product_ids`); `Cart.vue` displays this summary next to the subscription item.
+
+_Backend Stripe subscription checkout and webhook handling follow the architecture described below but are still being fully wired to this curated-plan flow._
 
 ### Recurring Billing Flow
 1. Stripe charges customer on billing date
@@ -175,38 +209,27 @@ SUBSCRIPTION
 
 ### Scenario: User wants to subscribe AND buy a one-time box
 
-**v1 Approach: Separate Checkouts (Recommended)**
+**Updated v1 Approach (2026-02-04): Combined Checkout (single basket)**
 
-**Why separate:**
-- ✅ Simpler implementation
-- ✅ Clear UX distinction between "Subscribe" and "Buy Once"
-- ✅ Easier to manage in Stripe
-- ✅ Avoids complex cart logic
+**Why combined:**
+- ✅ Better UX: customer sees subscription and one-time items together on `/checkout`
+- ✅ Single Stripe payment for both recurring and one-time items
+- ⚠️ More complex Stripe integration (mixed line items, subscription mode)
 
-**How it works:**
-1. **Subscribe flow:**
-   - User clicks "Subscribe" on subscription page
-   - Redirected to Stripe Checkout (subscription mode)
-   - Creates Stripe subscription
-   - Customer account created/linked
-   - First box ships immediately (or on next billing cycle)
+**How it works (target state):**
+1. Customer configures a subscription (plan, quantity, selected boxes) and adds it to the basket.
+2. Basket can contain:
+   - Subscription line items
+   - One-time boxes, workshops, and other products
+3. Checkout flow creates a Stripe Checkout Session in **subscription mode** with:
+   - A recurring line item for the subscription price (quantity = number of subscriptions)
+   - One-time line items for any non-subscription products
+4. On successful payment:
+   - Subscription records are created/updated from Stripe subscription/webhook events
+   - Normal `orders` and `order_items` rows are created for the one-time portion of the basket
 
-2. **One-time purchase flow:**
-   - User adds boxes/events to cart
-   - Proceeds to checkout
-   - Redirected to Stripe Checkout (payment mode)
-   - One-time payment processed
-   - Order created and fulfilled
-
-**User journey:**
-- Existing subscribers can still buy one-time boxes (separate transaction)
-- New users can subscribe first, then buy one-time items later
-- Or vice versa
-
-**v2 Enhancement: Combined Checkout**
-- Allow subscription + one-time items in same cart
-- Stripe Checkout supports mixed line items
-- More complex but better UX for some scenarios
+**Legacy (previous plan): Separate Checkouts**
+- Earlier versions of this document assumed separate subscription vs one-time checkouts; this is kept for historical context, but the product direction is now combined checkout as described above.
 
 ---
 
@@ -251,16 +274,16 @@ If you have existing subscribers:
 ## Summary
 
 **v1 Subscription Scope (Confirmed):**
-- ✅ Monthly recurring box subscriptions
+- ✅ Monthly-billed curated subscription plans (3-month, 6-month, every-other-month)
 - ✅ Stripe Subscriptions for billing
 - ✅ Customer accounts (required for subscription management)
 - ✅ Subscribe/pause/resume/cancel functionality
 - ✅ Billing cycle management (view next billing date, history)
 - ✅ Update payment method
 - ✅ Webhook-driven order creation on each billing cycle
-- ✅ Separate checkouts for subscriptions vs one-time purchases
+- ✅ Combined checkout: subscription line items appear in the same basket as one-time products on `/checkout`
 - ✅ Subscribers can also buy one-time boxes and book events
-- ❌ **NOT in v1:** Skip individual deliveries, swap box types, gift subscriptions, combined checkout
+- ❌ **NOT in v1:** Skip individual deliveries, swap box types mid-subscription, gift-only subscriptions
 
 **Critical Next Steps:**
 1. ✅ Customer account implementation confirmed (email/password login)

@@ -156,12 +156,12 @@ This document outlines the epic structure for building the Lola As One unified C
 - [x] Sign up/Sign in authentication working
 - [x] Environment variables configured (.env.local)
 - [x] Development environment running locally (http://localhost:5175/)
+- [x] Git repository initialized
 
 **Optional/Future:**
 - [ ] Stripe account created and configured (when ready for payments)
 - [ ] Webhook endpoint created and tested (when Stripe is set up)
 - [ ] ESLint and Prettier configured (code quality - optional)
-- [ ] Git repository initialized (recommended before next epic)
 - [ ] Deployment pipeline configured (Vercel - when ready to deploy)
 
 **Documents:**

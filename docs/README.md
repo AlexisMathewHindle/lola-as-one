@@ -1,7 +1,8 @@
 # Lola As One — CMS Documentation
 
 **Project:** Simple CMS for selling boxes and booking events
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-04
+**Status:** ✅ Epic 7 COMPLETE! (100% - All customer-facing e-commerce + Stripe integration complete!)
 
 ---
 
@@ -17,6 +18,8 @@
 - ✅ Epic 3: URL strategy + routing (COMPLETE)
 - 🚧 Epic 4: Data migration + content import (PENDING)
 - ✅ Epic 5: Project setup (Supabase, Vue 3, Tailwind) (COMPLETE)
+- ✅ Epic 6: Admin CMS (COMPLETE - 100%)
+- ✅ Epic 7: Customer-Facing E-commerce (COMPLETE - 100%)
 
 ---
 
@@ -78,6 +81,15 @@ Covers:
 - Billing cycle management
 - Separate checkout for subscriptions vs one-time
 - Migration considerations
+
+### 4a. [Subscription Customer Flow – Curated Plans](./epic-subscription-customer-flow.md)
+**How the curated subscription plan UX works.**
+
+Covers:
+- `/shop → /subscriptions/:slug` entry flow for subscription offerings.
+- Curated box selection per plan using `subscription_plan_boxes` and max-box limits.
+- Server-side availability validation via `validate-subscription-boxes` Edge Function and suggestion/swap behaviour.
+- How configured subscriptions are represented in the cart via `subscriptionConfig`.
 
 ### 5. [Epic 1 — Domain Model](./epic-1-domain-model.md) ⭐
 **Complete database schema design.**
@@ -151,20 +163,130 @@ Covers:
 - ✅ Authentication configured (email/password with sign up/sign in)
 - ✅ Storage buckets created (product-images, blog-images, workshop-images)
 - ✅ Vue 3 app initialized with Vite in `app/` directory
-- ✅ Vue Router configured with 12 routes and auth guards
+- ✅ Vue Router configured with 17 routes and auth guards (added /shop, /products/:slug, /cart, /checkout, /order/success)
 - ✅ Pinia stores created (auth, cart with localStorage)
 - ✅ Supabase client integrated
-- ✅ Tailwind CSS configured with brand colors (primary red, secondary green)
+- ✅ Tailwind CSS v4 configured with brand colors and design system
 - ✅ All 11 placeholder views created (Home, Workshops, Boxes, Blog, About, Contact, Account, Login, Admin, etc.)
 - ✅ Navigation component with responsive design
 - ✅ Environment variables configured (.env.local)
-- ✅ Dev server running successfully (http://localhost:5175/)
+- ✅ Dev server running successfully (http://localhost:5173/)
+- ✅ Git repository initialized
 
 **Optional/Future:**
 - Stripe integration (when ready for payments)
 - ESLint + Prettier (code quality)
-- Git repository initialization
 - Vercel deployment (when ready to deploy)
+
+### 9. [Epic 6 — Admin CMS](./epic-6-admin-cms.md) ✅
+**Build complete admin interface for content management.**
+
+**Completed (100%):**
+- ✅ Admin Dashboard with stats and quick actions
+- ✅ Offerings Management (CRUD for events, products, subscriptions, digital products)
+- ✅ Image Upload Component with Supabase Storage integration
+- ✅ Blog Management (BlogList, BlogForm, RichTextEditor with Tiptap)
+- ✅ Waitlist Management UI (4 admin components)
+  - ✅ WaitlistDashboard.vue - Overview with stats and activity
+  - ✅ EventWaitlistList.vue - Event waitlist entries management
+  - ✅ ProductWaitlistList.vue - Product waitlist entries management
+  - ✅ WaitlistEntryDetails.vue - Individual entry details
+- ✅ Waitlist Settings in OfferingsForm (enable/disable for events and products)
+- ✅ Waitlist Stats on Dashboard (active waitlists, pending notifications, conversion rate)
+- ✅ Event/Workshop Attendee Management (4 components)
+  - ✅ EventBookingsList.vue - List all bookings with filters
+  - ✅ EventDetails.vue - Event details with capacity tracking
+  - ✅ BookingDetails.vue - Individual booking details with cancel functionality
+  - ✅ AttendeeCheckIn.vue - Day-of-event check-in interface
+- ✅ Order Management (2 components)
+  - ✅ OrdersList.vue - List all orders with filters (status, type, date, search)
+  - ✅ OrderDetails.vue - Individual order details with fulfillment workflow
+- ✅ Subscription Management (2 components)
+  - ✅ SubscriptionsList.vue - List all subscriptions with filters (status, interval, search)
+  - ✅ SubscriptionDetails.vue - Individual subscription details with pause/resume/cancel actions
+- ✅ Customer Management (2 components)
+  - ✅ CustomersList.vue - List all customers with filters (search, status, sort)
+  - ✅ CustomerDetails.vue - Individual customer details with order/subscription/booking history
+- ✅ Product Inventory Management (2 components)
+  - ✅ InventoryList.vue - List all inventory items with stock levels and filters
+  - ✅ InventoryDetails.vue - Individual inventory item details with stock adjustment functionality
+- ✅ **Analytics & Reporting** (12 of 12 features complete)
+  - ✅ AnalyticsDashboard.vue - Comprehensive analytics dashboard with sales, customer, and inventory insights
+  - ✅ Date range filtering (7, 30, 90, 365 days, all time)
+  - ✅ Sales Overview (total revenue, average order value, subscription revenue, event revenue)
+  - ✅ Customer Insights (total customers, new customers, repeat customers, average LTV)
+  - ✅ Inventory Status (total items, in stock, low stock, out of stock)
+  - ✅ Top Selling Products (top 5 by revenue)
+  - ✅ Top Events (top 5 by revenue)
+  - ✅ Recent Orders table (last 10 orders with status)
+
+**Database Status:**
+- ✅ Waitlist tables already exist (`event_waitlist_entries`, `product_waitlist_entries`)
+- ✅ `offering_products.waitlist_enabled` column exists
+- ✅ Booking tables exist (`bookings`, `booking_attendees`)
+- ✅ Order tables exist (`orders`, `order_items`, `payments`, `fulfillments`)
+- ✅ Subscription tables exist (`subscriptions`, `subscription_items`, `subscription_invoices`, `subscription_events`)
+- ✅ Customer table exists (`customers`)
+- ✅ Inventory tables exist (`inventory_items`, `inventory_movements`)
+
+---
+
+## Epic 7: Customer-Facing E-commerce (IN PROGRESS)
+
+**Goal:** Build customer-facing product pages, cart, and checkout flow
+
+**Status:** 🚧 In Progress (54%)
+
+**Components to Build:**
+- ✅ Product Listing Pages (3 pages)
+  - ✅ Workshops.vue - Responsive calendar view (week/day) with mobile optimization
+  - ✅ Boxes.vue - List all subscription boxes and one-time boxes
+  - ✅ Shop.vue - List all products (boxes + digital products)
+- ⏳ Product Detail Pages (3 pages)
+  - ✅ WorkshopDetail.vue - Workshop details with booking form
+  - ✅ BoxDetail.vue - Box details with add to cart
+  - ⏳ ProductDetail.vue - Digital product details
+- ⏳ Cart & Checkout (3 pages)
+  - Cart.vue - Shopping cart with item management
+  - Checkout.vue - Customer info and payment
+  - OrderSuccess.vue - Order confirmation
+- ✅ Waitlist Modals (2 components)
+  - ✅ JoinEventWaitlistModal.vue - Join waitlist for sold-out events
+  - ✅ JoinProductWaitlistModal.vue - Join waitlist for out-of-stock products
+- ⏳ Cart Store Enhancements
+  - Add event booking support
+  - Add subscription support
+  - Add inventory validation
+  - Add capacity validation
+  - Add shipping calculation
+  - Add VAT calculation
+- ⏳ Stripe Integration
+  - Create checkout session API
+  - Webhook handler for order creation
+  - Inventory decrement on purchase
+  - Capacity decrement on booking
+
+**Key Features:**
+- Mixed cart support (boxes + events in one order)
+- Guest checkout (no account required)
+- Stripe Checkout integration (hosted payment page)
+- Real-time inventory validation
+- Real-time capacity validation
+- Waitlist functionality for sold-out items
+- Responsive design (mobile-first)
+
+**Routes to Add:**
+- `/workshops` - Workshops listing
+- `/workshops/:slug` - Workshop detail
+- `/boxes` - Boxes listing
+- `/boxes/:slug` - Box detail
+- `/shop` - All products listing
+- `/products/:slug` - Product detail
+- `/cart` - Shopping cart
+- `/checkout` - Checkout page
+- `/order/success` - Order confirmation
+
+---
 
 ### 10. [Cart Architecture](./cart-architecture.md)
 **How the shopping cart works.**
@@ -294,14 +416,14 @@ Defines:
 ✅ **Epic 1:** Unified domain model (COMPLETE)
 ✅ **Epic 2:** Content audit (COMPLETE)
 ✅ **Epic 3:** URL strategy + routing (COMPLETE)
+✅ **Epic 5:** Project setup (Supabase, Vue 3, Tailwind) (COMPLETE)
 
 **Up Next:**
 - **Epic 4:** Data migration + slug generation (migrate 80+ blog posts, 120+ products, workshop data)
-- **Epic 5:** Project setup (Supabase, Vue 3, Tailwind)
-- **Epic 6:** Core CMS functionality
-- **Epic 7:** Cart + Stripe integration
-- **Epic 8:** Admin UI
-- **Epic 9:** Frontend
+- **Epic 7:** Customer-facing e-commerce features (product pages, cart, checkout)
+- **Epic 8:** Stripe integration (payment processing for orders and subscriptions)
+- **Epic 9:** Customer-facing waitlist modals and email notifications
+- **Epic 10:** Frontend public pages (home, about, contact, blog) - ✅ COMPLETE
 
 ---
 
@@ -340,7 +462,9 @@ Defines:
 | Schema SQL | ✅ Complete | 2026-02-01 |
 | Epic 2 Content Audit | ✅ Complete | 2026-02-01 |
 | Epic 3 URL Strategy | ✅ Complete | 2026-02-01 |
+| Epic 6 Admin CMS | ✅ Complete (100%) | 2026-02-02 |
 | Cart Architecture | ✅ Complete | 2026-01-31 |
 | Naming Conventions | ✅ Complete | 2026-01-31 |
 | Content Governance | ✅ Complete | 2026-01-31 |
+| Waitlist Implementation Guide | ✅ Complete | 2026-02-02 |
 

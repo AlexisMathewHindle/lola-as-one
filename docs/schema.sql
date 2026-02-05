@@ -561,6 +561,22 @@ CREATE INDEX idx_subscription_invoices_stripe ON subscription_invoices(stripe_in
 CREATE INDEX idx_subscription_invoices_status ON subscription_invoices(status);
 CREATE INDEX idx_subscription_invoices_date ON subscription_invoices(invoice_date DESC);
 
+-- Subscription Plan Boxes (which boxes are available for each subscription offering)
+CREATE TABLE subscription_plan_boxes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  subscription_offering_id UUID NOT NULL REFERENCES offerings(id) ON DELETE CASCADE,
+  offering_product_id UUID NOT NULL REFERENCES offering_products(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT unique_subscription_plan_box UNIQUE (subscription_offering_id, offering_product_id)
+);
+
+CREATE INDEX idx_subscription_plan_boxes_subscription
+  ON subscription_plan_boxes(subscription_offering_id);
+
+CREATE INDEX idx_subscription_plan_boxes_product
+  ON subscription_plan_boxes(offering_product_id);
+
 -- ============================================================================
 -- INVENTORY TABLES
 -- ============================================================================
@@ -847,6 +863,7 @@ CREATE TRIGGER update_blog_posts_updated_at BEFORE UPDATE ON blog_posts FOR EACH
 CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON customers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_subscription_plan_boxes_updated_at BEFORE UPDATE ON subscription_plan_boxes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_fulfillments_updated_at BEFORE UPDATE ON fulfillments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_bookings_updated_at BEFORE UPDATE ON bookings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_box_components_updated_at BEFORE UPDATE ON box_components FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -971,7 +988,7 @@ CREATE POLICY "Admins can manage all offerings"
 ON offerings FOR ALL
 USING (auth.jwt() ->> 'role' = 'admin');
 
--- Customers: Users can view/update their own record
+-- Customers: Users can view/update their own record, admins can view all
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view their own customer record"
@@ -981,6 +998,20 @@ USING (auth.uid() = id);
 CREATE POLICY "Users can update their own customer record"
 ON customers FOR UPDATE
 USING (auth.uid() = id);
+
+CREATE POLICY "Admins can view all customers"
+ON customers FOR SELECT
+USING (
+  auth.role() = 'authenticated'
+  AND (auth.jwt()->>'app_metadata')::jsonb->>'role' = 'admin'
+);
+
+CREATE POLICY "Admins can manage all customers"
+ON customers FOR ALL
+USING (
+  auth.role() = 'authenticated'
+  AND (auth.jwt()->>'app_metadata')::jsonb->>'role' = 'admin'
+);
 
 -- Orders: Customers can view their own, admins can view all
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
@@ -1396,6 +1427,13 @@ USING (
 
 CREATE POLICY "Admins can manage all subscription invoices"
 ON subscription_invoices FOR ALL
+USING (auth.jwt() ->> 'role' = 'admin');
+
+-- Subscription Plan Boxes: Admin-only access
+ALTER TABLE subscription_plan_boxes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can manage subscription plan boxes"
+ON subscription_plan_boxes FOR ALL
 USING (auth.jwt() ->> 'role' = 'admin');
 
 -- Inventory Items: Admin-only access
