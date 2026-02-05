@@ -23,16 +23,21 @@
         </button>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Event Filter -->
+        <!-- Category Filter -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Event</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
           <select
-            v-model="filters.eventId"
+            v-model="filters.categoryId"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           >
-            <option value="">All Events</option>
-            <option v-for="event in events" :key="event.id" :value="event.id">
-              {{ event.offering.title }} - {{ formatDate(event.event_date) }}
+            <option value="">All Categories</option>
+            <option
+              v-for="category in hierarchicalCategories"
+              :key="category.id"
+              :value="category.id"
+              :class="{ 'pl-4': category.level === 1 }"
+            >
+              {{ category.level === 1 ? '— ' : '' }}{{ category.name }}
             </option>
           </select>
         </div>
@@ -89,7 +94,7 @@
       <font-awesome-icon icon="calendar" class="w-16 h-16 text-gray-400 mx-auto mb-4" />
       <h3 class="text-lg font-semibold text-gray-900 mb-2">No bookings found</h3>
       <p class="text-gray-600">
-        {{ filters.eventId || filters.status || filters.eventDate || filters.search ? 'Try adjusting your filters' : 'Bookings will appear here once customers book events' }}
+        {{ filters.categoryId || filters.status || filters.eventDate || filters.search ? 'Try adjusting your filters' : 'Bookings will appear here once customers book events' }}
       </p>
     </div>
 
@@ -122,9 +127,9 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="booking in filteredBookings" :key="booking.id" class="hover:bg-gray-50 transition-colors">
               <td class="px-4 sm:px-6 py-4">
-                <div class="text-sm font-medium text-gray-900">{{ booking.offering_event.offering.title }}</div>
+                <div class="text-sm font-medium text-gray-900">{{ booking.offering_event?.offering?.title || 'N/A' }}</div>
                 <div class="text-xs text-gray-500">
-                  {{ formatDate(booking.offering_event.event_date) }} at {{ booking.offering_event.event_start_time }}
+                  {{ formatDate(booking.offering_event?.event_date) }} at {{ booking.offering_event?.event_start_time || 'N/A' }}
                 </div>
                 <div class="md:hidden text-xs text-gray-500 mt-1">
                   {{ booking.customer_name }}
@@ -168,28 +173,31 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { supabase } from '../../lib/supabase'
+import { useEventCategories } from '../../composables/useEventCategories'
 
 const bookings = ref([])
-const events = ref([])
 const loading = ref(true)
 const error = ref(null)
 
+// Use event categories composable
+const { categories, hierarchicalCategories, fetchCategories } = useEventCategories()
+
 const filters = ref({
-  eventId: '',
+  categoryId: '',
   status: '',
   eventDate: '',
   search: ''
 })
 
-// Fetch all bookings
+// Fetch bookings with server-side filtering
 const fetchBookings = async () => {
   try {
     loading.value = true
     error.value = null
 
-    const { data, error: fetchError } = await supabase
+    let query = supabase
       .from('bookings')
       .select(`
         *,
@@ -198,14 +206,50 @@ const fetchBookings = async () => {
           id,
           event_date,
           event_start_time,
+          category_id,
           offering:offerings(title)
         )
       `)
-      .order('created_at', { ascending: false })
+
+    // Apply status filter at database level
+    if (filters.value.status) {
+      query = query.eq('status', filters.value.status)
+    }
+
+    // Apply search filter at database level
+    if (filters.value.search) {
+      const searchTerm = `%${filters.value.search}%`
+      query = query.or(`customer_name.ilike.${searchTerm},customer_email.ilike.${searchTerm}`)
+    }
+
+    const { data, error: fetchError } = await query.order('created_at', { ascending: false })
 
     if (fetchError) throw fetchError
 
-    bookings.value = data || []
+    // Debug: Check for bookings with missing offering_event
+    const missingEvents = (data || []).filter(b => !b.offering_event)
+    if (missingEvents.length > 0) {
+      console.warn(`⚠️  Found ${missingEvents.length} bookings with missing offering_event:`, missingEvents.slice(0, 3))
+    }
+
+    // Apply client-side filters (for nested relations that can't be filtered server-side)
+    let filteredData = data || []
+
+    // Category filter
+    if (filters.value.categoryId) {
+      filteredData = filteredData.filter(booking =>
+        booking.offering_event?.category_id === filters.value.categoryId
+      )
+    }
+
+    // Date filter
+    if (filters.value.eventDate) {
+      filteredData = filteredData.filter(booking =>
+        booking.offering_event?.event_date === filters.value.eventDate
+      )
+    }
+
+    bookings.value = filteredData
   } catch (err) {
     console.error('Error fetching bookings:', err)
     error.value = 'Failed to load bookings. Please try again.'
@@ -214,70 +258,17 @@ const fetchBookings = async () => {
   }
 }
 
-// Fetch all events for filter dropdown
-const fetchEvents = async () => {
-  try {
-    const { data, error: fetchError } = await supabase
-      .from('offering_events')
-      .select(`
-        id,
-        event_date,
-        offering:offerings(title)
-      `)
-      .order('event_date', { ascending: false })
-
-    if (fetchError) throw fetchError
-
-    events.value = data || []
-  } catch (err) {
-    console.error('Error fetching events:', err)
-  }
-}
-
-// Filtered bookings
-const filteredBookings = computed(() => {
-  return bookings.value.filter(booking => {
-    // Event filter
-    if (filters.value.eventId && booking.offering_event_id !== filters.value.eventId) {
-      return false
-    }
-
-    // Status filter
-    if (filters.value.status && booking.status !== filters.value.status) {
-      return false
-    }
-
-    // Date filter - exact date match
-    if (filters.value.eventDate) {
-      // Compare just the date part (YYYY-MM-DD) to avoid timezone issues
-      const eventDate = booking.offering_event.event_date
-      if (eventDate !== filters.value.eventDate) {
-        return false
-      }
-    }
-
-    // Search filter
-    if (filters.value.search) {
-      const searchLower = filters.value.search.toLowerCase()
-      return (
-        booking.customer_name?.toLowerCase().includes(searchLower) ||
-        booking.customer_email?.toLowerCase().includes(searchLower) ||
-        booking.order?.order_number?.toLowerCase().includes(searchLower)
-      )
-    }
-
-    return true
-  })
-})
+// Use bookings directly (no computed filter needed since we filter server-side)
+const filteredBookings = computed(() => bookings.value)
 
 // Check if any filters are active
 const hasActiveFilters = computed(() => {
-  return !!(filters.value.eventId || filters.value.status || filters.value.eventDate || filters.value.search)
+  return !!(filters.value.categoryId || filters.value.status || filters.value.eventDate || filters.value.search)
 })
 
 // Clear all filters
 const clearFilters = () => {
-  filters.value.eventId = ''
+  filters.value.categoryId = ''
   filters.value.status = ''
   filters.value.eventDate = ''
   filters.value.search = ''
@@ -317,9 +308,19 @@ const formatDateTime = (dateString) => {
   })
 }
 
-onMounted(() => {
-  fetchBookings()
-  fetchEvents()
+// Watch filters and refetch when they change
+watch(
+  () => [filters.value.categoryId, filters.value.status, filters.value.eventDate, filters.value.search],
+  () => {
+    fetchBookings()
+  }
+)
+
+onMounted(async () => {
+  await Promise.all([
+    fetchBookings(),
+    fetchCategories({ activeOnly: true })
+  ])
 })
 </script>
 
