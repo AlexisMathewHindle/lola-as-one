@@ -54,94 +54,92 @@
               </th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <template v-for="parent in parentCategories">
-              <!-- Parent Category Row -->
-              <tr :key="`parent-${parent.id}`" class="bg-gray-50">
-                <td class="px-4 sm:px-6 py-4">
-                  <div class="flex items-center">
-                    <span v-if="parent.icon" class="mr-2">
-                      <font-awesome-icon :icon="parent.icon" :style="{ color: parent.color_hex }" />
-                    </span>
-                    <span class="font-semibold text-gray-900">{{ parent.name }}</span>
-                  </div>
-                  <div class="md:hidden text-xs text-gray-500 mt-1">
-                    {{ parent.slug }}
-                  </div>
-                </td>
-                <td class="hidden md:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
+          <tbody v-for="parent in parentCategories" :key="`parent-${parent.id}`" class="bg-white divide-y divide-gray-200">
+            <!-- Parent Category Row -->
+            <tr class="bg-gray-50">
+              <td class="px-4 sm:px-6 py-4">
+                <div class="flex items-center">
+                  <span v-if="parent.icon" class="mr-2">
+                    <font-awesome-icon :icon="parent.icon" :style="{ color: parent.color_hex }" />
+                  </span>
+                  <span class="font-semibold text-gray-900">{{ parent.name }}</span>
+                </div>
+                <div class="md:hidden text-xs text-gray-500 mt-1">
                   {{ parent.slug }}
-                </td>
-                <td class="hidden lg:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
-                  {{ formatAgeRange(parent.age_range) }}
-                </td>
-                <td class="hidden xl:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
-                  {{ parent.display_order }}
-                </td>
-                <td class="px-4 sm:px-6 py-4">
-                  <span :class="parent.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
-                        class="px-2 py-1 text-xs font-medium rounded-full">
-                    {{ parent.is_active ? 'Active' : 'Inactive' }}
-                  </span>
-                </td>
-                <td class="px-4 sm:px-6 py-4 text-right text-sm font-medium">
-                  <button
-                    @click="openEditModal(parent)"
-                    class="text-primary-600 hover:text-primary-900 mr-2 sm:mr-3"
-                  >
-                    <font-awesome-icon icon="edit" />
-                  </button>
-                  <button
-                    @click="confirmDelete(parent)"
-                    class="text-red-600 hover:text-red-900"
-                  >
-                    <font-awesome-icon icon="trash" />
-                  </button>
-                </td>
-              </tr>
+                </div>
+              </td>
+              <td class="hidden md:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
+                {{ parent.slug }}
+              </td>
+              <td class="hidden lg:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
+                {{ formatAgeRange(parent.age_range) }}
+              </td>
+              <td class="hidden xl:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
+                {{ parent.display_order }}
+              </td>
+              <td class="px-4 sm:px-6 py-4">
+                <span :class="parent.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                      class="px-2 py-1 text-xs font-medium rounded-full">
+                  {{ parent.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="px-4 sm:px-6 py-4 text-right text-sm font-medium">
+                <button
+                  @click="openEditModal(parent)"
+                  class="text-primary-600 hover:text-primary-900 mr-2 sm:mr-3"
+                >
+                  <font-awesome-icon icon="edit" />
+                </button>
+                <button
+                  @click="confirmDelete(parent)"
+                  class="text-red-600 hover:text-red-900"
+                >
+                  <font-awesome-icon icon="trash" />
+                </button>
+              </td>
+            </tr>
 
-              <!-- Child Category Rows -->
-              <tr v-for="child in getChildCategories(parent.id)" :key="child.id">
-                <td class="px-4 sm:px-6 py-4">
-                  <div class="flex items-center pl-4 sm:pl-8">
-                    <span class="text-gray-400 mr-2">└─</span>
-                    <span class="text-gray-700">{{ child.name }}</span>
-                  </div>
-                  <div class="md:hidden text-xs text-gray-500 mt-1 pl-4 sm:pl-8">
-                    {{ child.slug }}
-                  </div>
-                </td>
-                <td class="hidden md:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
+            <!-- Child Category Rows -->
+            <tr v-for="child in getChildCategories(parent.id)" :key="child.id">
+              <td class="px-4 sm:px-6 py-4">
+                <div class="flex items-center pl-4 sm:pl-8">
+                  <span class="text-gray-400 mr-2">└─</span>
+                  <span class="text-gray-700">{{ child.name }}</span>
+                </div>
+                <div class="md:hidden text-xs text-gray-500 mt-1 pl-4 sm:pl-8">
                   {{ child.slug }}
-                </td>
-                <td class="hidden lg:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
-                  {{ formatAgeRange(child.age_range) }}
-                </td>
-                <td class="hidden xl:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
-                  {{ child.display_order }}
-                </td>
-                <td class="px-4 sm:px-6 py-4">
-                  <span :class="child.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
-                        class="px-2 py-1 text-xs font-medium rounded-full">
-                    {{ child.is_active ? 'Active' : 'Inactive' }}
-                  </span>
-                </td>
-                <td class="px-4 sm:px-6 py-4 text-right text-sm font-medium">
-                  <button
-                    @click="openEditModal(child)"
-                    class="text-primary-600 hover:text-primary-900 mr-2 sm:mr-3"
-                  >
-                    <font-awesome-icon icon="edit" />
-                  </button>
-                  <button
-                    @click="confirmDelete(child)"
-                    class="text-red-600 hover:text-red-900"
-                  >
-                    <font-awesome-icon icon="trash" />
-                  </button>
-                </td>
-              </tr>
-            </template>
+                </div>
+              </td>
+              <td class="hidden md:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
+                {{ child.slug }}
+              </td>
+              <td class="hidden lg:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
+                {{ formatAgeRange(child.age_range) }}
+              </td>
+              <td class="hidden xl:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
+                {{ child.display_order }}
+              </td>
+              <td class="px-4 sm:px-6 py-4">
+                <span :class="child.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                      class="px-2 py-1 text-xs font-medium rounded-full">
+                  {{ child.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="px-4 sm:px-6 py-4 text-right text-sm font-medium">
+                <button
+                  @click="openEditModal(child)"
+                  class="text-primary-600 hover:text-primary-900 mr-2 sm:mr-3"
+                >
+                  <font-awesome-icon icon="edit" />
+                </button>
+                <button
+                  @click="confirmDelete(child)"
+                  class="text-red-600 hover:text-red-900"
+                >
+                  <font-awesome-icon icon="trash" />
+                </button>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>

@@ -41,7 +41,7 @@
               v-model="formData.slug"
               type="text"
               required
-              pattern="[a-z0-9-]+"
+              pattern="[a-z0-9\-]+"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="e.g., open-studio-all-ages"
             >
@@ -233,6 +233,21 @@ const formData = ref({
   is_active: true
 })
 
+const resetForm = () => {
+  formData.value = {
+    name: '',
+    slug: '',
+    description: '',
+    parent_id: null,
+    age_min: null,
+    age_max: null,
+    display_order: 0,
+    color_hex: '',
+    icon: '',
+    is_active: true
+  }
+}
+
 // Watch for category changes (when editing)
 watch(() => props.category, (newCategory) => {
   if (newCategory) {
@@ -252,21 +267,6 @@ watch(() => props.category, (newCategory) => {
     resetForm()
   }
 }, { immediate: true })
-
-const resetForm = () => {
-  formData.value = {
-    name: '',
-    slug: '',
-    description: '',
-    parent_id: null,
-    age_min: null,
-    age_max: null,
-    display_order: 0,
-    color_hex: '',
-    icon: '',
-    is_active: true
-  }
-}
 
 const handleSubmit = async () => {
   try {

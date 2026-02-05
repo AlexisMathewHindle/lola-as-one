@@ -19,7 +19,8 @@ import {
   faBold, faItalic, faStrikethrough, faListUl, faListOl, faQuoteRight,
   faLink, faUnlink, faUndo, faRedo,
   faCalendarCheck, faArrowLeft, faCheckCircle, faTimesCircle, faPoundSign, faExclamationCircle,
-  faTh, faList, faPalette, faDownload, faShoppingBag, faSync, faLock, faMinus, faShieldAlt
+  faTh, faList, faPalette, faDownload, faShoppingBag, faSync, faLock, faMinus, faShieldAlt,
+  faBaby, faPaintBrush, faGift
 } from '@fortawesome/free-solid-svg-icons'
 import {
   faCalendar as faCalendarRegular,
@@ -39,6 +40,7 @@ library.add(
   faLink, faUnlink, faUndo, faRedo,
   faCalendarCheck, faArrowLeft, faCheckCircle, faTimesCircle, faPoundSign, faExclamationCircle,
   faTh, faList, faPalette, faDownload, faShoppingBag, faSync, faLock, faMinus, faShieldAlt,
+  faBaby, faPaintBrush, faGift,
   faCalendarRegular, faClockRegular
 )
 
