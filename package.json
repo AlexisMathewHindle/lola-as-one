@@ -1,0 +1,22 @@
+{
+  "name": "lola-as-one-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "migrate:products": "tsx scripts/migrate-woocommerce-products.ts",
+    "export-bookings": "node scripts/migration/5-export-bookings.js",
+    "transform-bookings": "node scripts/migration/6-transform-bookings.js",
+    "import-bookings": "node scripts/migration/7-import-bookings.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.93.3",
+    "csv-parse": "^5.6.0",
+    "dotenv": "^17.2.3",
+    "pg": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2"
+  }
+}

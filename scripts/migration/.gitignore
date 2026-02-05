@@ -1,0 +1,27 @@
+# Environment variables
+.env
+
+# Firebase credentials
+firebase-service-account.json
+*.json
+
+# Exports and logs
+exports/
+logs/
+
+# Node modules
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Exceptions - keep example files
+!.env.example
+!package.json
+!package-lock.json
+
