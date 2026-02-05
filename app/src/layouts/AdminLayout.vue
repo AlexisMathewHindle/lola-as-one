@@ -12,31 +12,26 @@
       class="w-64 bg-dark-900 border-r border-dark-800 fixed h-full overflow-y-auto z-50 transition-transform duration-300 ease-in-out"
       :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
     >
-      <!-- Sidebar Header -->
-      <div class="p-6 border-b border-dark-800">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-display font-bold text-white">
-              Lola Admin
-            </h1>
-            <p class="text-sm text-gray-400 mt-1">Content Management</p>
-          </div>
-          <button
-            @click="mobileMenuOpen = false"
-            class="lg:hidden text-gray-400 hover:text-white"
-          >
-            <font-awesome-icon icon="times" class="w-5 h-5" />
-          </button>
-        </div>
+      <!-- Sidebar Header - Compact -->
+      <div class="px-4 py-3 border-b border-dark-800 flex items-center justify-between">
+        <h1 class="text-lg font-display font-bold text-white">
+          Lola Admin
+        </h1>
+        <button
+          @click="mobileMenuOpen = false"
+          class="lg:hidden text-gray-400 hover:text-white"
+        >
+          <font-awesome-icon icon="times" class="w-5 h-5" />
+        </button>
       </div>
 
-      <nav class="px-3 py-6">
-        <div class="space-y-1">
+      <nav class="px-3 py-3">
+        <div class="space-y-0.5">
           <!-- Dashboard -->
           <router-link
             to="/admin"
             exact
-            class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
             :class="isActive('/admin', true) ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
             @click="mobileMenuOpen = false"
           >
@@ -47,7 +42,7 @@
           <!-- Offerings -->
           <router-link
             to="/admin/offerings"
-            class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
             :class="isActive('/admin/offerings') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
             @click="mobileMenuOpen = false"
           >
@@ -58,7 +53,7 @@
           <!-- Blog -->
           <router-link
             to="/admin/blog"
-            class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
             :class="isActive('/admin/blog') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
             @click="mobileMenuOpen = false"
           >
@@ -66,10 +61,12 @@
             Blog Posts
           </router-link>
 
+          <div class="border-t border-dark-800 my-2"></div>
+
           <!-- Waitlists -->
           <router-link
             to="/admin/waitlists"
-            class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
             :class="isActive('/admin/waitlists') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
             @click="mobileMenuOpen = false"
           >
@@ -80,20 +77,31 @@
           <!-- Booked Workshops -->
           <router-link
             to="/admin/events/bookings"
-            class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
-            :class="isActive('/admin/events') || isActive('/admin/bookings') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
+            :class="isActive('/admin/events/bookings') || isActive('/admin/bookings') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
             @click="mobileMenuOpen = false"
           >
             <font-awesome-icon icon="calendar-check" class="w-5 h-5 mr-3" />
             Booked Workshops
           </router-link>
 
-          <div class="border-t border-dark-800 my-4"></div>
+          <!-- Event Categories -->
+          <router-link
+            to="/admin/events/categories"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
+            :class="isActive('/admin/events/categories') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
+            @click="mobileMenuOpen = false"
+          >
+            <font-awesome-icon icon="tags" class="w-5 h-5 mr-3" />
+            Event Categories
+          </router-link>
+
+          <div class="border-t border-dark-800 my-2"></div>
 
           <!-- Orders -->
           <router-link
             to="/admin/orders"
-            class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
             :class="isActive('/admin/orders') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
             @click="mobileMenuOpen = false"
           >
@@ -104,7 +112,7 @@
           <!-- Subscriptions -->
           <router-link
             to="/admin/subscriptions"
-            class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
             :class="isActive('/admin/subscriptions') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
             @click="mobileMenuOpen = false"
           >
@@ -112,12 +120,12 @@
             Subscriptions
           </router-link>
 
-          <div class="border-t border-dark-800 my-4"></div>
+          <div class="border-t border-dark-800 my-2"></div>
 
           <!-- Customers -->
           <router-link
             to="/admin/customers"
-            class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
             :class="isActive('/admin/customers') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
             @click="mobileMenuOpen = false"
           >
@@ -128,7 +136,7 @@
           <!-- Inventory -->
           <router-link
             to="/admin/inventory"
-            class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
             :class="isActive('/admin/inventory') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
             @click="mobileMenuOpen = false"
           >
@@ -139,7 +147,7 @@
           <!-- Analytics -->
           <router-link
             to="/admin/analytics"
-            class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
             :class="isActive('/admin/analytics') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
             @click="mobileMenuOpen = false"
           >
@@ -150,7 +158,7 @@
           <!-- Reviews -->
           <router-link
             to="/admin/reviews"
-            class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
             :class="isActive('/admin/reviews') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
             @click="mobileMenuOpen = false"
           >
@@ -158,12 +166,12 @@
             Reviews
           </router-link>
 
-          <div class="border-t border-dark-800 my-4"></div>
+          <div class="border-t border-dark-800 my-2"></div>
 
           <!-- Settings -->
           <router-link
             to="/admin/settings"
-            class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
             :class="isActive('/admin/settings') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
             @click="mobileMenuOpen = false"
           >
@@ -172,6 +180,9 @@
           </router-link>
         </div>
       </nav>
+
+      <!-- Bottom padding to ensure last item is visible -->
+      <div class="h-6"></div>
     </aside>
 
     <!-- Main Content -->
@@ -231,6 +242,7 @@ const pageTitle = computed(() => {
     '/admin/blog': 'Blog Posts',
     '/admin/waitlists': 'Waitlists',
     '/admin/events/bookings': 'Booked Workshops',
+    '/admin/events/categories': 'Event Categories',
     '/admin/events': 'Event Details',
     '/admin/bookings': 'Booking Details',
     '/admin/orders': 'Orders',
