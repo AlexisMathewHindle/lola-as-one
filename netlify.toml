@@ -1,0 +1,61 @@
+# Netlify Configuration for Lola As One
+# This configuration sets up:
+# - Production deploys from 'main' branch → lola-as-one.netlify.app
+# - Staging deploys from 'staging' branch → staging--lola-as-one.netlify.app
+# - Deploy previews for all other branches/PRs
+
+[build]
+  # Build command for the Vue app
+  base = "app"
+  command = "npm run build"
+  publish = "dist"
+
+# Production context (main branch)
+[context.production]
+  command = "npm run build"
+  
+  [context.production.environment]
+    NODE_VERSION = "20"
+    VITE_APP_URL = "https://lola-as-one.netlify.app"
+
+# Staging context (staging branch) - This gives you a stable URL!
+[context.staging]
+  command = "npm run build"
+  
+  [context.staging.environment]
+    NODE_VERSION = "20"
+    # Use staging environment variables
+    VITE_APP_URL = "https://staging--lola-as-one.netlify.app"
+
+# Deploy previews (all other branches and PRs)
+[context.deploy-preview]
+  command = "npm run build"
+  
+  [context.deploy-preview.environment]
+    NODE_VERSION = "20"
+
+# Branch deploys - enable for specific branches
+[context.branch-deploy]
+  command = "npm run build"
+
+# Redirects for SPA (Vue Router)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
