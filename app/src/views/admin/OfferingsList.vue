@@ -112,8 +112,19 @@
               <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Price
               </th>
-              <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Details
+              <th
+                class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                :class="{ 'cursor-pointer hover:bg-gray-100 transition-colors': canSortByEventDate }"
+                @click="toggleEventDateSort"
+              >
+                <div class="flex items-center space-x-1">
+                  <span>Details</span>
+                  <font-awesome-icon
+                    v-if="canSortByEventDate"
+                    :icon="sortByEventDate ? 'arrow-down' : 'arrow-up'"
+                    class="w-3 h-3 text-primary-600"
+                  />
+                </div>
               </th>
               <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Status
@@ -222,7 +233,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { supabase } from '../../lib/supabase'
 import { useToastStore } from '../../stores/toast'
 
@@ -234,6 +245,15 @@ const filters = ref({
   type: '',
   status: '',
   search: ''
+})
+
+const sortByEventDate = ref(false)
+
+// Watch for type filter changes to auto-enable descending sort for events
+watch(() => filters.value.type, (newType) => {
+  if (newType === 'event') {
+    sortByEventDate.value = true
+  }
 })
 
 const fetchOfferings = async () => {
@@ -268,26 +288,46 @@ const fetchOfferings = async () => {
 }
 
 const filteredOfferings = computed(() => {
-  return offerings.value.filter(offering => {
+  let filtered = offerings.value.filter(offering => {
     // Type filter
     if (filters.value.type && offering.type !== filters.value.type) {
       return false
     }
-    
+
     // Status filter
     if (filters.value.status && offering.status !== filters.value.status) {
       return false
     }
-    
+
     // Search filter
     if (filters.value.search) {
       const searchLower = filters.value.search.toLowerCase()
       return offering.title.toLowerCase().includes(searchLower) ||
              offering.slug.toLowerCase().includes(searchLower)
     }
-    
+
     return true
   })
+
+  // Sort by event date if filtering events only (always sort events by date descending)
+  if (filters.value.type === 'event') {
+    filtered = filtered.sort((a, b) => {
+      const eventA = Array.isArray(a.offering_events) ? a.offering_events[0] : a.offering_events
+      const eventB = Array.isArray(b.offering_events) ? b.offering_events[0] : b.offering_events
+
+      if (!eventA?.event_date) return 1
+      if (!eventB?.event_date) return -1
+
+      // Sort descending (newest first) if sortByEventDate is true, otherwise ascending
+      if (sortByEventDate.value) {
+        return new Date(eventB.event_date) - new Date(eventA.event_date)
+      } else {
+        return new Date(eventA.event_date) - new Date(eventB.event_date)
+      }
+    })
+  }
+
+  return filtered
 })
 
 // Check if any filters are active
@@ -300,6 +340,19 @@ const clearFilters = () => {
   filters.value.type = ''
   filters.value.status = ''
   filters.value.search = ''
+  sortByEventDate.value = false
+}
+
+// Check if we should show the sort option for Details column
+const canSortByEventDate = computed(() => {
+  return filters.value.type === 'event'
+})
+
+// Toggle sort by event date
+const toggleEventDateSort = () => {
+  if (canSortByEventDate.value) {
+    sortByEventDate.value = !sortByEventDate.value
+  }
 }
 
 const getTypeIcon = (type) => {

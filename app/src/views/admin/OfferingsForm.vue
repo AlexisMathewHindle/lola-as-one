@@ -675,12 +675,15 @@ const saveEventData = async (offeringId) => {
     location_city: typeSpecificData.value.location_city || null,
     location_postcode: typeSpecificData.value.location_postcode || null,
     max_capacity: typeSpecificData.value.max_capacity,
+    available_spaces: typeSpecificData.value.available_spaces || typeSpecificData.value.max_capacity,
     current_bookings: typeSpecificData.value.current_bookings || 0,
     price_gbp: typeSpecificData.value.price_gbp,
     vat_rate: 20.00,
     waitlist_enabled: typeSpecificData.value.waitlist_enabled ?? false,
     category_id: typeSpecificData.value.category_id || null
   }
+
+  let eventId
 
   if (isEdit.value) {
     // Check if event data exists
@@ -691,6 +694,7 @@ const saveEventData = async (offeringId) => {
       .single()
 
     if (existing) {
+      eventId = existing.id
       const { error } = await supabase
         .from('offering_events')
         .update(eventData)
@@ -698,19 +702,46 @@ const saveEventData = async (offeringId) => {
 
       if (error) throw error
     } else {
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from('offering_events')
         .insert(eventData)
+        .select('id')
+        .single()
 
       if (error) throw error
+      eventId = inserted.id
     }
   } else {
-    const { error } = await supabase
+    const { data: inserted, error } = await supabase
       .from('offering_events')
       .insert(eventData)
+      .select('id')
+      .single()
 
     if (error) throw error
+    eventId = inserted.id
   }
+
+  // Sync event_capacity table with available_spaces
+  // The event_capacity table is the source of truth for real-time capacity tracking
+  const availableSpaces = typeSpecificData.value.available_spaces || typeSpecificData.value.max_capacity
+
+  console.log('🔄 Syncing event_capacity for event:', eventId)
+  console.log('📊 Available spaces to set:', availableSpaces)
+
+  // Use RPC function to update event_capacity (bypasses RLS with SECURITY DEFINER)
+  const { error: rpcError } = await supabase.rpc('update_event_capacity_total', {
+    p_offering_event_id: eventId,
+    p_total_capacity: availableSpaces,
+    p_waitlist_enabled: typeSpecificData.value.waitlist_enabled ?? false
+  })
+
+  if (rpcError) {
+    console.error('❌ Error updating event_capacity via RPC:', rpcError)
+    throw rpcError
+  }
+
+  console.log('✅ Successfully updated event_capacity total_capacity to', availableSpaces)
 }
 
 const saveProductData = async (offeringId) => {
@@ -941,6 +972,19 @@ const loadTypeSpecificData = async (offeringId, type, metadata) => {
     if (error && error.code !== 'PGRST116') throw error // PGRST116 = no rows
 
     if (data) {
+      // Load event_capacity to get the real-time available spaces
+      const { data: capacityData } = await supabase
+        .from('event_capacity')
+        .select('total_capacity, spaces_booked, waitlist_enabled')
+        .eq('offering_event_id', data.id)
+        .single()
+
+      // Use event_capacity.total_capacity as the source of truth for available_spaces
+      // Fall back to offering_events.available_spaces or max_capacity if capacity record doesn't exist
+      const availableSpaces = capacityData?.total_capacity ?? data.available_spaces ?? data.max_capacity
+      const currentBookings = capacityData?.spaces_booked ?? data.current_bookings ?? 0
+      const waitlistEnabled = capacityData?.waitlist_enabled ?? data.waitlist_enabled ?? false
+
       typeSpecificData.value = {
         event_date: data.event_date,
         event_start_time: data.event_start_time,
@@ -950,10 +994,11 @@ const loadTypeSpecificData = async (offeringId, type, metadata) => {
         location_city: data.location_city,
         location_postcode: data.location_postcode,
         max_capacity: data.max_capacity,
-        current_bookings: data.current_bookings,
+        available_spaces: availableSpaces,
+        current_bookings: currentBookings,
         price_gbp: parseFloat(data.price_gbp),
         category_id: data.category_id || '',
-        waitlist_enabled: data.waitlist_enabled ?? false
+        waitlist_enabled: waitlistEnabled
       }
     }
   } else if (type === 'product_physical') {

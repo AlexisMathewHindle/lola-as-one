@@ -310,6 +310,7 @@ import { useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cart'
 import { useToastStore } from '../stores/toast'
 import { loadStripe } from '@stripe/stripe-js'
+import { supabase } from '../lib/supabase'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -447,12 +448,42 @@ const handleCheckout = async () => {
       throw error
     }
 
+    if (!data || !data.url) {
+      throw new Error('Invalid response from checkout service')
+    }
+
     // Redirect to Stripe Checkout
     window.location.href = data.url
 
   } catch (err) {
     console.error('Checkout error:', err)
-    toastStore.error('Failed to process checkout. Please try again.')
+
+    // Extract the error message from the response
+    let errorMessage = 'Failed to process checkout. Please try again.'
+
+    if (err.context?.body) {
+      try {
+        const errorBody = typeof err.context.body === 'string'
+          ? JSON.parse(err.context.body)
+          : err.context.body
+        errorMessage = errorBody.error || errorMessage
+      } catch (parseError) {
+        console.error('Error parsing error response:', parseError)
+      }
+    } else if (err.message) {
+      errorMessage = err.message
+    }
+
+    // Provide specific guidance for stock/capacity errors
+    if (errorMessage.includes('Insufficient stock')) {
+      const match = errorMessage.match(/Insufficient stock for (.+)/)
+      const productName = match ? match[1] : 'one or more items'
+      toastStore.error(`${productName} is out of stock. Please remove it from your cart and try again.`)
+    } else if (errorMessage.includes('Insufficient capacity')) {
+      toastStore.error(errorMessage + ' Please reduce the number of attendees.')
+    } else {
+      toastStore.error(errorMessage)
+    }
   } finally {
     processing.value = false
   }

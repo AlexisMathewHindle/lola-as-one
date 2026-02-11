@@ -15,7 +15,20 @@ serve(async (req) => {
 
   try {
     // Initialize Stripe
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY') || ''
+
+    // Debug logging (remove after testing)
+    console.log('Stripe key check:', {
+      hasKey: !!stripeKey,
+      keyPrefix: stripeKey.substring(0, 7),
+      keyLength: stripeKey.length
+    })
+
+    if (!stripeKey || stripeKey === '12345678') {
+      throw new Error('Stripe API key is not configured. Please set STRIPE_SECRET_KEY in Supabase secrets.')
+    }
+
+    const stripe = new Stripe(stripeKey, {
       apiVersion: '2024-11-20.acacia',
       httpClient: Stripe.createFetchHttpClient(),
     })
@@ -57,15 +70,45 @@ serve(async (req) => {
           throw new Error(`Insufficient stock for ${item.title}`)
         }
       } else if (item.type === 'event') {
-        // Check event capacity
-        const { data: capacity, error } = await supabase
-          .from('event_capacity')
-          .select('spaces_available')
-          .eq('offering_event_id', item.id)
+        // First, get the offering_event record to find the offering_event_id
+        const { data: offeringEvent, error: eventError } = await supabase
+          .from('offering_events')
+          .select('id, max_capacity, current_bookings')
+          .eq('offering_id', item.id)
           .single()
 
-        if (error || !capacity || capacity.spaces_available < item.quantity) {
-          throw new Error(`Insufficient capacity for ${item.title}`)
+        if (eventError || !offeringEvent) {
+          console.error('Error fetching offering_event:', eventError)
+          throw new Error(`Event not found: ${item.title}`)
+        }
+
+        // Check if there's an event_capacity record
+        const { data: capacity, error: capacityError } = await supabase
+          .from('event_capacity')
+          .select('spaces_available')
+          .eq('offering_event_id', offeringEvent.id)
+          .maybeSingle()
+
+        // Use event_capacity if it exists, otherwise fall back to offering_events
+        let availableSpaces
+        if (capacity && !capacityError) {
+          availableSpaces = capacity.spaces_available
+        } else {
+          // Fallback: calculate from offering_events
+          availableSpaces = offeringEvent.max_capacity - offeringEvent.current_bookings
+        }
+
+        console.log(`Event capacity check for ${item.title}:`, {
+          offering_id: item.id,
+          offering_event_id: offeringEvent.id,
+          max_capacity: offeringEvent.max_capacity,
+          current_bookings: offeringEvent.current_bookings,
+          available_spaces: availableSpaces,
+          requested_quantity: item.quantity
+        })
+
+        if (availableSpaces < item.quantity) {
+          throw new Error(`Insufficient capacity for ${item.title}. Only ${availableSpaces} spaces available.`)
         }
       }
     }
@@ -117,6 +160,26 @@ serve(async (req) => {
       })
     }
 
+    // Prepare items for metadata (without attendees to avoid 500 char limit)
+    console.log('📦 Original items:', JSON.stringify(items))
+    const itemsForMetadata = items.map((item: any) => {
+      const { attendees, ...itemWithoutAttendees } = item
+      return itemWithoutAttendees
+    })
+    console.log('📦 Items without attendees:', JSON.stringify(itemsForMetadata))
+    console.log('📦 Items metadata length:', JSON.stringify(itemsForMetadata).length)
+
+    // Prepare attendees data separately (only for items that have attendees)
+    const attendeesData: Record<string, any> = {}
+    items.forEach((item: any, index: number) => {
+      if (item.attendees && item.attendees.length > 0) {
+        const attendeesJson = JSON.stringify(item.attendees)
+        console.log(`👥 Item ${index} attendees (${attendeesJson.length} chars):`, attendeesJson)
+        attendeesData[`item_${index}_attendees`] = attendeesJson
+      }
+    })
+    console.log('📦 Attendees data keys:', Object.keys(attendeesData))
+
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomer.id,
@@ -135,11 +198,12 @@ serve(async (req) => {
         shipping_city: shipping?.address?.city || '',
         shipping_postal_code: shipping?.address?.postal_code || '',
         shipping_country: shipping?.address?.country || 'GB',
-        items: JSON.stringify(items),
+        items: JSON.stringify(itemsForMetadata),
         subtotal: subtotal.toFixed(2),
         shipping_cost: shippingCost.toFixed(2),
         vat: vat.toFixed(2),
         total: total.toFixed(2),
+        ...attendeesData, // Spread attendees data as separate metadata fields
       },
     })
 

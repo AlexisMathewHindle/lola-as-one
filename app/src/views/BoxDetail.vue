@@ -259,7 +259,7 @@
               <div>
                 <span class="text-gray-500">Stock:</span>
                 <span class="ml-2 font-medium text-gray-900">
-                  {{ box.track_inventory ? `${box.stock_quantity} units` : 'Unlimited' }}
+                  {{ box.track_inventory ? `${actualInventory} units` : 'Unlimited' }}
                 </span>
               </div>
               <div v-if="box.weight_grams">
@@ -336,7 +336,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import { useCartStore } from '../stores/cart'
@@ -368,7 +368,8 @@ const fetchBox = async () => {
       .from('offering_products')
       .select(`
         *,
-        offering:offerings!inner(*)
+        offering:offerings!inner(*),
+        inventory:inventory_items!offering_product_id(quantity_available, quantity_reserved)
       `)
       .eq('offering.slug', route.params.slug)
       .in('offering.type', ['product_physical', 'subscription'])
@@ -422,21 +423,59 @@ const fetchRelatedBoxes = async () => {
   }
 }
 
+// Computed: Get actual inventory quantity
+const actualInventory = computed(() => {
+  if (!box.value) return 0
+
+  // Debug logging
+  console.log('📦 actualInventory computed:', {
+    hasInventory: !!box.value.inventory,
+    inventoryLength: box.value.inventory?.length,
+    inventoryData: box.value.inventory,
+    stock_quantity: box.value.stock_quantity
+  })
+
+  // Use inventory_items quantity if available, otherwise fall back to stock_quantity
+  if (box.value.inventory && box.value.inventory.length > 0) {
+    const qty = box.value.inventory[0].quantity_available || 0
+    console.log('✅ Using inventory.quantity_available:', qty)
+    return qty
+  }
+
+  console.log('⚠️ Falling back to stock_quantity:', box.value.stock_quantity)
+  return box.value.stock_quantity || 0
+})
+
 // Computed: Stock status
 const isOutOfStock = computed(() => {
   if (!box.value) return false
-  return box.value.track_inventory && box.value.stock_quantity === 0
+  if (!box.value.track_inventory) return false
+  return actualInventory.value === 0
 })
 
 const stockStatus = computed(() => {
   if (!box.value) return 'in-stock'
   if (!box.value.track_inventory) return 'in-stock'
 
-  if (box.value.stock_quantity === 0) {
+  const qty = actualInventory.value
+
+  console.log('🎯 stockStatus computed:', {
+    qty,
+    qtyType: typeof qty,
+    low_stock_threshold: box.value.low_stock_threshold,
+    thresholdType: typeof box.value.low_stock_threshold,
+    track_inventory: box.value.track_inventory,
+    comparison: qty <= box.value.low_stock_threshold
+  })
+
+  if (qty === 0) {
+    console.log('❌ Status: out-of-stock')
     return 'out-of-stock'
-  } else if (box.value.stock_quantity <= box.value.low_stock_threshold) {
+  } else if (qty <= box.value.low_stock_threshold) {
+    console.log('⚠️ Status: low-stock')
     return 'low-stock'
   }
+  console.log('✅ Status: in-stock')
   return 'in-stock'
 })
 
@@ -444,11 +483,12 @@ const stockStatusText = computed(() => {
   if (!box.value) return ''
 
   const status = stockStatus.value
+  const qty = actualInventory.value
 
   if (status === 'out-of-stock') {
     return 'Out of Stock'
   } else if (status === 'low-stock') {
-    return `Only ${box.value.stock_quantity} left in stock`
+    return `Only ${qty} left in stock`
   }
   return 'In Stock'
 })
@@ -478,7 +518,7 @@ const stockStatusIcon = computed(() => {
 // Computed: Max quantity
 const maxQuantity = computed(() => {
   if (!box.value || !box.value.track_inventory) return 10
-  return Math.min(10, box.value.stock_quantity)
+  return Math.min(10, actualInventory.value)
 })
 
 // Computed: Total price

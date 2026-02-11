@@ -13,6 +13,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🔍 get-order-by-session called')
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
@@ -22,11 +24,14 @@ serve(async (req) => {
     const url = new URL(req.url)
     const sessionId = url.searchParams.get('session_id')
 
+    console.log('Looking for session_id:', sessionId)
+
     if (!sessionId) {
       throw new Error('session_id parameter is required')
     }
 
     // Fetch order by Stripe session ID
+    console.log('Querying orders table for stripe_checkout_session_id:', sessionId)
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
@@ -48,9 +53,15 @@ serve(async (req) => {
       .eq('stripe_checkout_session_id', sessionId)
       .single()
 
+    console.log('Order query result:', { order, orderError })
+
     if (orderError || !order) {
+      console.error('❌ Order not found for session:', sessionId)
+      console.error('Error details:', orderError)
       throw new Error('Order not found')
     }
+
+    console.log('✅ Found order:', order.order_number)
 
     // Fetch order items
     const { data: orderItems, error: itemsError } = await supabase

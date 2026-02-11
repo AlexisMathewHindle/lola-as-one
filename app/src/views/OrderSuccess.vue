@@ -342,15 +342,22 @@ const fetchOrderDetails = async () => {
     }
 
     // Call Supabase Edge Function to fetch order
-    const { data, error: fetchError } = await supabase.functions.invoke('get-order-by-session', {
-      method: 'GET',
-      body: { session_id: sessionId }
-    })
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-order-by-session?session_id=${sessionId}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        }
+      }
+    )
 
-    if (fetchError) {
-      console.error('Error fetching order:', fetchError)
-      throw fetchError
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Failed to fetch order')
     }
+
+    const data = await response.json()
 
     if (!data) {
       throw new Error('Order not found')
@@ -376,7 +383,20 @@ const fetchOrderDetails = async () => {
 
   } catch (err) {
     console.error('Error fetching order:', err)
-    error.value = 'Failed to load order details. Please check your email for confirmation.'
+    console.error('Full error details:', JSON.stringify(err, null, 2))
+
+    // More detailed error message
+    if (err.message && err.message.includes('not found')) {
+      error.value = 'Order is being processed. This page will automatically refresh in a few seconds...'
+
+      // Auto-retry after 3 seconds (webhook might still be processing)
+      setTimeout(() => {
+        console.log('Retrying order fetch...')
+        fetchOrderDetails()
+      }, 3000)
+    } else {
+      error.value = 'Failed to load order details. Please check your email for confirmation.'
+    }
   } finally {
     loading.value = false
   }

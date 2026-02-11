@@ -10,7 +10,7 @@ export const useCartStore = defineStore('cart', () => {
   const itemCount = computed(() => items.value.reduce((total, item) => total + item.quantity, 0))
   const subtotal = computed(() => items.value.reduce((total, item) => total + (item.price * item.quantity), 0))
 
-  function addItem(product, quantity = 1, variantId = null) {
+  function addItem(product, quantity = 1, variantId = null, attendees = null) {
     // Handle both old and new product structures
     const productId = product.id || product.productId
     const productName = product.title || product.name
@@ -24,6 +24,10 @@ export const useCartStore = defineStore('cart', () => {
 
     if (existingItem) {
       existingItem.quantity += quantity
+      // If attendees are provided, update them
+      if (attendees && product.type === 'event') {
+        existingItem.attendees = attendees
+      }
       // Show toast for updated quantity
       toastStore.success(`Updated ${productName} quantity to ${existingItem.quantity}`)
     } else {
@@ -41,7 +45,9 @@ export const useCartStore = defineStore('cart', () => {
         eventDate: product.eventDate,
         eventTime: product.eventTime,
         // Optional: subscription configuration for subscription items
-        subscriptionConfig: product.subscriptionConfig || null
+        subscriptionConfig: product.subscriptionConfig || null,
+        // Store attendee details for events
+        attendees: attendees || null
       })
       // Show toast for new item
       const quantityText = quantity > 1 ? `${quantity} x ` : ''

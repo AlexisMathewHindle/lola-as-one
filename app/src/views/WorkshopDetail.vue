@@ -642,7 +642,7 @@ const handleBooking = async () => {
   try {
     submitting.value = true
 
-    // Add workshop to cart
+    // Add workshop to cart with attendee details
     cartStore.addItem({
       id: workshop.value.offering.id,
       type: 'event',
@@ -653,7 +653,7 @@ const handleBooking = async () => {
       slug: workshop.value.offering.slug,
       eventDate: workshop.value.event_date,
       eventTime: workshop.value.event_time
-    }, bookingForm.value.numberOfAttendees)
+    }, bookingForm.value.numberOfAttendees, null, bookingForm.value.attendees)
 
     // Navigate to cart
     router.push('/cart')

@@ -101,19 +101,24 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">
-          Max Capacity <span class="text-red-500">*</span>
+          Max Capacity (Physical Limit) <span class="text-red-500">*</span>
         </label>
-        <input
-          :value="modelValue.max_capacity"
-          @input="updateField('max_capacity', parseInt($event.target.value) || 0)"
-          type="number"
-          required
-          min="1"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-          placeholder="e.g., 12"
-        >
+        <div class="relative">
+          <input
+            :value="modelValue.max_capacity"
+            @input="updateField('max_capacity', parseInt($event.target.value) || 0)"
+            type="number"
+            required
+            :min="Math.max(modelValue.current_bookings || 0, modelValue.available_spaces || 0, 1)"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            placeholder="e.g., 12"
+          >
+        </div>
+        <p class="text-xs text-gray-500 mt-1">
+          The maximum physical capacity of the venue/space
+        </p>
       </div>
-      
+
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">
           Price (£) <span class="text-red-500">*</span>
@@ -128,6 +133,84 @@
           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
           placeholder="e.g., 45.00"
         >
+      </div>
+    </div>
+
+    <!-- Available Spaces (Inventory Control) -->
+    <div class="border-t border-gray-200 pt-4">
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+        <div class="flex items-start mb-3">
+          <font-awesome-icon icon="warehouse" class="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+          <div class="flex-1">
+            <h4 class="text-sm font-semibold text-gray-900 mb-1">Available Spaces (Inventory Control)</h4>
+            <p class="text-xs text-gray-600">
+              Control how many spaces are available for booking. Set this lower than max capacity to limit sales.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Available Spaces <span class="text-red-500">*</span>
+            </label>
+            <input
+              :value="modelValue.available_spaces"
+              @input="updateField('available_spaces', parseInt($event.target.value) || 0)"
+              type="number"
+              required
+              :min="modelValue.current_bookings || 0"
+              :max="modelValue.max_capacity"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              :class="{ 'border-yellow-400 bg-yellow-50': modelValue.available_spaces < modelValue.max_capacity }"
+              placeholder="e.g., 10"
+            >
+            <div class="mt-2 space-y-1">
+              <p class="text-xs text-gray-600">
+                <span class="font-medium">Current bookings:</span> {{ modelValue.current_bookings || 0 }}
+              </p>
+              <p class="text-xs text-gray-600">
+                <span class="font-medium">Spaces remaining:</span>
+                <span :class="spacesRemaining <= 0 ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'">
+                  {{ spacesRemaining }}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center">
+            <div class="bg-white rounded-lg p-4 border border-gray-200 w-full">
+              <div class="text-xs text-gray-600 space-y-2">
+                <div class="flex items-center">
+                  <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                  <span><strong>Max Capacity:</strong> {{ modelValue.max_capacity || 0 }}</span>
+                </div>
+                <div class="flex items-center">
+                  <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                  <span><strong>Available:</strong> {{ modelValue.available_spaces || 0 }}</span>
+                </div>
+                <div class="flex items-center">
+                  <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                  <span><strong>Booked:</strong> {{ modelValue.current_bookings || 0 }}</span>
+                </div>
+                <div class="flex items-center">
+                  <div class="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
+                  <span><strong>Remaining:</strong> {{ spacesRemaining }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Warning if available < max -->
+        <div v-if="modelValue.available_spaces < modelValue.max_capacity" class="mt-3 p-2 bg-yellow-100 border border-yellow-300 rounded-md">
+          <div class="flex items-start">
+            <font-awesome-icon icon="exclamation-triangle" class="w-4 h-4 text-yellow-700 mt-0.5 mr-2 flex-shrink-0" />
+            <p class="text-xs text-yellow-800">
+              <strong>Limited availability:</strong> You're only making {{ modelValue.available_spaces }} out of {{ modelValue.max_capacity }} spaces available for booking.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
     
@@ -189,7 +272,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, onMounted } from 'vue'
+import { defineProps, defineEmits, onMounted, computed } from 'vue'
 import { useEventCategories } from '../../composables/useEventCategories'
 
 const props = defineProps({
@@ -204,6 +287,7 @@ const props = defineProps({
       location_city: '',
       location_postcode: '',
       max_capacity: 12,
+      available_spaces: 12,
       price_gbp: 0,
       category_id: '',
       current_bookings: 0,
@@ -222,6 +306,20 @@ const {
   loading: categoriesLoading,
   error: categoriesError
 } = useEventCategories()
+
+// Computed property for available spaces (old - based on max_capacity)
+const availableSpaces = computed(() => {
+  const capacity = props.modelValue.max_capacity || 0
+  const booked = props.modelValue.current_bookings || 0
+  return Math.max(0, capacity - booked)
+})
+
+// Computed property for spaces remaining (new - based on available_spaces)
+const spacesRemaining = computed(() => {
+  const available = props.modelValue.available_spaces || 0
+  const booked = props.modelValue.current_bookings || 0
+  return Math.max(0, available - booked)
+})
 
 // Fetch categories on mount
 onMounted(async () => {
