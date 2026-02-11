@@ -83,6 +83,32 @@
           </div>
         </div>
       </div>
+
+      <!-- Event Date Filters (shown only when filtering by events) -->
+      <div v-if="filters.type === 'event'" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            <font-awesome-icon icon="calendar" class="w-3 h-3 mr-1 text-gray-500" />
+            Event Date From
+          </label>
+          <input
+            v-model="filters.eventDateFrom"
+            type="date"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            <font-awesome-icon icon="calendar" class="w-3 h-3 mr-1 text-gray-500" />
+            Event Date To
+          </label>
+          <input
+            v-model="filters.eventDateTo"
+            type="date"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          />
+        </div>
+      </div>
     </div>
     
     <!-- Offerings Table -->
@@ -159,15 +185,26 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex items-center justify-end space-x-3">
+                  <!-- View Attendees button for events -->
+                  <router-link
+                    v-if="offering.type === 'event' && getEventId(offering)"
+                    :to="`/admin/events/${getEventId(offering)}`"
+                    class="text-blue-600 hover:text-blue-800 transition-colors"
+                    title="View Attendees"
+                  >
+                    <font-awesome-icon icon="users" class="w-4 h-4" />
+                  </router-link>
                   <router-link
                     :to="`/admin/offerings/${offering.id}/edit`"
                     class="text-primary-600 hover:text-primary-800 transition-colors"
+                    title="Edit"
                   >
                     <font-awesome-icon icon="edit" class="w-4 h-4" />
                   </router-link>
                   <button
                     @click="deleteOffering(offering)"
                     class="text-red-600 hover:text-red-800 transition-colors"
+                    title="Delete"
                   >
                     <font-awesome-icon icon="trash" class="w-4 h-4" />
                   </button>
@@ -210,6 +247,15 @@
               </div>
             </div>
             <div class="flex items-center space-x-3 pt-3 border-t border-gray-100">
+              <!-- View Attendees button for events (mobile) -->
+              <router-link
+                v-if="offering.type === 'event' && getEventId(offering)"
+                :to="`/admin/events/${getEventId(offering)}`"
+                class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
+              >
+                <font-awesome-icon icon="users" class="w-4 h-4 mr-2" />
+                Attendees
+              </router-link>
               <router-link
                 :to="`/admin/offerings/${offering.id}/edit`"
                 class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors text-sm font-medium"
@@ -244,7 +290,9 @@ const loading = ref(true)
 const filters = ref({
   type: '',
   status: '',
-  search: ''
+  search: '',
+  eventDateFrom: '',
+  eventDateTo: ''
 })
 
 const sortByEventDate = ref(false)
@@ -309,8 +357,36 @@ const filteredOfferings = computed(() => {
     return true
   })
 
-  // Sort by event date if filtering events only (always sort events by date descending)
+  // Apply event date filters if filtering by events
   if (filters.value.type === 'event') {
+    // Filter by date range
+    if (filters.value.eventDateFrom || filters.value.eventDateTo) {
+      filtered = filtered.filter(offering => {
+        const event = Array.isArray(offering.offering_events)
+          ? offering.offering_events[0]
+          : offering.offering_events
+
+        if (!event?.event_date) return false
+
+        const eventDate = new Date(event.event_date)
+
+        // Check date from
+        if (filters.value.eventDateFrom) {
+          const dateFrom = new Date(filters.value.eventDateFrom)
+          if (eventDate < dateFrom) return false
+        }
+
+        // Check date to
+        if (filters.value.eventDateTo) {
+          const dateTo = new Date(filters.value.eventDateTo)
+          if (eventDate > dateTo) return false
+        }
+
+        return true
+      })
+    }
+
+    // Sort by event date (always sort events by date descending)
     filtered = filtered.sort((a, b) => {
       const eventA = Array.isArray(a.offering_events) ? a.offering_events[0] : a.offering_events
       const eventB = Array.isArray(b.offering_events) ? b.offering_events[0] : b.offering_events
@@ -332,7 +408,8 @@ const filteredOfferings = computed(() => {
 
 // Check if any filters are active
 const hasActiveFilters = computed(() => {
-  return !!(filters.value.type || filters.value.status || filters.value.search)
+  return !!(filters.value.type || filters.value.status || filters.value.search ||
+            filters.value.eventDateFrom || filters.value.eventDateTo)
 })
 
 // Clear all filters
@@ -340,6 +417,8 @@ const clearFilters = () => {
   filters.value.type = ''
   filters.value.status = ''
   filters.value.search = ''
+  filters.value.eventDateFrom = ''
+  filters.value.eventDateTo = ''
   sortByEventDate.value = false
 }
 
@@ -446,6 +525,16 @@ const getOfferingDetails = (offering) => {
   }
 
   return '—'
+}
+
+const getEventId = (offering) => {
+  if (offering.type === 'event' && offering.offering_events) {
+    const event = Array.isArray(offering.offering_events)
+      ? offering.offering_events[0]
+      : offering.offering_events
+    return event?.id || null
+  }
+  return null
 }
 
 const getStatusClass = (status) => {

@@ -157,12 +157,24 @@
                 {{ formatDateTime(booking.created_at) }}
               </td>
               <td class="px-4 sm:px-6 py-4 text-right text-sm font-medium">
-                <router-link
-                  :to="`/admin/bookings/${booking.id}`"
-                  class="text-primary-600 hover:text-primary-800 transition-colors whitespace-nowrap"
-                >
-                  View
-                </router-link>
+                <div class="flex items-center justify-end space-x-3">
+                  <!-- View Event Attendees button -->
+                  <router-link
+                    v-if="booking.offering_event?.id"
+                    :to="`/admin/events/${booking.offering_event.id}`"
+                    class="text-blue-600 hover:text-blue-800 transition-colors"
+                    title="View Event Attendees"
+                  >
+                    <font-awesome-icon icon="users" class="w-4 h-4" />
+                  </router-link>
+                  <!-- View Booking Details -->
+                  <router-link
+                    :to="`/admin/bookings/${booking.id}`"
+                    class="text-primary-600 hover:text-primary-800 transition-colors whitespace-nowrap"
+                  >
+                    View
+                  </router-link>
+                </div>
               </td>
             </tr>
           </tbody>
