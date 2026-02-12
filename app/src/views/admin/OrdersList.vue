@@ -11,7 +11,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
       <h3 class="text-sm font-semibold text-gray-900 mb-4">Filters</h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Status Filter -->
@@ -86,10 +86,11 @@
       </p>
     </div>
 
-    <!-- Orders Table -->
+    <!-- Orders List -->
     <div v-else class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
+        <!-- Desktop Table View -->
+        <table class="hidden lg:table min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -163,6 +164,54 @@
             </tr>
           </tbody>
         </table>
+
+        <!-- Mobile Card View -->
+        <div class="lg:hidden divide-y divide-gray-200">
+          <div
+            v-for="order in filteredOrders"
+            :key="order.id"
+            class="p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-sm font-semibold text-gray-900">{{ order.order_number }}</h3>
+                <p class="text-xs text-gray-500 mt-0.5">{{ order.customer_email }}</p>
+              </div>
+              <span
+                class="px-2.5 py-1 text-xs font-semibold rounded-full flex-shrink-0"
+                :class="getStatusClass(order.status)"
+              >
+                {{ formatStatus(order.status) }}
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-3 text-sm">
+              <div>
+                <span class="text-gray-500">Customer:</span>
+                <span class="ml-1 text-gray-900">{{ order.shipping_name || 'N/A' }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Total:</span>
+                <span class="ml-1 font-medium text-gray-900">£{{ order.total_gbp.toFixed(2) }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Date:</span>
+                <span class="ml-1 text-gray-600">{{ formatDate(order.created_at) }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Type:</span>
+                <span class="ml-1 text-gray-600">{{ formatOrderType(order.order_type) }}</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-3 pt-3 border-t border-gray-100">
+              <router-link
+                :to="`/admin/orders/${order.id}`"
+                class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors text-sm font-medium"
+              >
+                View Details
+              </router-link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -191,11 +240,16 @@ const fetchOrders = async () => {
     loading.value = true
     error.value = null
 
+    // Get all orders with their items, payments, and fulfillments
     const { data, error: fetchError } = await supabase
       .from('orders')
       .select(`
         *,
-        order_items(count),
+        order_items(
+          id,
+          item_type,
+          offering_id
+        ),
         payments(status),
         fulfillments(status)
       `)
@@ -203,7 +257,12 @@ const fetchOrders = async () => {
 
     if (fetchError) throw fetchError
 
-    orders.value = data || []
+    // Filter to only include orders that have at least one physical product item
+    const physicalOrders = (data || []).filter(order =>
+      order.order_items && order.order_items.some(item => item.item_type === 'product_physical')
+    )
+
+    orders.value = physicalOrders
   } catch (err) {
     console.error('Error fetching orders:', err)
     error.value = 'Failed to load orders. Please try again.'
