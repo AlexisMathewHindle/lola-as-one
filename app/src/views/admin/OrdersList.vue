@@ -90,28 +90,28 @@
     <div v-else class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div class="overflow-x-auto">
         <!-- Desktop Table View -->
-        <table class="hidden lg:table min-w-full divide-y divide-gray-200">
+        <table class="hidden xl:table min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Order #
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Customer
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Date
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Type
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Total
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -122,51 +122,51 @@
               :key="order.id"
               class="hover:bg-gray-50 transition-colors duration-150"
             >
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm font-medium text-gray-900">
                   {{ order.order_number }}
                 </div>
               </td>
-              <td class="px-6 py-4">
-                <div class="text-sm text-gray-900">{{ order.shipping_name || 'N/A' }}</div>
-                <div class="text-sm text-gray-500">{{ order.customer_email }}</div>
+              <td class="px-3 xl:px-6 py-3 xl:py-4">
+                <div class="text-xs xl:text-sm text-gray-900">{{ order.shipping_name || 'N/A' }}</div>
+                <div class="text-xs xl:text-sm text-gray-500">{{ order.customer_email }}</div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">{{ formatDate(order.created_at) }}</div>
-                <div class="text-sm text-gray-500">{{ formatTime(order.created_at) }}</div>
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm text-gray-900">{{ formatDate(order.created_at) }}</div>
+                <div class="text-xs xl:text-sm text-gray-500">{{ formatTime(order.created_at) }}</div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="text-sm text-gray-700">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <span class="text-xs xl:text-sm text-gray-700">
                   {{ formatOrderType(order.order_type) }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm font-medium text-gray-900">
                   £{{ order.total_gbp.toFixed(2) }}
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
                 <span
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                  class="inline-flex items-center px-2 xl:px-2.5 py-0.5 rounded-full text-xs font-medium"
                   :class="getStatusClass(order.status)"
                 >
                   {{ formatStatus(order.status) }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap text-xs xl:text-sm">
                 <router-link
                   :to="`/admin/orders/${order.id}`"
                   class="text-primary-600 hover:text-primary-900 font-medium"
                 >
-                  View Details
+                  View
                 </router-link>
               </td>
             </tr>
           </tbody>
         </table>
 
-        <!-- Mobile Card View -->
-        <div class="lg:hidden divide-y divide-gray-200">
+        <!-- Mobile/Tablet Card View -->
+        <div class="xl:hidden divide-y divide-gray-200">
           <div
             v-for="order in filteredOrders"
             :key="order.id"

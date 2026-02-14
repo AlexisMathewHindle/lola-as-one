@@ -91,28 +91,29 @@
     <!-- Subscriptions Table -->
     <div v-else class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
+        <!-- Desktop Table View -->
+        <table class="hidden xl:table min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Customer
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Product
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Status
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Billing
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Next Billing
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Amount
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -121,66 +122,99 @@
             <tr
               v-for="subscription in filteredSubscriptions"
               :key="subscription.id"
-              class="hover:bg-gray-50 transition-colors duration-150"
+              class="hover:bg-gray-50 transition-colors"
             >
-              <!-- Customer -->
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm font-medium text-gray-900">
                   {{ subscription.customer?.first_name }} {{ subscription.customer?.last_name }}
                 </div>
-                <div class="text-sm text-gray-500">
+                <div class="text-xs xl:text-sm text-gray-500">
                   {{ subscription.customer?.email }}
                 </div>
               </td>
-
-              <!-- Product -->
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm text-gray-900">
                   {{ subscription.offering?.title || 'N/A' }}
                 </div>
               </td>
-
-              <!-- Status -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
                 <span :class="getStatusClass(subscription.status)">
                   {{ formatStatus(subscription.status) }}
                 </span>
               </td>
-
-
-              <!-- Billing -->
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm text-gray-900">
                   {{ formatBillingInterval(subscription.billing_interval) }}
                 </div>
               </td>
-
-              <!-- Next Billing -->
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm text-gray-900">
                   {{ subscription.next_billing_date ? formatDate(subscription.next_billing_date) : 'N/A' }}
                 </div>
               </td>
-
-              <!-- Amount -->
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm font-medium text-gray-900">
                   £{{ subscription.amount_gbp?.toFixed(2) }}
                 </div>
               </td>
-
-              <!-- Actions -->
-              <td class="px-6 py-4 whitespace-nowrap text-sm">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap text-right text-xs xl:text-sm font-medium">
                 <router-link
                   :to="`/admin/subscriptions/${subscription.id}`"
-                  class="text-primary-600 hover:text-primary-900 font-medium"
+                  class="text-primary-600 hover:text-primary-900 transition-colors"
                 >
-                  View Details
+                  View
                 </router-link>
               </td>
             </tr>
           </tbody>
         </table>
+
+        <!-- Mobile/Tablet Card View -->
+        <div class="xl:hidden divide-y divide-gray-200">
+          <div
+            v-for="subscription in filteredSubscriptions"
+            :key="subscription.id"
+            class="p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-sm font-semibold text-gray-900">
+                  {{ subscription.customer?.first_name }} {{ subscription.customer?.last_name }}
+                </h3>
+                <p class="text-xs text-gray-500 mt-0.5">{{ subscription.customer?.email }}</p>
+              </div>
+              <span :class="getStatusClass(subscription.status)">
+                {{ formatStatus(subscription.status) }}
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-3 text-sm">
+              <div>
+                <span class="text-gray-500">Product:</span>
+                <span class="ml-1 text-gray-900">{{ subscription.offering?.title || 'N/A' }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Amount:</span>
+                <span class="ml-1 font-medium text-gray-900">£{{ subscription.amount_gbp?.toFixed(2) }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Billing:</span>
+                <span class="ml-1 text-gray-900">{{ formatBillingInterval(subscription.billing_interval) }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Next Billing:</span>
+                <span class="ml-1 text-gray-600">{{ subscription.next_billing_date ? formatDate(subscription.next_billing_date) : 'N/A' }}</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-3 pt-3 border-t border-gray-100">
+              <router-link
+                :to="`/admin/subscriptions/${subscription.id}`"
+                class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors text-sm font-medium"
+              >
+                View Details
+              </router-link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import Stripe from 'https://esm.sh/stripe@13.11.0?target=deno'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
+import { getNextCycleKey } from '../_shared/cycle-helpers.ts'
 
 serve(async (req) => {
   try {
@@ -62,6 +63,24 @@ serve(async (req) => {
 
     console.log('✅ Received Stripe event:', event.type)
     console.log('Event ID:', event.id)
+
+    // Check if event already processed (idempotency)
+    const { data: existingEvent } = await supabase
+      .from('stripe_events')
+      .select('id')
+      .eq('id', event.id)
+      .single()
+
+    if (existingEvent) {
+      console.log('⚠️ Event already processed:', event.id)
+      return new Response(
+        JSON.stringify({ received: true, cached: true }),
+        {
+          headers: { 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      )
+    }
 
     // Handle different event types
     switch (event.type) {
@@ -523,8 +542,275 @@ serve(async (req) => {
         break
       }
 
+      case 'customer.subscription.created': {
+        const subscription = event.data.object as Stripe.Subscription
+        console.log('🔔 Processing customer.subscription.created')
+        console.log('Subscription ID:', subscription.id)
+
+        // Get customer from Stripe
+        const customer = await stripe.customers.retrieve(subscription.customer as string)
+        const customerEmail = (customer as Stripe.Customer).email
+
+        if (!customerEmail) {
+          console.error('❌ No customer email found')
+          break
+        }
+
+        // Find or create customer in database
+        let { data: dbCustomer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('stripe_customer_id', subscription.customer)
+          .single()
+
+        if (!dbCustomer) {
+          const { data: newCustomer } = await supabase
+            .from('customers')
+            .insert({
+              email: customerEmail,
+              stripe_customer_id: subscription.customer as string,
+            })
+            .select('id')
+            .single()
+          dbCustomer = newCustomer
+        }
+
+        if (!dbCustomer) {
+          console.error('❌ Could not find or create customer')
+          break
+        }
+
+        // Get plan from database using Stripe price ID
+        const priceId = subscription.items.data[0]?.price.id
+        const { data: plan } = await supabase
+          .from('plans')
+          .select('*')
+          .eq('stripe_price_id', priceId)
+          .single()
+
+        if (!plan) {
+          console.error('❌ No plan found for price ID:', priceId)
+          break
+        }
+
+        // Create subscription record
+        const { error: subError } = await supabase
+          .from('subscriptions')
+          .insert({
+            customer_id: dbCustomer.id,
+            plan_id: plan.id,
+            stripe_subscription_id: subscription.id,
+            stripe_customer_id: subscription.customer as string,
+            status: subscription.status,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: subscription.cancel_at_period_end,
+          })
+
+        if (subError) {
+          console.error('❌ Error creating subscription:', subError)
+        } else {
+          console.log('✅ Subscription created in database')
+        }
+
+        break
+      }
+
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription
+        console.log('🔔 Processing customer.subscription.updated')
+        console.log('Subscription ID:', subscription.id)
+
+        // Update subscription record
+        const { error: updateError } = await supabase
+          .from('subscriptions')
+          .update({
+            status: subscription.status,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
+          })
+          .eq('stripe_subscription_id', subscription.id)
+
+        if (updateError) {
+          console.error('❌ Error updating subscription:', updateError)
+        } else {
+          console.log('✅ Subscription updated in database')
+        }
+
+        break
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription
+        console.log('🔔 Processing customer.subscription.deleted')
+        console.log('Subscription ID:', subscription.id)
+
+        // Mark subscription as canceled
+        const { error: deleteError } = await supabase
+          .from('subscriptions')
+          .update({
+            status: 'canceled',
+            canceled_at: new Date().toISOString(),
+          })
+          .eq('stripe_subscription_id', subscription.id)
+
+        if (deleteError) {
+          console.error('❌ Error canceling subscription:', deleteError)
+        } else {
+          console.log('✅ Subscription canceled in database')
+        }
+
+        break
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as Stripe.Invoice
+        console.log('💰 Processing invoice.payment_succeeded')
+        console.log('Invoice ID:', invoice.id)
+        console.log('Subscription ID:', invoice.subscription)
+
+        // Skip if not a subscription invoice
+        if (!invoice.subscription) {
+          console.log('ℹ️ Not a subscription invoice - skipping')
+          break
+        }
+
+        // Get subscription from database with plan
+        const { data: subscription, error: subError } = await supabase
+          .from('subscriptions')
+          .select(`
+            *,
+            plan:plans(*),
+            customer:customers(*)
+          `)
+          .eq('stripe_subscription_id', invoice.subscription)
+          .single()
+
+        if (subError || !subscription) {
+          console.error('❌ Subscription not found:', subError)
+          break
+        }
+
+        console.log('✅ Found subscription:', subscription.id)
+        console.log('Plan cutoff day:', subscription.plan.cutoff_day)
+
+        // Get customer's default address
+        const { data: address } = await supabase
+          .from('addresses')
+          .select('*')
+          .eq('customer_id', subscription.customer_id)
+          .eq('is_default', true)
+          .single()
+
+        if (!address) {
+          console.error('❌ No default address found for customer')
+          // TODO: Send email to customer to add address
+          break
+        }
+
+        // Calculate cycle key using helper function
+        const billingDate = new Date(invoice.created * 1000)
+        const cycleKey = getNextCycleKey(billingDate, subscription.plan.cutoff_day)
+
+        console.log('📅 Billing date:', billingDate.toISOString())
+        console.log('📅 Cycle key:', cycleKey)
+
+        // Create order with cycle_key
+        const orderNumber = `SUB-${Date.now()}-${subscription.id.slice(0, 8)}`
+        const { data: order, error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            order_number: orderNumber,
+            customer_id: subscription.customer_id,
+            customer_email: subscription.customer.email,
+            order_type: 'subscription_renewal',
+            stripe_subscription_id: invoice.subscription as string,
+            stripe_payment_intent_id: invoice.payment_intent as string,
+
+            // Cycle key - determines which month to ship
+            cycle_key: cycleKey,
+
+            // Pricing (convert from pence to pounds)
+            subtotal_gbp: (invoice.subtotal || 0) / 100,
+            shipping_gbp: 0,
+            tax_gbp: (invoice.tax || 0) / 100,
+            total_gbp: (invoice.amount_paid || 0) / 100,
+
+            // Address snapshot
+            shipping_name: address.name,
+            shipping_address_line1: address.address_line1,
+            shipping_address_line2: address.address_line2,
+            shipping_city: address.city,
+            shipping_postcode: address.postcode,
+            shipping_country: address.country,
+
+            // Fulfillment status
+            status: 'queued',
+          })
+          .select('id, order_number')
+          .single()
+
+        if (orderError) {
+          console.error('❌ Error creating order:', orderError)
+          break
+        }
+
+        console.log('✅ Created subscription order:', order.order_number)
+        console.log('📦 Order will ship in cycle:', cycleKey)
+
+        // TODO: Send subscription renewal confirmation email
+
+        break
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice
+        console.log('❌ Processing invoice.payment_failed')
+        console.log('Invoice ID:', invoice.id)
+
+        // Skip if not a subscription invoice
+        if (!invoice.subscription) {
+          console.log('ℹ️ Not a subscription invoice - skipping')
+          break
+        }
+
+        // Update subscription status
+        const { error: updateError } = await supabase
+          .from('subscriptions')
+          .update({
+            status: 'past_due',
+          })
+          .eq('stripe_subscription_id', invoice.subscription)
+
+        if (updateError) {
+          console.error('❌ Error updating subscription:', updateError)
+        } else {
+          console.log('✅ Subscription marked as past_due')
+        }
+
+        // TODO: Send payment failed email to customer
+
+        break
+      }
+
       default:
         console.log('Unhandled event type:', event.type)
+    }
+
+    // Log event as processed (idempotency)
+    const { error: logError } = await supabase
+      .from('stripe_events')
+      .insert({
+        id: event.id,
+        type: event.type,
+      })
+
+    if (logError) {
+      console.error('⚠️ Error logging event (non-fatal):', logError)
+    } else {
+      console.log('✅ Event logged as processed')
     }
 
     return new Response(

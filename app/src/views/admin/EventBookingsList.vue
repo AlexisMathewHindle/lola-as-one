@@ -101,76 +101,69 @@
     <!-- Bookings Table -->
     <div v-else class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
+        <!-- Desktop Table View -->
+        <table class="hidden xl:table min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Event
               </th>
-              <th class="hidden md:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Customer
               </th>
-              <th class="hidden lg:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Attendees
               </th>
-              <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Status
               </th>
-              <th class="hidden xl:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Booked
               </th>
-              <th class="px-4 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="booking in filteredBookings" :key="booking.id" class="hover:bg-gray-50 transition-colors">
-              <td class="px-4 sm:px-6 py-4">
-                <div class="text-sm font-medium text-gray-900">{{ booking.offering_event?.offering?.title || 'N/A' }}</div>
+              <td class="px-3 xl:px-6 py-3 xl:py-4">
+                <div class="text-xs xl:text-sm font-medium text-gray-900">{{ booking.offering_event?.offering?.title || 'N/A' }}</div>
                 <div class="text-xs text-gray-500">
                   {{ formatDate(booking.offering_event?.event_date) }} at {{ booking.offering_event?.event_start_time || 'N/A' }}
                 </div>
-                <div class="md:hidden text-xs text-gray-500 mt-1">
-                  {{ booking.customer_name }}
-                </div>
               </td>
-              <td class="hidden md:table-cell px-4 sm:px-6 py-4">
-                <div class="text-sm font-medium text-gray-900">{{ booking.customer_name }}</div>
+              <td class="px-3 xl:px-6 py-3 xl:py-4">
+                <div class="text-xs xl:text-sm font-medium text-gray-900">{{ booking.customer_name }}</div>
                 <div class="text-xs text-gray-500">{{ booking.customer_email }}</div>
               </td>
-              <td class="hidden lg:table-cell px-4 sm:px-6 py-4">
-                <div class="text-sm text-gray-900">{{ booking.number_of_attendees }} {{ booking.number_of_attendees === 1 ? 'person' : 'people' }}</div>
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm text-gray-900">{{ booking.number_of_attendees }} {{ booking.number_of_attendees === 1 ? 'person' : 'people' }}</div>
               </td>
-              <td class="px-4 sm:px-6 py-4">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
                 <span
-                  class="px-2 sm:px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                  class="px-2 xl:px-2.5 py-0.5 inline-flex text-xs font-semibold rounded-full"
                   :class="getStatusClass(booking.status)"
                 >
                   {{ booking.status }}
                 </span>
-                <div class="lg:hidden text-xs text-gray-500 mt-1">
-                  {{ booking.number_of_attendees }} {{ booking.number_of_attendees === 1 ? 'person' : 'people' }}
-                </div>
               </td>
-              <td class="hidden xl:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
-                {{ formatDateTime(booking.created_at) }}
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm text-gray-600">{{ formatDateTime(booking.created_at) }}</div>
               </td>
-              <td class="px-4 sm:px-6 py-4 text-right text-sm font-medium">
-                <div class="flex items-center justify-end space-x-3">
-                  <!-- View Event Attendees button -->
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap text-right text-xs xl:text-sm font-medium">
+                <div class="flex items-center justify-end space-x-2 xl:space-x-3">
                   <router-link
                     v-if="booking.offering_event?.id"
                     :to="`/admin/events/${booking.offering_event.id}`"
-                    class="text-blue-600 hover:text-blue-800 transition-colors"
+                    class="text-blue-600 hover:text-blue-900 transition-colors"
                     title="View Event Attendees"
                   >
                     <font-awesome-icon icon="users" class="w-4 h-4" />
                   </router-link>
-                  <!-- View Booking Details -->
                   <router-link
                     :to="`/admin/bookings/${booking.id}`"
-                    class="text-primary-600 hover:text-primary-800 transition-colors whitespace-nowrap"
+                    class="text-primary-600 hover:text-primary-900 transition-colors"
                   >
                     View
                   </router-link>
@@ -179,6 +172,64 @@
             </tr>
           </tbody>
         </table>
+
+        <!-- Mobile/Tablet Card View -->
+        <div class="xl:hidden divide-y divide-gray-200">
+          <div
+            v-for="booking in filteredBookings"
+            :key="booking.id"
+            class="p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-sm font-semibold text-gray-900">{{ booking.offering_event?.offering?.title || 'N/A' }}</h3>
+                <p class="text-xs text-gray-500 mt-0.5">
+                  {{ formatDate(booking.offering_event?.event_date) }} at {{ booking.offering_event?.event_start_time || 'N/A' }}
+                </p>
+              </div>
+              <span
+                class="px-2.5 py-1 text-xs font-semibold rounded-full flex-shrink-0"
+                :class="getStatusClass(booking.status)"
+              >
+                {{ booking.status }}
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-3 text-sm">
+              <div>
+                <span class="text-gray-500">Customer:</span>
+                <span class="ml-1 text-gray-900">{{ booking.customer_name }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Attendees:</span>
+                <span class="ml-1 text-gray-900">{{ booking.number_of_attendees }} {{ booking.number_of_attendees === 1 ? 'person' : 'people' }}</span>
+              </div>
+              <div class="col-span-2">
+                <span class="text-gray-500">Email:</span>
+                <span class="ml-1 text-gray-600">{{ booking.customer_email }}</span>
+              </div>
+              <div class="col-span-2">
+                <span class="text-gray-500">Booked:</span>
+                <span class="ml-1 text-gray-600">{{ formatDateTime(booking.created_at) }}</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-3 pt-3 border-t border-gray-100">
+              <router-link
+                v-if="booking.offering_event?.id"
+                :to="`/admin/events/${booking.offering_event.id}`"
+                class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
+              >
+                <font-awesome-icon icon="users" class="w-4 h-4 mr-2" />
+                Event Attendees
+              </router-link>
+              <router-link
+                :to="`/admin/bookings/${booking.id}`"
+                class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors text-sm font-medium"
+              >
+                View Details
+              </router-link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

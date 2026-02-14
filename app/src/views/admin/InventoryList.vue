@@ -122,31 +122,32 @@
     <!-- Inventory Table -->
     <div v-else class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
+        <!-- Desktop Table View -->
+        <table class="hidden xl:table min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-2 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Product
               </th>
-              <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-2 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 SKU
               </th>
-              <th class="hidden md:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-2 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden 2xl:table-cell">
                 Type
               </th>
-              <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-2 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Available
               </th>
-              <th class="hidden lg:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-2 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden 2xl:table-cell">
                 Reserved
               </th>
-              <th class="hidden lg:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-2 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden 2xl:table-cell">
                 Threshold
               </th>
-              <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-2 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Status
               </th>
-              <th class="px-4 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-2 xl:px-6 py-3 xl:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -155,67 +156,102 @@
             <tr
               v-for="item in inventoryItems"
               :key="item.id"
-              class="hover:bg-gray-50 transition-colors duration-150"
+              class="hover:bg-gray-50 transition-colors"
             >
-              <!-- Product -->
-              <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">
+              <td class="px-2 xl:px-6 py-3 xl:py-4">
+                <div class="text-xs xl:text-sm font-medium text-gray-900 break-words">
                   {{ getProductTitle(item) }}
                 </div>
               </td>
-
-              <!-- SKU -->
-              <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900 font-mono">{{ item.sku }}</div>
+              <td class="px-2 xl:px-6 py-3 xl:py-4">
+                <div class="text-xs xl:text-sm text-gray-900 font-mono break-all">{{ item.sku }}</div>
               </td>
-
-              <!-- Type -->
-              <td class="hidden md:table-cell px-4 sm:px-6 py-4 whitespace-nowrap">
+              <td class="px-2 xl:px-6 py-3 xl:py-4 whitespace-nowrap hidden 2xl:table-cell">
                 <span
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                  class="inline-flex items-center px-2 xl:px-2.5 py-0.5 rounded-full text-xs font-medium"
                   :class="item.item_type === 'product_physical' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'"
                 >
-                  {{ item.item_type === 'product_physical' ? 'Physical Product' : 'Subscription Box' }}
+                  {{ item.item_type === 'product_physical' ? 'Physical' : 'Subscription' }}
                 </span>
               </td>
-
-              <!-- Available -->
-              <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-semibold text-gray-900">{{ item.quantity_available }}</div>
+              <td class="px-2 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm font-semibold text-gray-900">{{ item.quantity_available }}</div>
               </td>
-
-              <!-- Reserved -->
-              <td class="hidden lg:table-cell px-4 sm:px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-600">{{ item.quantity_reserved }}</div>
+              <td class="px-2 xl:px-6 py-3 xl:py-4 whitespace-nowrap hidden 2xl:table-cell">
+                <div class="text-xs xl:text-sm text-gray-600">{{ item.quantity_reserved }}</div>
               </td>
-
-              <!-- Threshold -->
-              <td class="hidden lg:table-cell px-4 sm:px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-600">{{ item.low_stock_threshold }}</div>
+              <td class="px-2 xl:px-6 py-3 xl:py-4 whitespace-nowrap hidden 2xl:table-cell">
+                <div class="text-xs xl:text-sm text-gray-600">{{ item.low_stock_threshold }}</div>
               </td>
-
-              <!-- Status -->
-              <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
+              <td class="px-2 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
                 <span
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                  class="inline-flex items-center px-2 xl:px-2.5 py-0.5 rounded-full text-xs font-medium"
                   :class="getStockStatusClass(item)"
                 >
                   {{ getStockStatus(item) }}
                 </span>
               </td>
-
-              <!-- Actions -->
-              <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <td class="px-2 xl:px-6 py-3 xl:py-4 whitespace-nowrap text-right text-xs xl:text-sm font-medium">
                 <router-link
                   :to="`/admin/inventory/${item.id}`"
-                  class="text-primary-600 hover:text-primary-900 transition-colors duration-150"
+                  class="text-primary-600 hover:text-primary-900 transition-colors"
                 >
-                  View Details
+                  View
                 </router-link>
               </td>
             </tr>
           </tbody>
         </table>
+
+        <!-- Mobile/Tablet Card View -->
+        <div class="xl:hidden divide-y divide-gray-200">
+          <div
+            v-for="item in inventoryItems"
+            :key="item.id"
+            class="p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-sm font-semibold text-gray-900">{{ getProductTitle(item) }}</h3>
+                <p class="text-xs text-gray-500 mt-0.5 font-mono">{{ item.sku }}</p>
+              </div>
+              <span
+                class="px-2.5 py-1 text-xs font-semibold rounded-full flex-shrink-0"
+                :class="getStockStatusClass(item)"
+              >
+                {{ getStockStatus(item) }}
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-3 text-sm">
+              <div>
+                <span class="text-gray-500">Type:</span>
+                <span class="ml-1 text-gray-900">
+                  {{ item.item_type === 'product_physical' ? 'Physical' : 'Subscription' }}
+                </span>
+              </div>
+              <div>
+                <span class="text-gray-500">Available:</span>
+                <span class="ml-1 font-semibold text-gray-900">{{ item.quantity_available }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Reserved:</span>
+                <span class="ml-1 text-gray-600">{{ item.quantity_reserved }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Threshold:</span>
+                <span class="ml-1 text-gray-600">{{ item.low_stock_threshold }}</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-3 pt-3 border-t border-gray-100">
+              <router-link
+                :to="`/admin/inventory/${item.id}`"
+                class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors text-sm font-medium"
+              >
+                View Details
+              </router-link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

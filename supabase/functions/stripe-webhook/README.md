@@ -137,6 +137,7 @@ Each item in the `items` array should have:
 
 ### Tables Modified
 
+**One-Time Orders:**
 - `customers` - Creates new customer if doesn't exist
 - `orders` - Creates new order with generated order number
 - `order_items` - Creates items for each product/event
@@ -144,17 +145,44 @@ Each item in the `items` array should have:
 - `inventory_items` - Decrements stock via RPC function
 - `offering_events` - Decrements capacity via RPC function
 
+**Subscriptions:**
+- `customers` - Creates new customer if doesn't exist
+- `subscriptions` - Creates/updates subscription records
+- `plans` - Reads plan configuration (cutoff_day)
+- `addresses` - Reads customer's default shipping address
+- `orders` - Creates subscription renewal orders with cycle_key
+- `stripe_events` - Logs processed events for idempotency
+
 ### RPC Functions Used
 
 - `decrement_inventory(p_offering_id, p_quantity)` - Decrements product stock
 - `decrement_event_capacity(p_offering_event_id, p_attendees)` - Decrements event capacity
+
+## Event Handlers
+
+### One-Time Checkout Events
+
+- `checkout.session.completed` - Creates order, order items, bookings, decrements inventory
+- `checkout.session.expired` - Logs expired session (optional cleanup)
+
+### Subscription Events
+
+- `customer.subscription.created` - Creates subscription record in database
+- `customer.subscription.updated` - Updates subscription status and dates
+- `customer.subscription.deleted` - Marks subscription as canceled
+- `invoice.payment_succeeded` - **Creates subscription order with cycle_key**
+- `invoice.payment_failed` - Marks subscription as past_due
+
+### Idempotency
+
+All events are checked against the `stripe_events` table to prevent duplicate processing when Stripe retries webhooks.
 
 ## Error Handling
 
 - Webhook signature verification failures return 400
 - Database errors are logged and thrown (Stripe will retry)
 - Email failures are logged but don't fail the webhook
-- Subscription sessions are skipped (not an error)
+- Duplicate events are detected and return 200 (cached)
 
 ## Monitoring
 
@@ -168,9 +196,11 @@ Each item in the `items` array should have:
 ### Check Database
 
 ```sql
--- View recent orders
-SELECT 
+-- View recent orders (all types)
+SELECT
   order_number,
+  order_type,
+  cycle_key,
   customer_email,
   total_gbp,
   status,
@@ -179,8 +209,30 @@ FROM orders
 ORDER BY created_at DESC
 LIMIT 10;
 
+-- View subscription orders only
+SELECT
+  order_number,
+  cycle_key,
+  customer_email,
+  total_gbp,
+  status,
+  created_at
+FROM orders
+WHERE order_type = 'subscription_renewal'
+ORDER BY created_at DESC
+LIMIT 10;
+
+-- View processed webhook events
+SELECT
+  id,
+  type,
+  created_at
+FROM stripe_events
+ORDER BY created_at DESC
+LIMIT 20;
+
 -- View order items
-SELECT 
+SELECT
   o.order_number,
   oi.title,
   oi.quantity,

@@ -88,28 +88,29 @@
     <!-- Customers Table -->
     <div v-else class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
+        <!-- Desktop Table View -->
+        <table class="hidden xl:table min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Customer
               </th>
-              <th class="hidden md:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Email
               </th>
-              <th class="hidden lg:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Orders
               </th>
-              <th class="hidden lg:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Subscriptions
               </th>
-              <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Total Spent
               </th>
-              <th class="hidden xl:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Member Since
               </th>
-              <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-3 xl:px-6 py-3 xl:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -120,36 +121,30 @@
               :key="customer.id"
               class="hover:bg-gray-50 transition-colors"
             >
-              <td class="px-4 sm:px-6 py-4">
-                <div class="text-sm font-medium text-gray-900">
+              <td class="px-3 xl:px-6 py-3 xl:py-4">
+                <div class="text-xs xl:text-sm font-medium text-gray-900 break-words">
                   {{ customer.first_name }} {{ customer.last_name }}
                 </div>
-                <div class="md:hidden text-xs text-gray-500 mt-1">
-                  {{ customer.email }}
-                </div>
               </td>
-              <td class="hidden md:table-cell px-4 sm:px-6 py-4">
-                <div class="text-sm text-gray-600">{{ customer.email }}</div>
+              <td class="px-3 xl:px-6 py-3 xl:py-4">
+                <div class="text-xs xl:text-sm text-gray-600 break-all">{{ customer.email }}</div>
               </td>
-              <td class="hidden lg:table-cell px-4 sm:px-6 py-4">
-                <div class="text-sm text-gray-900">{{ customer.order_count || 0 }}</div>
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm text-gray-900">{{ customer.order_count || 0 }}</div>
               </td>
-              <td class="hidden lg:table-cell px-4 sm:px-6 py-4">
-                <div class="text-sm text-gray-900">{{ customer.subscription_count || 0 }}</div>
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm text-gray-900">{{ customer.subscription_count || 0 }}</div>
               </td>
-              <td class="px-4 sm:px-6 py-4">
-                <div class="text-sm font-medium text-gray-900">£{{ formatPrice(customer.total_spent || 0) }}</div>
-                <div class="lg:hidden text-xs text-gray-500 mt-1">
-                  {{ customer.order_count || 0 }} orders · {{ customer.subscription_count || 0 }} subs
-                </div>
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm font-medium text-gray-900">£{{ formatPrice(customer.total_spent || 0) }}</div>
               </td>
-              <td class="hidden xl:table-cell px-4 sm:px-6 py-4">
-                <div class="text-sm text-gray-600">{{ formatDate(customer.created_at) }}</div>
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap">
+                <div class="text-xs xl:text-sm text-gray-600">{{ formatDate(customer.created_at) }}</div>
               </td>
-              <td class="px-4 sm:px-6 py-4 text-sm">
+              <td class="px-3 xl:px-6 py-3 xl:py-4 whitespace-nowrap text-right text-xs xl:text-sm font-medium">
                 <router-link
                   :to="`/admin/customers/${customer.id}`"
-                  class="text-primary-500 hover:text-primary-600 font-medium whitespace-nowrap"
+                  class="text-primary-600 hover:text-primary-900 transition-colors"
                 >
                   View
                 </router-link>
@@ -157,6 +152,50 @@
             </tr>
           </tbody>
         </table>
+
+        <!-- Mobile/Tablet Card View -->
+        <div class="xl:hidden divide-y divide-gray-200">
+          <div
+            v-for="customer in customers"
+            :key="customer.id"
+            class="p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-sm font-semibold text-gray-900">
+                  {{ customer.first_name }} {{ customer.last_name }}
+                </h3>
+                <p class="text-xs text-gray-500 mt-0.5">{{ customer.email }}</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-3 text-sm">
+              <div>
+                <span class="text-gray-500">Orders:</span>
+                <span class="ml-1 text-gray-900">{{ customer.order_count || 0 }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Subscriptions:</span>
+                <span class="ml-1 text-gray-900">{{ customer.subscription_count || 0 }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Total Spent:</span>
+                <span class="ml-1 font-medium text-gray-900">£{{ formatPrice(customer.total_spent || 0) }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Member Since:</span>
+                <span class="ml-1 text-gray-600">{{ formatDate(customer.created_at) }}</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-3 pt-3 border-t border-gray-100">
+              <router-link
+                :to="`/admin/customers/${customer.id}`"
+                class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors text-sm font-medium"
+              >
+                View Details
+              </router-link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

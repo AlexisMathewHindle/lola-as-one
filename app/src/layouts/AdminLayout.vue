@@ -1,5 +1,6 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex">
+  <div class="min-h-screen bg-gray-50 ">
+    <!-- flex -->
     <!-- Mobile Menu Overlay -->
     <div
       v-if="mobileMenuOpen"
