@@ -1,0 +1,64 @@
+# GitHub Actions workflow for Legacy Lola Workshops app
+# This is OPTIONAL - Netlify will auto-deploy from GitHub
+# This workflow is useful for running tests or custom build steps before deployment
+
+name: Legacy App - Build Check
+
+on:
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'lola-workshops/**'
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'lola-workshops/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: lola-workshops
+    
+    strategy:
+      matrix:
+        node-version: [18.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: lola-workshops/package-lock.json
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Lint code
+      run: npm run lint
+    
+    - name: Build production
+      if: github.ref == 'refs/heads/main'
+      run: npm run build:prod
+      env:
+        NODE_ENV: production
+    
+    - name: Build development
+      if: github.ref != 'refs/heads/main'
+      run: npm run build:dev
+      env:
+        NODE_ENV: development
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-${{ github.sha }}
+        path: lola-workshops/dist*
+        retention-days: 7
+
