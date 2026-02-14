@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Receipt</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333; 
+        }
+        p {
+            color: #333; 
+        }
+        .container { 
+            width: 100%; 
+            max-width: 750px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .header { 
+            background-color: #D8B061;
+            color: #333; 
+            padding: 10px; 
+            text-align: center; 
+        }
+        .content { 
+            margin-top: 20px; 
+        }
+        .footer { 
+            margin-top: 20px; 
+            text-align: center; 
+            font-size: 0.8em; 
+            color: #777; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+            color: #333; 
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: left; 
+            color: #333; 
+        }
+        th { 
+            background-color: #f4f4f4; 
+            color: #333; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://www.lotsoflovelyart.org/wp-content/themes/lola_boxes/dist/img/logo.png" alt="LoLA Logo" style="max-width: 300px; height: auto; padding-top: 16px;">
+            <h1>Booking confirmation - #{{bookingId}}</h1>
+        </div>
+        <div class="content">
+            <p>Hi {{username}},</p>
+            <p>Thank you so much for booking a LoLA art Workshop! We are really excited to welcome you to the LoLA Creative Space at {{address}} - please <a href="https://maps.app.goo.gl/bv645xkc9ZQkm93x7">click here</a> for directions.
+            </p>
+            
+            <p style="margin: 0">Booked on: {{date}}</p>
+            <p style="margin: 0">Contact:</p>
+            <p style="margin: 0">{{email}}</p>
+            <p style="margin-top: 0">{{phone}}</p>
+
+            <p>You have booked:</p>
+            <table>
+                <tr>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Date & Time</th>
+                    <th>Price</th>
+                </tr>
+                {{#each basket}}
+                <tr>
+                    <td>{{this.theme_title}}</td>
+                    <td>{{this.quantity}}</td>
+                    <td>{{this.eu_date}} at {{this.start_time}}</td>
+                    <td>£{{this.price}}</td>
+                </tr>
+                {{/each}}
+                <tr>
+                    <th colspan="3">Total</th>
+                    <td>£{{amount}}</td>
+                </tr>
+            </table>
+            
+            <p>We look forward to seeing you and getting creative together!
+            </p>
+            
+            {{#if category}}
+            <p>Please take a few moments to read the general information below to ensure the workshop flows smoothly:</p>
+            <p>
+                <strong>
+                    How long does a workshop last?
+                </strong>
+            </p>
+            <p>The workshops last 1 hr, unless you have booked a weekend workshop, in which case these are 1.5hrs long. Please arrive 10 mins before the workshop to allow your child to settle into the space.</p>
+
+            <p>
+                <strong>
+                    What to bring?
+                </strong>
+            </p>
+            <p>We provide all art materials and lots of creative fun, but do dress for mess! There will be aprons for those who would like them. Please note that you will be taking the artwork home with you after the session.</p>
+
+            <p>
+                <strong>
+                    Where can I wait for my child?
+                </strong>
+            </p>
+            <p>
+                Parents are kindly requested to leave the workshop area during the class to minimise distraction. Please do relax and enjoy a drink and a snack in the LoLA cafe instead (and you can probably see your child creating from there!)
+            </p>
+            <p>
+                <strong>
+                    What if I need to change my booking, cancel or if my child is unwell?
+                </strong>
+            </p>
+            <p>
+                Our workshop requires a 48-hour cancellation notice to ensure a full refund or rescheduling. Cancellations made less than 48 hours before the scheduled workshop will not be eligible for a refund. This policy allows us to manage resources effectively and offer spots to other participants. Please note if your child does not attend due to illness these rules still apply.
+            </p>
+            <p>Changes to bookings can be made by emailing the team at  <a style="text-decoration: none; font-weight: bold; color: unset" href="mailto:hello@lotsoflovelyart.com">{{ admin_email}}</a></p>
+            <p>If you need to amend a termly booking please contact the team directly at  <a style="text-decoration: none; font-weight: bold; color: unset" href="mailto:hello@lotsoflovelyart.com">{{ admin_email}}</a>. We require a full month’s notice before the term starts to amend or cancel a booking, otherwise the term will be charged in full.</p>
+
+            <p>
+                <strong>
+                    Prams and parking:
+                </strong>
+            </p>
+            <p>
+                There are various places to park in Newbury, and most car parks are within a 10 minute walk to LoLA. 
+            </p>
+            <p>
+                Our premises are quite small. Although we will try our utmost to accommodate everyone, we are limited and can park up to 4 pushchairs – please note that these are on a first come, first served basis.
+            </p>
+            <p>
+                <strong>
+                    Photography:
+                </strong>
+            </p>
+            <p>
+                We like to take photographs of the LoLA studio and all the wonderful artwork the children create, however we will avoid taking photos of faces. These photos can be used on social media or our website. If you would prefer your child not to be photographed at all, please let us know by emailing us at <a style="text-decoration: none; font-weight: bold; color: unset" href="mailto:hello@lotsoflovelyart.com">{{ admin_email}}</a>.
+            </p>
+            <p>
+                <strong>
+                    Allergies and Medication:
+                </strong>
+            </p>
+            <p>
+                Because the LoLA space is both a cafe and workshop space, please make us aware of any allergies or ask staff for more details on what we use in our food. Please note that allergies are not catered for.
+
+            </p>
+            <p>
+                If your child takes any medication that we need to be aware of, please immediately alert a member of staff or email us at <a style="text-decoration: none; font-weight: bold; color: unset" href="mailto:hello@lotsoflovelyart.com">{{ admin_email}}</a>
+            </p>
+            <p>We assume that by booking this session you have parental responsibility for the children booked. Please inform us if another guardian will be attending the session or if guardianship will change before the session starts. Please read our data protection <a href="https://www.lotsoflovelyart.org/privacy-policy/">here</a>.
+            </p>
+            {{/if}}
+            <p>Please do not hesitate to email us if you have any questions,</p>
+            <p>With kind wishes,</p>
+            <p>The LoLA team</p>
+
+            </p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2024 Lots Of Lovely Art. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

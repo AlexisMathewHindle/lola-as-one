@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workshop Reminder</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333; 
+        }
+        p {
+            color: #333; 
+        }
+        .container { 
+            width: 100%; 
+            max-width: 750px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .header { 
+            background-color: #D8B061;
+            color: #333; 
+            padding: 10px; 
+            text-align: center; 
+        }
+        .content { 
+            margin-top: 20px; 
+        }
+        .footer { 
+            margin-top: 20px; 
+            text-align: center; 
+            font-size: 0.8em; 
+            color: #777; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+            color: #333; 
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: left; 
+            color: #333; 
+        }
+        th { 
+            background-color: #f4f4f4; 
+            color: #333; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://www.lotsoflovelyart.org/wp-content/themes/lola_boxes/dist/img/logo.png" alt="LoLA Logo" style="max-width: 300px; height: auto; padding-top: 16px;">
+            <h1>LOLA Workshop Reminder - #{{bookingId}}</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{username}},</p>
+            <p>We are looking forward to seeing you at your LOLA workshop!</p>
+            <p><strong>Attending:</strong></p>
+            {{#each attendees}}
+                <p>{{this.firstName}} {{this.lastName}}</p>
+                <table>
+                    <tr>
+                        <th>Workshop Title</th>
+                        <th>Event Date</th>
+                    </tr>
+                    {{#each this.workshop}}
+                    <tr>
+                        <td>{{this.workshop_title}}</td> 
+                        <td>{{formatDate this.event_date}}</td>
+                    </tr>
+                    {{/each}}
+                </table>
+            {{/each}}
+
+            <p><strong>Location:</strong> {{location}}</p>
+            <p><strong>Address:</strong> {{address}}</p>
+
+            <p>If you have any questions about your workshop, please don't hesitate to contact us at {{admin_email}}</p>
+            
+            <p>With kind wishes,</p>
+            <p>The LoLA team</p>
+            
+            <p>
+                <strong>What if I need to change my booking, cancel or if my child is unwell?</strong>
+            </p>
+            <p>Our workshop requires a 48-hour cancellation notice to ensure a full refund or rescheduling. Cancellations made less than 48 hours before the scheduled workshop will not be eligible for a refund. This policy allows us to manage resources effectively and offer spots to other participants. Please note if your child does not attend due to illness these rules still apply.</p>
+            <p>Changes to bookings can be made by emailing the team at <a style="text-decoration: none; font-weight: bold; color: unset" href="mailto:hello@lotsoflovelyart.com">{{ admin_email}}</a></p>
+            <p>If you need to amend a termly booking please contact the team directly at  <a style="text-decoration: none; font-weight: bold; color: unset" href="mailto:hello@lotsoflovelyart.com">{{ admin_email}}</a>. We require a full month’s notice before the term starts to amend or cancel a booking, otherwise the term will be charged in full.
+            </p>
+            <p>Please do not hesitate to email us if you have any questions,</p>
+            <p>With kind wishes,</p>
+            <p>The LoLA team</p>
+            <div class="footer">
+                <p>&copy; 2024 Lots Of Lovely Art. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,104 @@
+# Netlify Configuration for Legacy Lola Workshops App
+# This configuration deploys the Vue CLI app from the lola-workshops directory
+
+[build]
+  # Build command for the Vue CLI app
+  command = """
+    echo '=== Environment Check ===' && \
+    echo 'VUE_APP_SUPABASE_URL is set:' && \
+    if [ -z "$VUE_APP_SUPABASE_URL" ]; then echo 'NO - MISSING!'; else echo 'YES'; fi && \
+    echo 'VUE_APP_SUPABASE_ANON_KEY is set:' && \
+    if [ -z "$VUE_APP_SUPABASE_ANON_KEY" ]; then echo 'NO - MISSING!'; else echo 'YES'; fi && \
+    echo '=======================' && \
+    npm ci && npm run build:prod
+  """
+  publish = "dist"
+
+  # Set Node version
+  [build.environment]
+    NODE_VERSION = "18"
+
+# Production context (main branch)
+[context.production]
+  command = """
+    echo '=== Production Build Environment Check ===' && \
+    echo 'VUE_APP_SUPABASE_URL is set:' && \
+    if [ -z "$VUE_APP_SUPABASE_URL" ]; then echo 'NO - MISSING!'; else echo 'YES'; fi && \
+    echo 'VUE_APP_SUPABASE_ANON_KEY is set:' && \
+    if [ -z "$VUE_APP_SUPABASE_ANON_KEY" ]; then echo 'NO - MISSING!'; else echo 'YES'; fi && \
+    echo '==========================================' && \
+    npm ci && npm run build:prod
+  """
+  publish = "dist"
+
+  [context.production.environment]
+    NODE_VERSION = "18"
+    # Add your production environment variables here
+    # VUE_APP_SUPABASE_URL will be set in Netlify UI
+
+# Development/staging context (dev branch)
+[context.dev]
+  command = "npm ci && npm run build:dev"
+  publish = "dist-dev"
+  
+  [context.dev.environment]
+    NODE_VERSION = "18"
+    # Add your dev environment variables here
+
+# Deploy previews (all other branches and PRs)
+[context.deploy-preview]
+  command = "npm ci && npm run build:dev"
+  publish = "dist-dev"
+  
+  [context.deploy-preview.environment]
+    NODE_VERSION = "18"
+
+# Branch deploys
+[context.branch-deploy]
+  command = "npm ci && npm run build:dev"
+  publish = "dist-dev"
+
+# Redirects for SPA (Vue Router)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Service Worker redirect
+[[redirects]]
+  from = "/service-worker.js"
+  to = "/service-worker.js"
+  status = 200
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache JS and CSS
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache images
+[[headers]]
+  for = "/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+

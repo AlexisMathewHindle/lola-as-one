@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "lola-workshops"
+  },
+  "targets": {
+    "lola-workshops": {
+      "hosting": {
+        "dev-site": [
+          "lola-workshops-dev"
+        ],
+        "prod-site": [
+          "lola-workshops"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
