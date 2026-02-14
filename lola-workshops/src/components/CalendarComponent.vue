@@ -39,14 +39,14 @@
               <v-btn
                 @click="viewMode = 'week'"
                 :variant="viewMode === 'week' ? 'flat' : 'outlined'"
-                :color="viewMode === 'week' ? 'primary' : ''"
+                :color="viewMode === 'week' ? '#d8b061' : ''"
               >
                 Week
               </v-btn>
               <v-btn
                 @click="viewMode = 'day'"
                 :variant="viewMode === 'day' ? 'flat' : 'outlined'"
-                :color="viewMode === 'day' ? 'primary' : ''"
+                :color="viewMode === 'day' ? '#d8b061' : ''"
               >
                 Day
               </v-btn>
@@ -124,7 +124,7 @@
               <div
                 v-for="workshop in getWorkshopsForDay(day.date)"
                 :key="workshop.id"
-                :style="getWorkshopStyle(workshop)"
+                :style="{ ...getWorkshopStyle(workshop), ...getWorkshopColorStyle(workshop) }"
                 @click="goToWorkshop(workshop)"
                 class="workshop-block"
                 :class="[
@@ -180,7 +180,7 @@
               <div
                 v-for="workshop in getWorkshopsForDay(currentDateString)"
                 :key="workshop.id"
-                :style="getWorkshopStyleDay(workshop)"
+                :style="{ ...getWorkshopStyleDay(workshop), ...getWorkshopColorStyle(workshop) }"
                 @click="goToWorkshop(workshop)"
                 class="workshop-block-day"
                 :class="[
@@ -465,8 +465,14 @@ export default defineComponent({
       return workshops.value.filter((w) => w.event_date === dateString);
     };
 
-    // Get workshop color class based on title
+    // Get workshop color class based on category color
     const getWorkshopColorClass = (workshop) => {
+      // Use category color if available
+      if (workshop.category && workshop.category.color_hex) {
+        return `color-custom`;
+      }
+
+      // Fallback to title-based colors for backwards compatibility
       const title = workshop.offering.title.toLowerCase();
 
       // Open Studio - Blue/Teal
@@ -518,8 +524,25 @@ export default defineComponent({
       return "color-primary";
     };
 
+    // Get inline style for custom category colors
+    const getWorkshopColorStyle = (workshop) => {
+      if (workshop.category && workshop.category.color_hex) {
+        return {
+          backgroundColor: workshop.category.color_hex,
+          borderColor: workshop.category.color_hex,
+        };
+      }
+      return {};
+    };
+
     // Get chip color for list view
     const getWorkshopChipColor = (workshop) => {
+      // Use category color if available
+      if (workshop.category && workshop.category.color_hex) {
+        return workshop.category.color_hex;
+      }
+
+      // Fallback to title-based colors
       const title = workshop.offering.title.toLowerCase();
 
       if (title.includes("open studio")) return "blue";
@@ -654,6 +677,7 @@ export default defineComponent({
       fetchWorkshops,
       getWorkshopsForDay,
       getWorkshopColorClass,
+      getWorkshopColorStyle,
       getWorkshopChipColor,
       getWorkshopStyle,
       getWorkshopStyleDay,
@@ -801,6 +825,11 @@ export default defineComponent({
     opacity: 0.5;
     cursor: not-allowed;
   }
+}
+
+.workshop-time, 
+.workshop-title {
+  color: #fff;
 }
 
 .workshop-time {

@@ -36,6 +36,7 @@ export interface SupabaseEvent {
   current_bookings: number;
   price_gbp: number;
   vat_rate: number;
+  category_id?: string;
   offering: {
     id: string;
     title: string;
@@ -46,6 +47,14 @@ export interface SupabaseEvent {
     secondary_images?: Array<{ url: string; order: number }>;
     status: string;
     metadata?: any;
+  };
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+    color_hex?: string;
+    icon?: string;
+    parent_id?: string;
   };
 }
 
@@ -59,7 +68,15 @@ export async function fetchEventsFromSupabase(): Promise<SupabaseEvent[]> {
       .select(
         `
         *,
-        offering:offerings!inner(*)
+        offering:offerings!inner(*),
+        category:event_categories(
+          id,
+          name,
+          slug,
+          color_hex,
+          icon,
+          parent_id
+        )
       `
       )
       .eq("offering.status", "published")
@@ -91,7 +108,15 @@ export async function fetchEventsByDateRange(
       .select(
         `
         *,
-        offering:offerings!inner(*)
+        offering:offerings!inner(*),
+        category:event_categories(
+          id,
+          name,
+          slug,
+          color_hex,
+          icon,
+          parent_id
+        )
       `
       )
       .eq("offering.status", "published")
@@ -124,7 +149,15 @@ export async function fetchEventById(
       .select(
         `
         *,
-        offering:offerings!inner(*)
+        offering:offerings!inner(*),
+        category:event_categories(
+          id,
+          name,
+          slug,
+          color_hex,
+          icon,
+          parent_id
+        )
       `
       )
       .eq("id", eventId)
