@@ -180,17 +180,15 @@
           />
         </div>
 
-        <!-- Featured Image -->
+        <!-- Images -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Featured Image
-          </label>
-          <ImageUploader
-            v-model="form.featured_image_url"
+          <MultipleImageUploader
+            :main-image="form.featured_image_url"
+            :secondary-images-data="form.secondary_images"
             :bucket="getImageBucket()"
-            alt="Offering featured image"
             :max-size-m-b="5"
-            @upload-complete="handleImageUpload"
+            @update:mainImage="handleMainImageUpdate"
+            @update:secondaryImagesData="handleSecondaryImagesUpdate"
             @upload-error="handleImageError"
           />
         </div>
@@ -326,7 +324,7 @@ import EventFields from '../../components/admin/EventFields.vue'
 import ProductFields from '../../components/admin/ProductFields.vue'
 import SubscriptionFields from '../../components/admin/SubscriptionFields.vue'
 import DigitalProductFields from '../../components/admin/DigitalProductFields.vue'
-import ImageUploader from '../../components/shared/ImageUploader.vue'
+import MultipleImageUploader from '../../components/shared/MultipleImageUploader.vue'
 import RichTextEditor from '../../components/shared/RichTextEditor.vue'
 
 const route = useRoute()
@@ -346,6 +344,7 @@ const form = ref({
   description_short: '',
   description_long: '',
   featured_image_url: '',
+  secondary_images: [],
   status: 'draft',
   featured: false,
   scheduled_publish_at: null,
@@ -394,9 +393,14 @@ const getImageBucket = () => {
   return bucketMap[selectedType.value] || 'product-images'
 }
 
-// Handle successful image upload
-const handleImageUpload = ({ url, path }) => {
-  console.log('Image uploaded successfully:', { url, path })
+// Handle main image update
+const handleMainImageUpdate = (url) => {
+  form.value.featured_image_url = url
+}
+
+// Handle secondary images update
+const handleSecondaryImagesUpdate = (images) => {
+  form.value.secondary_images = images
 }
 
 // Handle image upload error
@@ -594,6 +598,7 @@ const handleSubmit = async () => {
       description_short: form.value.description_short?.trim() || null,
       description_long: form.value.description_long?.trim() || null,
       featured_image_url: form.value.featured_image_url?.trim() || null,
+      secondary_images: form.value.secondary_images || [],
       status: form.value.status,
       scheduled_publish_at: form.value.scheduled_publish_at || null,
       featured: form.value.featured,
@@ -941,6 +946,7 @@ const loadOffering = async () => {
       description_short: offering.description_short || '',
       description_long: offering.description_long || '',
       featured_image_url: offering.featured_image_url || '',
+      secondary_images: offering.secondary_images || [],
       status: offering.status,
       featured: offering.featured,
       scheduled_publish_at: offering.scheduled_publish_at || null,

@@ -44,6 +44,7 @@ CREATE TABLE offerings (
   description_short TEXT,
   description_long TEXT,
   featured_image_url TEXT,
+  secondary_images JSONB DEFAULT '[]'::jsonb, -- Array of secondary images: [{"url": "string", "order": number}]. Max 6 images.
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'published', 'archived')),
   scheduled_publish_at TIMESTAMPTZ,
   published_at TIMESTAMPTZ,
