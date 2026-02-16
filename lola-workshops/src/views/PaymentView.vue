@@ -38,21 +38,25 @@ import { ref, onMounted, computed } from "vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
 
-import { loadStripe } from "@stripe/stripe-js";
-import { getFirestore, collection, addDoc, updateDoc, doc } from "@/main";
-import { getFunctions, httpsCallable } from "firebase/functions";
+// import { loadStripe } from "@stripe/stripe-js"; // No longer needed - using Stripe Checkout
+// import { getFirestore, collection, addDoc, updateDoc, doc } from "@/main"; // Firebase - deprecated
+// import { getFunctions, httpsCallable } from "firebase/functions"; // Firebase - deprecated
+import { supabase } from "@/lib/supabase";
 
 export default {
-  setup(_, { emit }) {
+  setup() {
     const store = useStore();
     const router = useRouter();
-    const stripePromise = loadStripe("pk_live_6rRGhnrjgOYN9EdPedNqZKYn"); // Use live key for production
+
+    // NOTE: Stripe elements no longer needed - using Stripe Checkout instead
+    // const stripePromise = loadStripe(import.meta.env.VUE_APP_STRIPE_PUBLISHABLE_KEY);
+    // const cardElement = ref(null);
+    // const paymentRequest = ref(null);
+
     const basket = computed(() => store.state.basket);
     const total = computed(() => store.getters.total?.toFixed(2));
     const snackbar = ref(false);
     const snackbarText = ref("");
-    const cardElement = ref(null);
-    const paymentRequest = ref(null); // For ApplePay/GooglePay
     const errorMessage = ref("");
     const loading = ref(false);
 
@@ -62,222 +66,93 @@ export default {
 
     const handleSubmit = async () => {
       loading.value = true;
+      errorMessage.value = "";
+
       try {
-        const stripe = await stripePromise;
-        const functions = getFunctions();
-        const createPaymentIntent = httpsCallable(
-          functions,
-          "stripe-createPaymentIntent"
-        );
-        const { name, email } = store.state.booking;
-        // Ensure total is a valid number
-        const totalAmount = store.state.total || 0;
-        if (totalAmount <= 0) {
-          errorMessage.value = "Invalid payment amount";
-          loading.value = false;
-          return;
-        }
-        const response = await createPaymentIntent({
-          amount: totalAmount,
-          name,
-          email,
-        });
+        // Prepare items for checkout
+        const items = basket.value.map(item => ({
+          id: item.event_id || item.id,
+          title: item.event_title || item.title,
+          price: item.price,
+          quantity: item.quantity || 1,
+          type: 'event',
+          eventDate: item.event_date,
+          eventTime: item.event_time,
+          // Include attendee details if available
+          attendees: item.attendees || []
+        }));
 
-        // Safely destructure the response
-        if (!response?.data) {
-          errorMessage.value = "Payment setup failed";
-          loading.value = false;
-          return;
-        }
+        // Prepare customer data
+        const customer = {
+          email: store.state.booking.email,
+          firstName: store.state.booking.name.split(' ')[0] || store.state.booking.name,
+          lastName: store.state.booking.name.split(' ').slice(1).join(' ') || '',
+          phone: store.state.booking.phone || ''
+        };
 
-        const { data } = response;
-        const { clientSecret } = data;
-        if (data.error) {
-          errorMessage.value = data.error;
-          loading.value = false;
-          return;
-        }
+        console.log('Creating checkout session with:', { items, customer });
 
-        const { error } = await stripe.confirmCardPayment(clientSecret, {
-          payment_method: {
-            card: cardElement.value,
-          },
+        // Call Supabase Edge Function to create checkout session
+        const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+          body: {
+            items,
+            customer,
+            // No shipping needed for events
+            shipping: undefined
+          }
         });
 
         if (error) {
-          loading.value = false;
-          errorMessage.value = error.message;
-        } else {
-          saveBooking();
-          updateThemeQuantities();
+          console.error('Error creating checkout session:', error);
+          throw new Error(error.message || 'Failed to create checkout session');
         }
+
+        if (!data || !data.url) {
+          throw new Error('Invalid response from checkout service');
+        }
+
+        console.log('Checkout session created, redirecting to:', data.url);
+
+        // Redirect to Stripe Checkout
+        // The webhook will handle booking creation after successful payment
+        window.location.href = data.url;
+
       } catch (error) {
-        errorMessage.value = error.message;
+        console.error('Checkout error:', error);
+        errorMessage.value = error.message || 'An error occurred during checkout';
         loading.value = false;
       }
     };
 
-    // Setup Stripe Payment Request for Apple Pay/Google Pay
+    // NOTE: Payment Request API (Apple Pay/Google Pay) is not needed with Stripe Checkout
+    // Stripe Checkout handles all payment methods including Apple Pay and Google Pay
+    // Commenting out for now - can be removed entirely later
+    /*
     const setupPaymentRequest = async (stripe) => {
-      try {
-        const functions = getFunctions();
-        const createPaymentIntent = httpsCallable(
-          functions,
-          "stripe-createPaymentIntent"
-        );
-
-        const { name, email } = store.state.booking;
-        const totalAmount = store.state.total || 0;
-        if (totalAmount <= 0) {
-          errorMessage.value = "Invalid payment amount";
-          return;
-        }
-
-        const response = await createPaymentIntent({
-          amount: totalAmount,
-          name,
-          email,
-        });
-
-        if (!response?.data) {
-          errorMessage.value = "Payment setup failed";
-          return;
-        }
-
-        const { data } = response;
-        const clientSecret = data.clientSecret;
-
-        if (data.error) {
-          errorMessage.value = data.error;
-          return;
-        }
-
-        const totalAmountInCents = Number(store.getters.total).toFixed(2) * 100;
-        paymentRequest.value = stripe.paymentRequest({
-          country: "GB",
-          currency: "gbp",
-          total: {
-            label: "Total",
-            amount: totalAmountInCents,
-          },
-          requestPayerName: true,
-          requestPayerEmail: true,
-        });
-
-        const result = await paymentRequest.value.canMakePayment();
-        if (result) {
-          const elements = stripe.elements();
-          const prButton = elements.create("paymentRequestButton", {
-            paymentRequest: paymentRequest.value,
-          });
-
-          prButton.mount("#payment-request-button");
-
-          paymentRequest.value.on("paymentmethod", async (ev) => {
-            try {
-              const { error } = await stripe.confirmCardPayment(clientSecret, {
-                payment_method: ev.paymentMethod.id,
-              });
-
-              if (error) {
-                ev.complete("fail");
-                errorMessage.value = error.message;
-              } else {
-                ev.complete("success");
-                updateThemeQuantities();
-                saveBooking(); // Call the saveBooking method on success
-              }
-            } catch (error) {
-              ev.complete("fail");
-              errorMessage.value = error.message;
-            }
-          });
-        }
-      } catch (error) {
-        errorMessage.value = "Failed to create PaymentIntent: " + error.message;
-      }
+      // This function is deprecated - using Stripe Checkout instead
     };
+    */
 
+    // NOTE: These Firebase functions are no longer needed
+    // The Stripe webhook handles booking creation and capacity updates
+    // Keeping them commented for reference during migration
+    /*
     const saveBooking = async () => {
-      try {
-        const db = getFirestore();
-        const docRef = await addDoc(
-          collection(db, "bookings"),
-          store.state.booking
-        );
-        const booking = {
-          ...store.state.booking,
-          doc_id: docRef.id,
-        };
-        await updateDoc(doc(db, "bookings", docRef.id), booking);
-
-        snackbar.value = true;
-        snackbarText.value = "Registration successful!";
-        emit("success", store.state.booking.id);
-        store.commit("SET_BASKET", []);
-        store.commit("SET_BOOKING", {});
-        store.commit("SET_TOTAL", 0);
-        loading.value = false;
-      } catch (error) {
-        console.error("Error adding document: ", error);
-        loading.value = false;
-        alert("There was an error during registration. Please try again.");
-      }
+      // Deprecated - webhook handles this
     };
 
     const updateThemeQuantities = async () => {
-      const themes = store.state.themes;
-      themes.forEach((theme) => {
-        theme.stock = Number(theme.stock);
-      });
-
-      const themesMap = new Map();
-      themes.forEach((theme) => {
-        themesMap.set(theme.id, {
-          ...theme,
-          originalStock: theme.stock,
-        });
-      });
-
-      basket.value.forEach((item) => {
-        const itemsToProcess = Array.isArray(item) ? item : [item];
-
-        itemsToProcess.forEach((basketItem) => {
-          if (basketItem.category === "single") {
-            const themeId = basketItem.id;
-            const basketQuantity = basketItem.quantity;
-
-            if (themesMap.has(themeId)) {
-              const theme = themesMap.get(themeId);
-              const newQuantity = theme.originalStock - basketQuantity;
-              theme.stock = newQuantity < 0 ? 0 : newQuantity;
-              updateFirestoreTheme(theme);
-            }
-          }
-
-          if (basketItem.category === "adult_workshop") {
-            const basketQuantity = basketItem.quantity;
-            const item = {
-              ...basketItem,
-              stock: parseFloat(basketItem.stock) - basketQuantity,
-            };
-            updateAdultWorkshops(item);
-          }
-        });
-      });
+      // Deprecated - webhook handles this
     };
 
     const updateAdultWorkshops = async (workshop) => {
-      const db = getFirestore();
-      const themeDoc = doc(db, "adult_workshops", workshop.id);
-      await updateDoc(themeDoc, workshop);
+      // Deprecated - webhook handles this
     };
 
     const updateFirestoreTheme = async (theme) => {
-      const db = getFirestore();
-      const themeDoc = doc(db, "themes", theme.id);
-      await updateDoc(themeDoc, theme);
+      // Deprecated - webhook handles this
     };
+    */
 
     // Check if booking is empty, redirect to registration view if empty
     const emptyBookingState = () => {
@@ -288,6 +163,10 @@ export default {
 
     onMounted(async () => {
       emptyBookingState();
+      // NOTE: Card element setup is no longer needed with Stripe Checkout
+      // Stripe Checkout provides its own hosted payment form
+      // Keeping this commented for reference
+      /*
       const stripe = await stripePromise;
       const elements = stripe.elements();
       cardElement.value = elements.create("card", {
@@ -302,18 +181,13 @@ export default {
           },
         },
       });
-
       cardElement.value.mount("#card-element");
-
-      // Setup PaymentRequest for Apple Pay/Google Pay
-      setupPaymentRequest(stripe);
+      */
     });
 
     return {
       handleSubmit,
       errorMessage,
-      updateThemeQuantities,
-      saveBooking,
       snackbarText,
       snackbar,
       total,

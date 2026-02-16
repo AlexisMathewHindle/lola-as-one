@@ -220,9 +220,14 @@
 <script>
 import { defineComponent, ref, onMounted, computed, watch } from "vue";
 import { logEvent, getAnalytics } from "firebase/analytics";
-import { getFirestore, collection, updateDoc, doc, getDocs } from "@/main";
+// import { getFirestore, collection, updateDoc, doc, getDocs } from "@/main"; // Firebase - deprecated
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
+import {
+  fetchEventsWithCapacity,
+  fetchOfferingsWithEvents,
+  decrementEventCapacity
+} from "@/lib/supabase";
 
 import SiblingDiscountComponent from "@/components/SiblingDiscountComponent.vue";
 export default defineComponent({
@@ -460,48 +465,91 @@ export default defineComponent({
       isValid.value = attendees.value.every((attendee) => attendee.isValid);
     };
 
-    // At checkout we need to create a function that checks all events in the events firestore collection to see if there are any spaces left.
-    // If there are spaces left, it should create a booking in the bookings collection and add the attendees to the attendees array.
-    // If there are no spaces left, it should add the attendees to the waitlist.
+    // Fetch events from Supabase with capacity information
     const fetchEventSpaces = async () => {
-      const db = getFirestore();
-      const eventsCollection = collection(db, "events");
-      const snapshot = await getDocs(eventsCollection);
-      const events = snapshot.docs.map((doc) => doc.data());
-      store.commit("SET_EVENTS", events);
-      return events;
+      try {
+        const events = await fetchEventsWithCapacity();
+        // Transform to legacy format for compatibility with existing store
+        const legacyEvents = events.map(event => ({
+          event_id: event.id,
+          event_title: event.offering.title,
+          title: event.offering.title,
+          description: event.offering.description_long || event.offering.description_short || "",
+          date: event.event_date,
+          start_time: event.event_start_time,
+          end_time: event.event_end_time,
+          location: event.location_name,
+          address: event.location_address,
+          city: event.location_city,
+          postcode: event.location_postcode,
+          quantity: event.max_capacity - event.current_bookings, // Available spaces
+          max_capacity: event.max_capacity,
+          current_bookings: event.current_bookings,
+          price: event.price_gbp,
+          image: event.offering.featured_image_url,
+          slug: event.offering.slug,
+        }));
+        store.commit("SET_EVENTS", legacyEvents);
+        return legacyEvents;
+      } catch (error) {
+        console.error("Error fetching events from Supabase:", error);
+        return [];
+      }
     };
-    // Function to fetch all themes from Firestore
-    const fetchThemesFromFirestore = async () => {
-      const db = getFirestore();
-      const themesCollection = collection(db, "themes");
-      const themesSnapshot = await getDocs(themesCollection);
 
-      const themes = [];
-      themesSnapshot.forEach((doc) => {
-        themes.push({ theme_id: doc.id, ...doc.data() });
-      });
-
-      store.commit("SET_THEMES", themes);
-
-      return themes;
+    // Fetch themes/offerings from Supabase
+    const fetchThemesFromSupabase = async () => {
+      try {
+        const offerings = await fetchOfferingsWithEvents();
+        // Transform to legacy format for compatibility with existing store
+        const legacyThemes = offerings.map(offering => ({
+          theme_id: offering.id,
+          id: offering.id,
+          title: offering.title,
+          description: offering.description_long || offering.description_short || "",
+          price: offering.events?.[0]?.price_gbp || 0,
+          image: offering.featured_image_url,
+          slug: offering.slug,
+          events: offering.events || [],
+        }));
+        store.commit("SET_THEMES", legacyThemes);
+        return legacyThemes;
+      } catch (error) {
+        console.error("Error fetching themes from Supabase:", error);
+        return [];
+      }
     };
 
-    const updateFirestoreEvent = async (event) => {
-      const db = getFirestore();
-      const eventDoc = doc(db, "events", event.event_id);
-      await updateDoc(eventDoc, event);
+    // Update event capacity in Supabase (replaces updateFirestoreEvent)
+    const updateSupabaseEvent = async (event, attendeeCount) => {
+      try {
+        // Use the RPC function to decrement capacity
+        await decrementEventCapacity(event.event_id, attendeeCount);
+      } catch (error) {
+        console.error("Error updating event capacity in Supabase:", error);
+      }
     };
 
-    // Function to update Firestore document for a theme
-    const updateFirestoreTheme = async (theme) => {
-      const db = getFirestore();
-      const themeDoc = doc(db, "themes", theme.theme_id.toLowerCase());
-      await updateDoc(themeDoc, theme);
+    // Update theme capacity in Supabase (replaces updateFirestoreTheme)
+    // Note: In Supabase, themes are offerings, and capacity is tracked per event
+    const updateSupabaseTheme = async (theme, attendeeCount) => {
+      try {
+        // For themes, we need to update capacity for all events in the theme
+        if (theme.events && theme.events.length > 0) {
+          for (const event of theme.events) {
+            await decrementEventCapacity(event.id, attendeeCount);
+          }
+        }
+      } catch (error) {
+        console.error("Error updating theme capacity in Supabase:", error);
+      }
     };
 
     const updateEventQuantities = async () => {
-      // Convert all quantities in events array to numbers
+      // Note: In Supabase, capacity is managed via the decrement_event_capacity RPC function
+      // This function is now simplified - actual capacity updates happen in PaymentView after successful payment
+
+      // We still update the local store for UI purposes
       store.state.events.forEach((event) => {
         event.quantity = Number(event.quantity);
       });
@@ -509,16 +557,14 @@ export default defineComponent({
       // Create a map for quick lookup of events by event_id
       const eventsMap = new Map();
       store.state.events.forEach((event) => {
-        // Store the original quantity from the database separately
         eventsMap.set(event.event_id, {
           ...event,
           originalQuantity: event.quantity,
         });
       });
 
-      // Iterate through the basket and update the event quantities
+      // Update local quantities for UI display (not persisted to database yet)
       basket.value.forEach((item) => {
-        // Handle both cases: single objects and nested arrays
         const itemsToProcess = Array.isArray(item) ? item : [item];
 
         itemsToProcess.forEach((basketItem) => {
@@ -527,15 +573,11 @@ export default defineComponent({
 
           if (eventsMap.has(eventId)) {
             const event = eventsMap.get(eventId);
-
-            // Calculate the new quantity using the original quantity from the database
             const newQuantity = event.originalQuantity - basketQuantity;
-
-            // Ensure quantity doesn't go negative
             event.quantity = newQuantity < 0 ? 0 : newQuantity;
 
-            // Update the Firestore collection for this event
-            updateFirestoreEvent(event);
+            // Note: Actual capacity update happens in PaymentView after successful payment
+            // This prevents capacity from being decremented before payment is confirmed
           }
         });
       });
@@ -595,8 +637,9 @@ export default defineComponent({
 
       checkBasketAndAttendees();
 
+      // Use Supabase instead of Firebase
       fetchEventSpaces();
-      fetchThemesFromFirestore();
+      fetchThemesFromSupabase();
       if (!store.state.total) {
         router.push("/basket");
       }
@@ -621,10 +664,10 @@ export default defineComponent({
       basket,
       outputArray,
       fetchEventSpaces,
-      updateFirestoreEvent,
-      updateFirestoreTheme,
+      updateSupabaseEvent,
+      updateSupabaseTheme,
       updateEventQuantities,
-      fetchThemesFromFirestore,
+      fetchThemesFromSupabase,
       validateAttendee,
       validateParent,
       canApplySiblingDiscount,

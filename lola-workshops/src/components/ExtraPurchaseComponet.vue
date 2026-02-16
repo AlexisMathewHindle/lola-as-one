@@ -37,11 +37,13 @@
 <script>
 import { defineComponent, ref, watch, onMounted } from "vue";
 import { useStore } from "vuex";
+import { useCartStore } from "@/stores/cart";
 
 export default defineComponent({
   name: "ExtraPurchaseComponent",
   setup() {
     const store = useStore();
+    const cartStore = useCartStore();
     const themes = ref([]); // This is the reactive ref for themes
     const innerWidth = ref(0);
     const getCategory = (id) => {
@@ -64,54 +66,15 @@ export default defineComponent({
     };
 
     const getTotalPrice = () => {
-      const totalPrice = store.state.basket.reduce((total, item) => {
-        // Convert price to a number and multiply by quantity
-        let itemTotal = parseFloat(item.price) * item.quantity;
-
-        // If the item has a nested items array, add those items' totals as well
-        if (item.items && Array.isArray(item.items)) {
-          item.items.forEach((subItem) => {
-            // For each sub-item, multiply its price by its quantity and add to itemTotal
-            itemTotal += parseFloat(subItem.price) * subItem.quantity;
-          });
-        }
-        // Add the item's total to the overall total
-        return total + itemTotal;
-      }, 0);
+      // Use cart store's subtotal
+      const totalPrice = cartStore.subtotal;
       store.commit("SET_TOTAL", totalPrice);
-
-      return Number(totalPrice.toFixed(2)); // Ensure result is a number with 2 decimal places
-    };
-
-    const updateBasket = (theme, newQuantity) => {
-      const currentBasket = store.state.basket || [];
-
-      if (Array.isArray(currentBasket)) {
-        // Handle the case where the basket is an array
-        const existingItemIndex = currentBasket.findIndex(
-          (item) => item.theme_id === theme.theme_id
-        );
-
-        if (existingItemIndex > -1) {
-          // If the item exists, update its quantity
-          currentBasket[existingItemIndex].quantity = theme.quantity;
-        } else {
-          // If it doesn't exist, add it to the basket
-          currentBasket.push({ ...theme, quantity: theme.quantity });
-        }
-        // Update the store with the new basket
-      } else if (typeof currentBasket === "object") {
-        // Handle the case where the basket is an object (category single)
-        currentBasket.quantity = newQuantity;
-      }
-
-      store.commit("SET_BASKET", currentBasket);
-      // need to update props.themes with the new quantity
+      return Number(totalPrice.toFixed(2));
     };
 
     const addToBasket = (theme) => {
-      theme.quantity = (theme.quantity || 0) + 1;
-      updateBasket(theme, theme.quantity);
+      // Add to cart using cart store
+      cartStore.addItem(theme, 1);
       getTotalPrice();
     };
 
@@ -124,14 +87,14 @@ export default defineComponent({
       () => [store.state.themes, store.state.events],
       () => {
         const allThemes = store.state.themes; // Get all themes
-        const basket = store.state.basket; // Assuming basket is in the store
+        const basket = cartStore.items; // Get basket from cart store
 
         const availableThemes = allThemes
           .filter((th) => (th.passed ? null : th))
           .filter((th) => {
             return getCategory(th.event_id) === "single" ? th : null;
           })
-          .filter((theme) => !basket.includes(theme.event_id))
+          .filter((theme) => !basket.some(item => item.event_id === theme.event_id))
           .map((theme) => {
             return {
               ...theme,

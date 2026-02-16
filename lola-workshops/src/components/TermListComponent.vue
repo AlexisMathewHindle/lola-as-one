@@ -51,6 +51,7 @@ import { defineComponent, ref, watch } from "vue";
 import { logEvent, getAnalytics } from "firebase/analytics";
 import { useStore } from "vuex";
 import { Lit } from "@/main";
+import { useCartStore } from "@/stores/cart";
 
 import StockComponent from "@/components/StockComponent.vue";
 
@@ -71,6 +72,7 @@ export default defineComponent({
   },
   setup(props) {
     const store = useStore();
+    const cartStore = useCartStore();
     const themes = ref([]);
     const basketButtonText = ref([]); // Array to store button text for each item
 
@@ -114,29 +116,18 @@ export default defineComponent({
     };
 
     const addToBasket = (theme) => {
-      const currentBasket = store.state.basket || [];
-      const themeId = theme[0].theme_id; // Assuming theme_id is unique for each theme
+      // Prepare the event object for the cart store
+      let eventToAdd = { ...theme[0], quantity: 1 };
 
-      // Check if the theme already exists in the basket
-      const existingItemIndex = currentBasket.findIndex(
-        (item) => item.theme_id === themeId
-      );
-
-      if (existingItemIndex !== -1) {
-        // If it exists, update the quantity
-        currentBasket[existingItemIndex].quantity += 1;
-      } else {
-        let newItem = { ...theme[0], quantity: 1 }; // Add quantity property
-        if (theme[0].category === "term") {
-          newItem = { ...newItem, items: theme };
-        }
-
-        // If it doesn't exist, add it to the basket with quantity 1
-        currentBasket.push(newItem);
+      // If it's a term event, add the items array
+      if (theme[0].category === "term") {
+        eventToAdd = { ...eventToAdd, items: theme };
       }
 
-      // Commit the updated basket to the store
-      store.commit("SET_BASKET", currentBasket);
+      // Add to cart using cart store
+      cartStore.addItem(eventToAdd);
+
+      // Analytics tracking
       const analytics = getAnalytics();
       logEvent(analytics, "add_to_cart", {
         theme_title: theme[0].theme_title,
@@ -150,26 +141,11 @@ export default defineComponent({
       Lit.event("added_to_cart", {
         created_at: new Date(),
         metadata: {
-          theme_title: theme.theme_title,
-          theme_id: theme.theme_id,
-          type: theme.category,
+          theme_title: theme[0].theme_title,
+          theme_id: theme[0].theme_id,
+          type: theme[0].category,
         },
       });
-
-      // const currentBasket = store.state.basket || [];
-      // const updatedBasket = [...currentBasket, theme];
-
-      // const filteredBasketIfPassed = updatedBasket
-      //   .map((innerArray) => {
-      //     // Ensure innerArray is an array before filtering
-      //     if (Array.isArray(innerArray)) {
-      //       return innerArray.filter((item) => !item.passed);
-      //     }
-      //     return innerArray; // Return as is if not an array
-      //   })
-      //   .flat();
-
-      // store.commit("SET_BASKET", filteredBasketIfPassed);
     };
 
     const handleAddToBasket = (theme, index) => {

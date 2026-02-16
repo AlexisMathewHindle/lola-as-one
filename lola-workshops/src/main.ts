@@ -1,4 +1,5 @@
 import { createApp } from "vue";
+import { createPinia } from "pinia";
 import App from "./App.vue";
 import router from "./router";
 import store from "./store";
@@ -103,10 +104,13 @@ export {
 
 loadFonts();
 
+const pinia = createPinia();
+
 createApp(App)
   .use(dayjsPlugin)
   .use(router)
   .use(store)
+  .use(pinia)
   .use(vuetify)
   .provide("db", db)
   .mount("#app");

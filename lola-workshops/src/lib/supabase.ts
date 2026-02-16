@@ -230,3 +230,499 @@ export function transformSupabaseEventToFullCalendar(
     },
   };
 }
+
+// ============================================================================
+// CUSTOMER MANAGEMENT
+// ============================================================================
+
+/**
+ * Customer interface matching Supabase schema
+ */
+export interface Customer {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  stripe_customer_id?: string;
+  marketing_opt_in?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Get customer by email
+ */
+export async function getCustomerByEmail(
+  email: string
+): Promise<Customer | null> {
+  try {
+    const { data, error } = await supabase
+      .from("customers")
+      .select("*")
+      .eq("email", email)
+      .single();
+
+    if (error) {
+      // Not found is not an error - return null
+      if (error.code === "PGRST116") {
+        return null;
+      }
+      console.error("Error fetching customer by email:", error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch customer by email:", error);
+    return null;
+  }
+}
+
+/**
+ * Create or update customer in Supabase
+ * Uses upsert to handle both new and existing customers
+ */
+export async function createOrUpdateCustomer(
+  email: string,
+  firstName?: string,
+  lastName?: string,
+  phone?: string,
+  marketingOptIn?: boolean
+): Promise<{ data: Customer | null; error: any }> {
+  try {
+    // Check if customer exists first
+    const existingCustomer = await getCustomerByEmail(email);
+
+    if (existingCustomer) {
+      // Update existing customer
+      const { data, error } = await supabase
+        .from("customers")
+        .update({
+          first_name: firstName || existingCustomer.first_name,
+          last_name: lastName || existingCustomer.last_name,
+          phone: phone || existingCustomer.phone,
+          marketing_opt_in: marketingOptIn !== undefined ? marketingOptIn : existingCustomer.marketing_opt_in,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("email", email)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error updating customer:", error);
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    } else {
+      // Create new customer (without id - it will be set by auth.users reference)
+      // For now, we'll insert without the id and let Supabase handle it
+      // Note: This requires the customer to be authenticated or we need to handle guest customers differently
+      const { data, error } = await supabase
+        .from("customers")
+        .insert({
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          phone,
+          marketing_opt_in: marketingOptIn || false,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error creating customer:", error);
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    }
+  } catch (error) {
+    console.error("Failed to create or update customer:", error);
+    return { data: null, error };
+  }
+}
+
+// ============================================================================
+// BOOKING MANAGEMENT
+// ============================================================================
+
+/**
+ * Booking interface matching Supabase schema
+ */
+export interface Booking {
+  id?: string;
+  offering_event_id: string;
+  customer_id?: string;
+  customer_email: string;
+  customer_name: string;
+  number_of_attendees: number;
+  attendee_details?: any;
+  status: 'pending' | 'confirmed' | 'cancelled';
+  total_price_gbp?: number;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Create a booking in Supabase
+ * Note: In production, this should be done via Stripe webhook
+ * This is for direct booking creation (e.g., admin bookings)
+ */
+export async function createBooking(
+  bookingData: Partial<Booking>
+): Promise<{ data: Booking | null; error: any }> {
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .insert({
+        offering_event_id: bookingData.offering_event_id,
+        customer_email: bookingData.customer_email,
+        customer_name: bookingData.customer_name,
+        number_of_attendees: bookingData.number_of_attendees || 1,
+        attendee_details: bookingData.attendee_details,
+        status: bookingData.status || 'confirmed',
+        total_price_gbp: bookingData.total_price_gbp,
+        notes: bookingData.notes,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating booking:", error);
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error("Failed to create booking:", error);
+    return { data: null, error };
+  }
+}
+
+/**
+ * Fetch bookings by customer email
+ */
+export async function getBookingsByEmail(
+  email: string
+): Promise<Booking[]> {
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq("customer_email", email)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching bookings:", error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Failed to fetch bookings:", error);
+    return [];
+  }
+}
+
+// ============================================================================
+// CAPACITY MANAGEMENT
+// ============================================================================
+
+/**
+ * Decrement event capacity using Supabase RPC function
+ * This updates the event_capacity table or offering_events.current_bookings
+ */
+export async function decrementEventCapacity(
+  offeringEventId: string,
+  attendees: number
+): Promise<{ success: boolean; error: any }> {
+  try {
+    const { error } = await supabase.rpc('decrement_event_capacity', {
+      p_offering_event_id: offeringEventId,
+      p_attendees: attendees,
+    });
+
+    if (error) {
+      console.error("Error decrementing event capacity:", error);
+      return { success: false, error };
+    }
+
+    return { success: true, error: null };
+  } catch (error) {
+    console.error("Failed to decrement event capacity:", error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Fetch events with capacity information
+ * Includes event_capacity table data if available
+ */
+export async function fetchEventsWithCapacity(): Promise<SupabaseEvent[]> {
+  try {
+    const { data, error } = await supabase
+      .from("offering_events")
+      .select(
+        `
+        *,
+        offering:offerings!inner(*),
+        capacity:event_capacity(*),
+        category:event_categories(
+          id,
+          name,
+          slug,
+          color_hex,
+          icon,
+          parent_id
+        )
+      `
+      )
+      .eq("offering.status", "published")
+      .order("event_date", { ascending: true })
+      .order("event_start_time", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching events with capacity:", error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Failed to fetch events with capacity:", error);
+    return [];
+  }
+}
+
+/**
+ * Get available spaces for an event
+ * Returns the number of spaces still available
+ */
+export async function getAvailableSpaces(
+  offeringEventId: string
+): Promise<number> {
+  try {
+    // First try to get from event_capacity table
+    const { data: capacityData, error: capacityError } = await supabase
+      .from("event_capacity")
+      .select("spaces_available")
+      .eq("offering_event_id", offeringEventId)
+      .single();
+
+    if (!capacityError && capacityData) {
+      return capacityData.spaces_available;
+    }
+
+    // Fallback to offering_events table
+    const { data: eventData, error: eventError } = await supabase
+      .from("offering_events")
+      .select("max_capacity, current_bookings")
+      .eq("id", offeringEventId)
+      .single();
+
+    if (eventError) {
+      console.error("Error fetching event capacity:", eventError);
+      return 0;
+    }
+
+    return eventData.max_capacity - eventData.current_bookings;
+  } catch (error) {
+    console.error("Failed to get available spaces:", error);
+    return 0;
+  }
+}
+
+// ============================================================================
+// COUPON MANAGEMENT
+// ============================================================================
+
+/**
+ * Coupon interface matching Supabase schema
+ * Note: You may need to create this table in Supabase
+ */
+export interface Coupon {
+  id: string;
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  is_active: boolean;
+  expiration?: string;
+  created_at?: string;
+}
+
+/**
+ * Validate a coupon code
+ * Returns the coupon if valid, null if invalid or expired
+ */
+export async function validateCoupon(
+  code: string
+): Promise<{ data: Coupon | null; error: any }> {
+  try {
+    const { data, error } = await supabase
+      .from("coupons")
+      .select("*")
+      .eq("code", code.toUpperCase())
+      .eq("is_active", true)
+      .single();
+
+    if (error) {
+      // Not found is not an error - return null
+      if (error.code === "PGRST116") {
+        return { data: null, error: null };
+      }
+      console.error("Error validating coupon:", error);
+      return { data: null, error };
+    }
+
+    // Check if expired
+    if (data.expiration && new Date(data.expiration) < new Date()) {
+      return { data: null, error: { message: "Coupon has expired" } };
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error("Failed to validate coupon:", error);
+    return { data: null, error };
+  }
+}
+
+/**
+ * Apply coupon discount to a price
+ */
+export function applyCouponDiscount(
+  price: number,
+  coupon: Coupon
+): number {
+  if (coupon.discount_type === 'percentage') {
+    return price - (price * coupon.discount_value / 100);
+  } else {
+    return Math.max(0, price - coupon.discount_value);
+  }
+}
+
+// ============================================================================
+// THEME/TERM BOOKING HELPERS
+// ============================================================================
+
+/**
+ * Fetch events by offering ID (for term/theme bookings)
+ * This helps when booking multiple events under the same offering
+ */
+export async function fetchEventsByOfferingId(
+  offeringId: string
+): Promise<SupabaseEvent[]> {
+  try {
+    const { data, error } = await supabase
+      .from("offering_events")
+      .select(
+        `
+        *,
+        offering:offerings!inner(*),
+        capacity:event_capacity(*),
+        category:event_categories(
+          id,
+          name,
+          slug,
+          color_hex,
+          icon,
+          parent_id
+        )
+      `
+      )
+      .eq("offering_id", offeringId)
+      .eq("offering.status", "published")
+      .order("event_date", { ascending: true })
+      .order("event_start_time", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching events by offering ID:", error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Failed to fetch events by offering ID:", error);
+    return [];
+  }
+}
+
+/**
+ * Fetch offerings (themes/terms) with their events
+ * Useful for displaying term bookings
+ */
+export async function fetchOfferingsWithEvents(): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from("offerings")
+      .select(
+        `
+        *,
+        events:offering_events(
+          *,
+          capacity:event_capacity(*)
+        )
+      `
+      )
+      .eq("status", "published")
+      .order("title", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching offerings with events:", error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Failed to fetch offerings with events:", error);
+    return [];
+  }
+}
+
+/**
+ * Create bulk bookings for term/theme bookings
+ * Books multiple events at once (e.g., all events in a term)
+ */
+export async function createBulkBookings(
+  eventIds: string[],
+  customerEmail: string,
+  customerName: string,
+  attendees: number,
+  totalPrice: number
+): Promise<{ success: boolean; bookingIds: string[]; error: any }> {
+  try {
+    const bookings = eventIds.map(eventId => ({
+      offering_event_id: eventId,
+      customer_email: customerEmail,
+      customer_name: customerName,
+      number_of_attendees: attendees,
+      status: 'confirmed' as const,
+      total_price_gbp: totalPrice / eventIds.length, // Split price evenly
+    }));
+
+    const { data, error } = await supabase
+      .from("bookings")
+      .insert(bookings)
+      .select();
+
+    if (error) {
+      console.error("Error creating bulk bookings:", error);
+      return { success: false, bookingIds: [], error };
+    }
+
+    // Decrement capacity for all events
+    for (const eventId of eventIds) {
+      await decrementEventCapacity(eventId, attendees);
+    }
+
+    return {
+      success: true,
+      bookingIds: data.map(b => b.id),
+      error: null
+    };
+  } catch (error) {
+    console.error("Failed to create bulk bookings:", error);
+    return { success: false, bookingIds: [], error };
+  }
+}

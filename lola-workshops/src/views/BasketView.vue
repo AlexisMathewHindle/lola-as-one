@@ -131,7 +131,14 @@ import {
 import { logEvent, getAnalytics } from "firebase/analytics";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
-import { db, collection, query, where, getDocs } from "@/main";
+// import { db, collection, query, where, getDocs } from "@/main"; // Firebase - deprecated
+import { useCartStore } from "@/stores/cart";
+import {
+  fetchEventsWithCapacity,
+  fetchOfferingsWithEvents,
+  validateCoupon,
+  applyCouponDiscount
+} from "@/lib/supabase";
 
 // import SiblingDiscountComponent from "@/components/SiblingDiscountComponent.vue";
 import ExtraPurchaseComponent from "../components/ExtraPurchaseComponet.vue";
@@ -146,26 +153,25 @@ export default defineComponent({
 
   setup() {
     const store = useStore();
+    const cartStore = useCartStore();
     const router = useRouter();
     const couponCode = ref("");
     const couponError = ref("");
     const discountAmount = ref(0);
-    const basket = computed(() => store.state.basket);
+    const basket = computed(() => cartStore.items);
     const total = computed(() => store.getters.total);
     const category = computed(() => store.getters.category);
     const headerHeight = 223;
     const cardHeight = computed(() => `${window.innerHeight - headerHeight}px`);
 
     const loadBasketFromLocalStorage = () => {
-      const storedBasket = localStorage.getItem("basket");
-      if (storedBasket) {
-        store.commit("SET_BASKET", JSON.parse(storedBasket));
-      }
+      // Cart store automatically loads from localStorage
+      // This function is kept for compatibility but is no longer needed
     };
 
     const clearBasket = () => {
       store.commit("SET_DISCOUNT_APPLIED", false);
-      store.commit("SET_BASKET", []);
+      cartStore.clearCart();
     };
 
     const getTotalPrice = () => {
@@ -208,72 +214,64 @@ export default defineComponent({
         couponError.value = "Please enter a coupon code.";
         return;
       }
-      const couponsRef = collection(db, "coupons");
-      const q = query(couponsRef, where("code", "==", couponCode.value));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const coupon = querySnapshot.docs[0].data();
-        const now = new Date();
-        // Check if coupon is active and not expired
-        if (coupon.isActive && new Date(coupon.expiration) > now) {
-          const basket = store.state.basket;
-          let discount = 0;
 
-          if (coupon.code === "SUMMER25") {
-            const isMay = now.getMonth() === 4; // May is month index 4
-            const hasHp = hasHpWorkshopInBasket(basket);
+      // Use Supabase to validate coupon
+      const { data: coupon, error } = await validateCoupon(couponCode.value);
 
-            if (!isMay) {
-              couponError.value = "This code is only valid during May.";
-              return;
-            }
-            if (!hasHp) {
-              couponError.value =
-                "This code only applies to holiday workshops.";
-              return;
-            }
-            discount = (getTotalPrice(basket) * 20) / 100;
-          } else if (coupon.code === "ARTCLASS25") {
-            const hpCount = countWorkshops(basket);
-            if (hpCount < 4) {
-              couponError.value =
-                "You must book at least 4 holiday workshops for this code.";
-              return;
-            }
-            discount = (getTotalPrice(basket) * 25) / 100;
-          } else {
-            // Handle general coupons as before
-            if (coupon.discountType === "percent") {
-              discount = (getTotalPrice(basket) * coupon.discountValue) / 100;
-            } else if (coupon.discountType === "fixed") {
-              discount = coupon.discountValue;
-            }
-          }
-
-          if (store.state.discountApplied) {
-            couponError.value = "You have already applied a discount.";
-            return;
-          }
-
-          const finalTotal = getTotalPrice(basket) - discount;
-          discountAmount.value = parseFloat(discount.toFixed(2));
-          store.commit("SET_TOTAL", finalTotal);
-          store.commit("SET_DISCOUNT_APPLIED", true);
-          store.commit("SET_DISCOUNT", discount);
-          couponError.value = "";
-        } else {
-          couponError.value = "Coupon is not active or expired.";
-        }
-      } else {
-        console.error("Invalid coupon code.");
+      if (error || !coupon) {
+        console.error("Invalid coupon code:", error);
         couponError.value = "Invalid coupon code.";
+        return;
       }
+
+      const now = new Date();
+      const basket = store.state.basket;
+      let discount = 0;
+
+      // Handle special coupon codes (legacy logic)
+      if (coupon.code === "SUMMER25") {
+        const isMay = now.getMonth() === 4; // May is month index 4
+        const hasHp = hasHpWorkshopInBasket(basket);
+
+        if (!isMay) {
+          couponError.value = "This code is only valid during May.";
+          return;
+        }
+        if (!hasHp) {
+          couponError.value = "This code only applies to holiday workshops.";
+          return;
+        }
+        discount = (getTotalPrice(basket) * 20) / 100;
+      } else if (coupon.code === "ARTCLASS25") {
+        const hpCount = countWorkshops(basket);
+        if (hpCount < 4) {
+          couponError.value = "You must book at least 4 holiday workshops for this code.";
+          return;
+        }
+        discount = (getTotalPrice(basket) * 25) / 100;
+      } else {
+        // Handle general coupons using Supabase discount logic
+        const totalPrice = getTotalPrice(basket);
+        discount = totalPrice - applyCouponDiscount(totalPrice, coupon);
+      }
+
+      if (store.state.discountApplied) {
+        couponError.value = "You have already applied a discount.";
+        return;
+      }
+
+      const finalTotal = getTotalPrice(basket) - discount;
+      discountAmount.value = parseFloat(discount.toFixed(2));
+      store.commit("SET_TOTAL", finalTotal);
+      store.commit("SET_DISCOUNT_APPLIED", true);
+      store.commit("SET_DISCOUNT", discount);
+      couponError.value = "";
     };
 
     const groupedItems = computed(() => {
       const grouped = [];
 
-      store.state.basket.forEach((item) => {
+      cartStore.items.forEach((item) => {
         // If category is 'term', group by event_id in nested arrays
         if (item.category === "term") {
           // Find if the event_id already exists in the grouped array
@@ -338,31 +336,14 @@ export default defineComponent({
     });
 
     const removeFromBasket = (theme) => {
-      let basket = store.state.basket;
+      // Handle term events (array)
       if (theme.length) {
-        theme[0].quantity = theme[0].quantity - 1;
-        if (theme[0].quantity === 0) {
-          const index = basket.findIndex((item) => {
-            return item.theme_id === theme[0].theme_id;
-          });
-          basket.splice(index, 1);
-        }
+        cartStore.removeItem(theme[0]);
+      } else {
+        // Handle single events (object)
+        cartStore.removeItem(theme);
       }
-      if (
-        theme.category === "single" ||
-        theme.category === undefined ||
-        theme.category === "adult_workshop"
-      ) {
-        theme.quantity = theme.quantity - 1;
-        if (theme.quantity === 0) {
-          const index = basket.findIndex((item) => {
-            return item.theme_id === theme.theme_id;
-          });
-          basket.splice(index, 1);
-        }
-      }
-      store.commit("SET_BASKET", basket);
-      getTotalPrice(basket);
+      getTotalPrice(cartStore.items);
     };
 
     const checkout = () => {
@@ -373,36 +354,68 @@ export default defineComponent({
       //   added_at: new Date().toISOString(),
       //   environment: store.state.environment,
       // });
-      router.push("/registration");
+      router.push("/checkout");
     };
 
-    const getEventsFromFirestore = async () => {
-      const eventsRef = collection(db, "events");
-      const querySnapshot = await getDocs(eventsRef);
-      const events = [];
-      querySnapshot.forEach((doc) => {
-        events.push(doc.data());
-      });
-      store.commit("SET_EVENTS", events);
+    // Fetch events from Supabase instead of Firebase
+    const getEventsFromSupabase = async () => {
+      try {
+        const events = await fetchEventsWithCapacity();
+        // Transform to legacy format for compatibility with existing store
+        const legacyEvents = events.map(event => ({
+          event_id: event.id,
+          event_title: event.offering.title,
+          title: event.offering.title,
+          description: event.offering.description_long || event.offering.description_short || "",
+          date: event.event_date,
+          start_time: event.event_start_time,
+          end_time: event.event_end_time,
+          location: event.location_name,
+          address: event.location_address,
+          city: event.location_city,
+          postcode: event.location_postcode,
+          quantity: event.max_capacity - event.current_bookings, // Available spaces
+          max_capacity: event.max_capacity,
+          current_bookings: event.current_bookings,
+          price: event.price_gbp,
+          image: event.offering.featured_image_url,
+          slug: event.offering.slug,
+        }));
+        store.commit("SET_EVENTS", legacyEvents);
+      } catch (error) {
+        console.error("Error fetching events from Supabase:", error);
+      }
     };
 
-    const getThemesFromFirestore = async () => {
-      const themesRef = collection(db, "themes");
-      const querySnapshot = await getDocs(themesRef);
-      const themes = [];
-      querySnapshot.forEach((doc) => {
-        themes.push(doc.data());
-      });
-      store.commit("SET_THEMES", themes);
-      return themes;
+    // Fetch themes/offerings from Supabase instead of Firebase
+    const getThemesFromSupabase = async () => {
+      try {
+        const offerings = await fetchOfferingsWithEvents();
+        // Transform to legacy format for compatibility with existing store
+        const legacyThemes = offerings.map(offering => ({
+          id: offering.id,
+          title: offering.title,
+          description: offering.description_long || offering.description_short || "",
+          price: offering.events?.[0]?.price_gbp || 0, // Use first event's price
+          image: offering.featured_image_url,
+          slug: offering.slug,
+          events: offering.events || [],
+        }));
+        store.commit("SET_THEMES", legacyThemes);
+        return legacyThemes;
+      } catch (error) {
+        console.error("Error fetching themes from Supabase:", error);
+        return [];
+      }
     };
 
     onMounted(() => {
       const fetchData = async () => {
         try {
           store.dispatch("setLoading", true);
-          await getThemesFromFirestore();
-          await getEventsFromFirestore();
+          // Use Supabase instead of Firebase
+          await getThemesFromSupabase();
+          await getEventsFromSupabase();
           loadBasketFromLocalStorage();
           if (!store.state.discountApplied) {
             getTotalPrice(store.state.basket);
@@ -430,8 +443,8 @@ export default defineComponent({
       total,
       category,
       themedBaskets, // Expose the themed baskets
-      getThemesFromFirestore,
-      getEventsFromFirestore,
+      getThemesFromSupabase,
+      getEventsFromSupabase,
       removeFromBasket,
       getTotalPrice,
       checkout,

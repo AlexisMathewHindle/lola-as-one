@@ -70,6 +70,7 @@ import { useStore } from "vuex";
 import StockComponent from "@/components/StockComponent.vue";
 import { Lit } from "@/main";
 import { useRoute } from "vue-router";
+import { useCartStore } from "@/stores/cart";
 
 export default defineComponent({
   // TODO: Need to remove bookings from bookings list if date passed
@@ -114,6 +115,7 @@ export default defineComponent({
   },
   setup(props) {
     const store = useStore();
+    const cartStore = useCartStore();
     const th = computed(() => {
       const sortedThemes = {};
       const now = new Date().setHours(0, 0, 0, 0); // Get today's date at midnight
@@ -173,29 +175,8 @@ export default defineComponent({
     });
 
     const updateBasket = (theme, newQuantity) => {
-      const currentBasket = store.state.basket || [];
-
-      if (Array.isArray(currentBasket)) {
-        // Handle the case where the basket is an array
-        const existingItemIndex = currentBasket.findIndex(
-          (item) => item.theme_id === theme.theme_id
-        );
-
-        if (existingItemIndex > -1) {
-          // If the item exists, update its quantity
-          currentBasket[existingItemIndex].quantity = theme.quantity;
-        } else {
-          // If it doesn't exist, add it to the basket
-          currentBasket.push({ ...theme, quantity: theme.quantity });
-        }
-        // Update the store with the new basket
-      } else if (typeof currentBasket === "object") {
-        // Handle the case where the basket is an object (category single)
-        currentBasket.quantity = newQuantity;
-      }
-
-      store.commit("SET_BASKET", currentBasket);
-      // need to update props.themes with the new quantity
+      // Use cart store's addItem which handles quantity updates
+      cartStore.addItem(theme, 0); // Pass 0 to trigger update logic in store
     };
 
     const addQuantity = (theme) => {
