@@ -1,130 +1,251 @@
-# Subscription Migration - Quick Start
+# Legacy Website Migration - Quick Start Guide
 
-**🎯 Goal:** Add subscription fulfillment to your existing database
+## 🎯 Overview
+This guide provides a quick reference for migrating the legacy Lola Workshops website from Firebase to Supabase.
+
+**Full Details**: See `LEGACY_WEBSITE_MIGRATION_EPIC.md` for comprehensive documentation.
 
 ---
 
-## ⚡ Quick Apply (3 Steps)
+## ✅ What's Already Done
 
-### Step 1: Apply Migration (2 min)
+- **Event Display**: ✅ Events are fetched from Supabase
+- **Supabase Infrastructure**: ✅ All tables, Edge Functions, and webhooks exist
+- **Reference Implementation**: ✅ New website (`app/`) has working booking flow
+
+---
+
+## 🚀 Quick Implementation Order
+
+### 1️⃣ Cart Store (1-2 days)
+**Goal**: Replace Vuex basket with persistent cart store
 
 ```bash
-cd /Users/alexishindle/repos/projects/lola-as-one
-supabase db push
+# Copy cart store from new website
+cp app/src/stores/cart.ts lola-workshops/src/stores/cart.ts
 ```
 
-Or via Supabase Dashboard:
-1. Go to SQL Editor
-2. Copy/paste `supabase/migrations/20260213_subscription_fulfillment.sql`
-3. Click Run
+**Files to Update**:
+- `lola-workshops/src/views/BasketView.vue`
+- Replace `store.state.basket` with `cartStore.items`
+
+**Test**: Add items to cart, refresh page, verify persistence
 
 ---
 
-### Step 2: Test Migration (1 min)
+### 2️⃣ Customer Registration (2-3 days)
+**Goal**: Save customer data to Supabase
 
+**Add to `lola-workshops/src/lib/supabase.ts`**:
+```typescript
+export async function createOrUpdateCustomer(email: string, firstName: string, lastName: string, phone?: string) {
+  const { data, error } = await supabase
+    .from('customers')
+    .upsert({
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      phone,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'email' })
+    .select()
+    .single()
+  
+  return { data, error }
+}
+```
+
+**Update `RegistrationView.vue`**:
+- Call `createOrUpdateCustomer()` on form submit
+- Store customer ID in Vuex for checkout
+
+**Test**: Submit registration, verify customer in Supabase
+
+---
+
+### 3️⃣ Payment Integration (3-4 days)
+**Goal**: Use Stripe Checkout instead of inline payment
+
+**Update `PaymentView.vue`**:
+```typescript
+const handleCheckout = async () => {
+  const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+    body: {
+      items: cartStore.items,
+      customer: {
+        email: store.state.booking.email,
+        firstName: store.state.booking.firstName,
+        lastName: store.state.booking.lastName,
+        phone: store.state.booking.phone
+      },
+      metadata: {
+        attendees: JSON.stringify(store.state.booking.attendees)
+      }
+    }
+  })
+  
+  if (data?.url) {
+    window.location.href = data.url
+  }
+}
+```
+
+**Create Success Page**: `lola-workshops/src/views/BookingSuccessView.vue`
+
+**Test**: Complete checkout, verify redirect to Stripe, verify success page
+
+---
+
+### 4️⃣ Webhook Enhancement (2-3 days)
+**Goal**: Store attendee details in bookings
+
+**Update `supabase/functions/stripe-webhook/index.ts`**:
+```typescript
+// After creating booking
+const attendees = JSON.parse(metadata.attendees || '[]')
+for (const attendee of attendees) {
+  await supabase.from('booking_attendees').insert({
+    booking_id: booking.id,
+    first_name: attendee.firstName,
+    last_name: attendee.lastName,
+    email: attendee.email,
+    phone: attendee.phone,
+    notes: attendee.notes
+  })
+}
+```
+
+**Test**: Complete booking, verify attendees in `booking_attendees` table
+
+---
+
+### 5️⃣ Email Templates (2-3 days)
+**Goal**: Send booking confirmation emails
+
+**Create Template**: `supabase/functions/send-email/templates/booking-confirmation.html`
+
+**Update Webhook** to call send-email:
+```typescript
+await supabase.functions.invoke('send-email', {
+  body: {
+    template: 'event-booking-confirmation',
+    to: metadata.customer_email,
+    data: {
+      customerName: metadata.customer_first_name,
+      eventTitle: event.offering.title,
+      eventDate: event.event_date,
+      eventTime: event.event_start_time,
+      bookingNumber: order.order_number,
+      attendees: attendees
+    }
+  }
+})
+```
+
+**Test**: Complete booking, verify email received
+
+---
+
+### 6️⃣ Capacity & Booking Views (1-2 days)
+**Goal**: Display capacity and booking details
+
+**Add to `EventDetailsView.vue`**:
+```typescript
+const capacity = computed(() => {
+  if (!supabaseEvent.value) return null
+  const available = supabaseEvent.value.max_capacity - supabaseEvent.value.current_bookings
+  return { available, total: supabaseEvent.value.max_capacity }
+})
+```
+
+**Update `BookingView.vue`** to fetch from Supabase
+
+**Test**: View event capacity, view booking details
+
+---
+
+## 🧪 Testing Checklist
+
+- [ ] Events display correctly
+- [ ] Cart persists across page refresh
+- [ ] Customer registration saves to Supabase
+- [ ] Stripe Checkout redirects correctly
+- [ ] Payment success creates booking
+- [ ] Attendees stored in database
+- [ ] Email confirmation received
+- [ ] Event capacity decrements
+- [ ] Booking details viewable
+- [ ] Admin can see bookings
+
+---
+
+## 🔧 Environment Setup
+
+**Add to `lola-workshops/.env.local`**:
+```env
+VUE_APP_SUPABASE_URL=http://127.0.0.1:54321
+VUE_APP_SUPABASE_ANON_KEY=your-anon-key
+VUE_APP_DATA_SOURCE=supabase
+```
+
+**Start Supabase locally**:
 ```bash
-supabase db execute --file supabase/migrations/20260213_subscription_fulfillment_test.sql
-```
-
-Expected: `✅ All automated tests passed!`
-
----
-
-### Step 3: Seed Plans (2 min)
-
-1. Get your Stripe Price IDs from https://dashboard.stripe.com/prices
-2. Edit `supabase/migrations/20260213_subscription_fulfillment_seed.sql`
-3. Replace `price_REPLACE_WITH_YOUR_xxx_PRICE_ID` with actual IDs
-4. Run:
-
-```bash
-supabase db execute --file supabase/migrations/20260213_subscription_fulfillment_seed.sql
+cd /path/to/lola-as-one
+supabase start
 ```
 
 ---
 
-## 📊 What Changed
+## 📊 Progress Tracking
 
-### Extended `orders` Table
-```sql
--- NEW FIELDS:
-cycle_key          TEXT              -- "2026-02" (which month)
-tracking_number    TEXT              -- Tracking number
-shipped_at         TIMESTAMPTZ       -- When shipped
-delivered_at       TIMESTAMPTZ       -- When delivered
-
--- NEW STATUS VALUES:
-'queued'    -- Ready to pack
-'packed'    -- Packed, ready to ship  
-'shipped'   -- Shipped with tracking
-'delivered' -- Delivered
-```
-
-### New Tables
-```sql
-plans           -- Subscription plan config (links to Stripe)
-addresses       -- Customer shipping addresses
-stripe_events   -- Webhook idempotency
-```
+| Task | Status | Priority |
+|------|--------|----------|
+| Event Display | ✅ Done | - |
+| Cart Store | ⏳ Todo | High |
+| Customer Registration | ⏳ Todo | High |
+| Payment Integration | ⏳ Todo | Critical |
+| Booking Creation | ⏳ Todo | Critical |
+| Email Notifications | ⏳ Todo | High |
+| Capacity Management | ⏳ Todo | High |
+| Booking Views | ⏳ Todo | Medium |
+| Newsletter | ⏳ Todo | Low |
+| Testing | ⏳ Todo | Critical |
 
 ---
 
-## 🔍 Verify It Worked
+## 🆘 Common Issues
 
-```sql
--- Check orders table
-SELECT column_name FROM information_schema.columns 
-WHERE table_name = 'orders' AND column_name = 'cycle_key';
--- Should return: cycle_key
+**Issue**: Supabase client not initialized
+**Fix**: Check `.env.local` has correct URL and key
 
--- Check new tables
-SELECT table_name FROM information_schema.tables 
-WHERE table_name IN ('plans', 'addresses', 'stripe_events');
--- Should return: 3 rows
+**Issue**: Webhook not receiving events
+**Fix**: Configure Stripe webhook endpoint in Stripe Dashboard
 
--- Check plans
-SELECT * FROM plans;
--- Should show your subscription plans
-```
+**Issue**: Email not sending
+**Fix**: Check Resend API key in Supabase secrets
+
+**Issue**: Capacity not decrementing
+**Fix**: Ensure `event_capacity` records exist for all events
 
 ---
 
-## 🚀 Next Steps
+## 📚 Key Resources
 
-After migration is complete:
-
-1. ✅ **Create cycle helper function** → See Task 1.2 in audit doc
-2. ✅ **Update webhook handler** → See Task 1.3 in audit doc
-3. ✅ **Build admin UI** → Shipments queue
-4. ✅ **Build customer UI** → Address management
-
-**Full details:** `docs/subscription-epic-audit.md`
+- **Full Epic**: `LEGACY_WEBSITE_MIGRATION_EPIC.md`
+- **Schema**: `docs/schema.sql`
+- **Edge Functions**: `supabase/functions/`
+- **Reference Implementation**: `app/src/views/Checkout.vue`
+- **Supabase Docs**: https://supabase.com/docs
 
 ---
 
-## 🆘 Troubleshooting
+## 🎯 Next Steps
 
-**Error: "column already exists"**
-→ Migration already applied, safe to ignore
+1. Review full epic document
+2. Set up local Supabase environment
+3. Start with Task 1 (Cart Store)
+4. Test each task before moving to next
+5. Keep Firebase running as fallback
 
-**Error: "constraint already exists"**
-→ Run: `ALTER TABLE orders DROP CONSTRAINT orders_status_check;` then retry
-
-**No plans showing up**
-→ Make sure you replaced the Stripe Price IDs in the seed file
-
----
-
-## 📚 Documentation
-
-- **Full Migration Guide:** `supabase/migrations/README_SUBSCRIPTION_MIGRATION.md`
-- **Schema Analysis:** `docs/orders-vs-box-orders-analysis.md`
-- **Complete Audit:** `docs/subscription-epic-audit.md`
-- **Next Steps:** `docs/NEXT_STEPS.md`
-
----
-
-**Estimated Time:** 5 minutes  
-**Difficulty:** Easy  
-**Rollback:** Available (see README_SUBSCRIPTION_MIGRATION.md)
+**Questions?** Review the full epic or ask for clarification on specific tasks.
 
