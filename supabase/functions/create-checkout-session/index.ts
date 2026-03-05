@@ -70,12 +70,31 @@ serve(async (req) => {
           throw new Error(`Insufficient stock for ${item.title}`)
         }
       } else if (item.type === 'event') {
-        // First, get the offering_event record to find the offering_event_id
-        const { data: offeringEvent, error: eventError } = await supabase
-          .from('offering_events')
-          .select('id, max_capacity, current_bookings')
-          .eq('offering_id', item.id)
-          .single()
+        // Get the offering_event record
+        // If event_id is provided, use it directly; otherwise look up by offering_id
+        let offeringEvent
+        let eventError
+
+        if (item.event_id) {
+          // Direct lookup by event_id (offering_events.id)
+          const result = await supabase
+            .from('offering_events')
+            .select('id, max_capacity, current_bookings, offering_id')
+            .eq('id', item.event_id)
+            .single()
+          offeringEvent = result.data
+          eventError = result.error
+        } else {
+          // Fallback: lookup by offering_id (may return multiple, take first)
+          const result = await supabase
+            .from('offering_events')
+            .select('id, max_capacity, current_bookings, offering_id')
+            .eq('offering_id', item.id || item.offering_id)
+            .limit(1)
+            .single()
+          offeringEvent = result.data
+          eventError = result.error
+        }
 
         if (eventError || !offeringEvent) {
           console.error('Error fetching offering_event:', eventError)
@@ -99,7 +118,9 @@ serve(async (req) => {
         }
 
         console.log(`Event capacity check for ${item.title}:`, {
-          offering_id: item.id,
+          item_id: item.id,
+          offering_id: item.offering_id || offeringEvent.offering_id,
+          event_id: item.event_id,
           offering_event_id: offeringEvent.id,
           max_capacity: offeringEvent.max_capacity,
           current_bookings: offeringEvent.current_bookings,

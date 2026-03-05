@@ -1,7 +1,86 @@
 <template>
   <div class="bg-white rounded-lg shadow-md p-6 space-y-4">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Event Details</h3>
-    
+
+    <!-- Term Information Section -->
+    <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
+      <div class="flex items-start mb-3">
+        <font-awesome-icon icon="calendar-alt" class="w-5 h-5 text-purple-600 mt-0.5 mr-2 flex-shrink-0" />
+        <div class="flex-1">
+          <h4 class="text-sm font-semibold text-gray-900 mb-1">Term Information</h4>
+          <p class="text-xs text-gray-600">
+            For term-based events, specify the season and half. Leave blank for single/one-off events.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Season -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Season
+          </label>
+          <select
+            :value="modelValue.term_season || ''"
+            @change="handleTermChange('term_season', $event.target.value)"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="">Single Event (No Term)</option>
+            <option value="autumn">Autumn</option>
+            <option value="spring">Spring</option>
+            <option value="summer">Summer</option>
+          </select>
+        </div>
+
+        <!-- Half -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Half
+          </label>
+          <select
+            :value="modelValue.term_half || ''"
+            @change="handleTermChange('term_half', $event.target.value)"
+            :disabled="!modelValue.term_season"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          >
+            <option value="">Select Half</option>
+            <option value="first">First Half</option>
+            <option value="second">Second Half</option>
+            <option value="full">Full Term</option>
+          </select>
+        </div>
+
+        <!-- Year -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Year
+          </label>
+          <input
+            :value="modelValue.term_year || currentYear"
+            @input="handleTermChange('term_year', parseInt($event.target.value) || null)"
+            type="number"
+            :min="currentYear"
+            :max="currentYear + 2"
+            :disabled="!modelValue.term_season"
+            placeholder="e.g., 2025"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          >
+        </div>
+      </div>
+
+      <!-- Term Display -->
+      <div v-if="termLabel" class="mt-3 p-3 bg-white rounded-md border border-purple-200">
+        <p class="text-sm text-gray-700">
+          <span class="font-medium">Term Label:</span>
+          <span class="text-purple-700 font-semibold">{{ termLabel }}</span>
+        </p>
+        <p class="text-xs text-gray-500 mt-1">
+          <span class="font-medium">Legacy Format:</span>
+          <code class="bg-gray-100 px-2 py-0.5 rounded">{{ legacyTermString }}</code>
+        </p>
+      </div>
+    </div>
+
     <!-- Event Date -->
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -274,6 +353,7 @@
 <script setup>
 import { defineProps, defineEmits, onMounted, computed } from 'vue'
 import { useEventCategories } from '../../composables/useEventCategories'
+import { formatTermLabel, generateLegacyTerm } from '../../utils/termFormatters'
 
 const props = defineProps({
   modelValue: {
@@ -291,7 +371,10 @@ const props = defineProps({
       price_gbp: 0,
       category_id: '',
       current_bookings: 0,
-      waitlist_enabled: false
+      waitlist_enabled: false,
+      term_season: null,
+      term_half: null,
+      term_year: null
     })
   }
 })
@@ -306,6 +389,32 @@ const {
   loading: categoriesLoading,
   error: categoriesError
 } = useEventCategories()
+
+// Current year for term year input
+const currentYear = new Date().getFullYear()
+
+// Term label for display
+const termLabel = computed(() => {
+  if (!props.modelValue.term_season || !props.modelValue.term_half) {
+    return null
+  }
+  return formatTermLabel({
+    term_season: props.modelValue.term_season,
+    term_half: props.modelValue.term_half,
+    term_year: props.modelValue.term_year
+  })
+})
+
+// Legacy term string for backward compatibility
+const legacyTermString = computed(() => {
+  if (!props.modelValue.term_season || !props.modelValue.term_half) {
+    return null
+  }
+  return generateLegacyTerm(
+    props.modelValue.term_season,
+    props.modelValue.term_half
+  )
+})
 
 // Computed property for available spaces (old - based on max_capacity)
 const availableSpaces = computed(() => {
@@ -330,6 +439,32 @@ const updateField = (field, value) => {
   emit('update:modelValue', {
     ...props.modelValue,
     [field]: value
+  })
+}
+
+// Handle term field changes
+const handleTermChange = (field, value) => {
+  const updates = { [field]: value || null }
+
+  // If season is cleared, clear half and year too
+  if (field === 'term_season' && !value) {
+    updates.term_half = null
+    updates.term_year = null
+  }
+
+  // If season is set and year is not set, default to current year
+  if (field === 'term_season' && value && !props.modelValue.term_year) {
+    updates.term_year = currentYear
+  }
+
+  // If half is cleared, clear year too
+  if (field === 'term_half' && !value) {
+    updates.term_year = null
+  }
+
+  emit('update:modelValue', {
+    ...props.modelValue,
+    ...updates
   })
 }
 </script>

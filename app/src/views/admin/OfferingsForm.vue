@@ -607,6 +607,25 @@ const handleSubmit = async () => {
       updated_by: user.id
     }
 
+    // Add term data for events
+    if (selectedType.value === 'event') {
+      offeringData.term_season = typeSpecificData.value.term_season || null
+      offeringData.term_half = typeSpecificData.value.term_half || null
+      offeringData.term_year = typeSpecificData.value.term_year || null
+
+      // Also store in metadata for backward compatibility
+      if (typeSpecificData.value.term_season && typeSpecificData.value.term_half) {
+        const legacyTerm = typeSpecificData.value.term_half === 'full'
+          ? `${typeSpecificData.value.term_season}_term`
+          : `${typeSpecificData.value.term_season}_${typeSpecificData.value.term_half}_half_term`
+
+        offeringData.metadata = {
+          ...offeringData.metadata,
+          term: legacyTerm
+        }
+      }
+    }
+
     // Set published_at if status is published and it's a new offering
     if (form.value.status === 'published' && !isEdit.value) {
       offeringData.published_at = new Date().toISOString()
@@ -969,6 +988,13 @@ const loadOffering = async () => {
 
 const loadTypeSpecificData = async (offeringId, type, metadata) => {
   if (type === 'event') {
+    // Load offering to get term data
+    const { data: offering } = await supabase
+      .from('offerings')
+      .select('term_season, term_half, term_year')
+      .eq('id', offeringId)
+      .single()
+
     const { data, error } = await supabase
       .from('offering_events')
       .select('*')
@@ -1004,7 +1030,10 @@ const loadTypeSpecificData = async (offeringId, type, metadata) => {
         current_bookings: currentBookings,
         price_gbp: parseFloat(data.price_gbp),
         category_id: data.category_id || '',
-        waitlist_enabled: waitlistEnabled
+        waitlist_enabled: waitlistEnabled,
+        term_season: offering?.term_season || null,
+        term_half: offering?.term_half || null,
+        term_year: offering?.term_year || null
       }
     }
   } else if (type === 'product_physical') {

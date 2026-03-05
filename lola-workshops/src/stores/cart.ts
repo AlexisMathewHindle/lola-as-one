@@ -76,18 +76,22 @@ export const useCartStore = defineStore('cart', () => {
         })
       }
     } else {
-      // Single events: check by theme_id
-      const existingItem = items.value.find(item => 
-        item.theme_id === eventId && item.category === 'single'
+      // Single events: check by theme_id or event_id
+      const existingItem = items.value.find(item =>
+        (item.theme_id === eventId || item.event_id === event.event_id) && item.category === 'single'
       )
-      
+
       if (existingItem) {
         existingItem.quantity += quantity
       } else {
+        // Preserve all fields from the event object, with fallbacks
         items.value.push({
-          id: eventId,
-          theme_id: eventId,
-          category: 'single',
+          ...event, // Spread all event properties first
+          id: event.id || eventId, // Preserve the offering_id
+          theme_id: event.theme_id || eventId,
+          event_id: event.event_id, // Preserve event_id
+          offering_id: event.offering_id || event.id, // Preserve offering_id
+          category: event.category || 'single',
           title: event.theme_title || event.title,
           theme_title: event.theme_title,
           price: event.price,
@@ -95,7 +99,7 @@ export const useCartStore = defineStore('cart', () => {
           date: event.date,
           start_time: event.start_time,
           end_time: event.end_time,
-          type: 'event',
+          type: event.type || 'event',
           stock: event.stock,
           passed: event.passed
         })

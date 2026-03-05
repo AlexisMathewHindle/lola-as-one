@@ -33,62 +33,31 @@
 </template>
 
 <script>
-import { defineComponent, onMounted, watch, ref, computed } from "vue";
+import { defineComponent, computed } from "vue";
 import { logEvent, getAnalytics } from "firebase/analytics";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
+import { useCartStore } from "@/stores/cart";
 
 export default defineComponent({
   setup() {
     const store = useStore();
     const router = useRouter();
-    // Function to sync store state with localStorage
-    const syncBasketWithLocalStorage = () => {
-      const localStorageBasket = JSON.parse(
-        localStorage.getItem("basket") || "[]"
-      );
-      store.commit("SET_BASKET", localStorageBasket);
-    };
+    const cartStore = useCartStore();
 
-    // Create a computed property for the total quantity
-    const basketTotalQuantity = computed(() => {
-      const basketTotalQuantity = store.state.basket.reduce(
-        (total, item) => total + (item.quantity || 1),
-        0
-      );
-      store.commit("SET_BASKET_QUANTITY", basketTotalQuantity);
-      return basketTotalQuantity;
-    });
-
-    const basketNumberOfItems = ref(basketTotalQuantity.value);
-
-    watch(basketTotalQuantity, (newQuantity, oldQuantity) => {
-      basketNumberOfItems.value = newQuantity;
-    });
-
-    // Watch for changes in the store's basket and update localStorage
-    watch(
-      () => store.state.basket,
-      (newBasket) => {
-        localStorage.setItem("basket", JSON.stringify(newBasket));
-      },
-      { deep: true }
-    );
+    // Use Pinia cart store for basket count
+    const basketNumberOfItems = computed(() => cartStore.itemCount);
 
     const goToBasket = () => {
       const analytics = getAnalytics();
       logEvent(analytics, "go_to_basket", {
-        items_in_basket: store.state.basket.length,
+        items_in_basket: cartStore.items.length,
         added_at: new Date().toISOString(),
         environment: store.state.environment,
       });
 
       router.push({ name: "basket" });
     };
-
-    onMounted(() => {
-      syncBasketWithLocalStorage();
-    });
 
     return {
       basketNumberOfItems,

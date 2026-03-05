@@ -142,13 +142,13 @@
             </template>
           </v-row>
         </v-row>
-        <v-snackbar v-model="snackbar" :color="snackbarColor" top>
-          <p class="ma-0 white--text">Item added to basket</p>
+        <v-snackbar v-model="snackbar" :color="snackbarColor" location="top">
+          <p class="ma-0 text-white">Item added to basket</p>
         </v-snackbar>
       </div>
     </v-container>
-    <v-snackbar v-model="snackbar" :color="snackbarColor" top>
-      <p class="ma-0 white--text">Item added to basket</p>
+    <v-snackbar v-model="snackbar" :color="snackbarColor" location="top">
+      <p class="ma-0 text-white">Item added to basket</p>
     </v-snackbar>
   </div>
 </template>

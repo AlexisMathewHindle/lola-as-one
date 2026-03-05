@@ -8,18 +8,18 @@
     <v-snackbar
       v-model="showDiscountAppliedSnackbar"
       :color="snackbarColor"
-      top
+      location="top"
     >
-      <p class="ma-0 white--text">Discount Applied</p>
+      <p class="ma-0 text-white">Discount Applied</p>
     </v-snackbar>
 
     <!-- Show snackbar when the discount was already applied -->
     <v-snackbar
       v-model="showDiscountAlreadyAppliedSnackbar"
       color="warning"
-      top
+      location="top"
     >
-      <p class="ma-0 white--text">Discount already applied</p>
+      <p class="ma-0 text-white">Discount already applied</p>
     </v-snackbar>
   </div>
 </template>

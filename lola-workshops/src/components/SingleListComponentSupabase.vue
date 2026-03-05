@@ -79,8 +79,8 @@
         </v-card>
       </v-col>
     </v-row>
-    <v-snackbar v-model="snackbar" :color="snackbarColor" top>
-      <p class="ma-0 white--text">Item added to basket</p>
+    <v-snackbar v-model="snackbar" :color="snackbarColor" location="top">
+      <p class="ma-0 text-white">Item added to basket</p>
     </v-snackbar>
   </div>
 </template>
@@ -93,6 +93,7 @@ import { useRoute } from "vue-router";
 import StockComponent from "@/components/StockComponent.vue";
 import { Lit } from "@/main";
 import { supabase } from "@/lib/supabase";
+import { useCartStore } from "@/stores/cart";
 
 export default defineComponent({
   name: "SingleListComponentSupabase",
@@ -113,6 +114,7 @@ export default defineComponent({
   },
   setup(props) {
     const store = useStore();
+    const cartStore = useCartStore();
     const route = useRoute();
     const loading = ref(true);
     const error = ref(null);
@@ -348,35 +350,42 @@ export default defineComponent({
     });
 
     const updateBasket = (event) => {
-      const currentBasket = store.state.basket || [];
+      // Debug: Log the event object to see its structure
+      console.log('Event object in updateBasket:', event);
+      console.log('Event offering:', event.offering);
 
-      if (Array.isArray(currentBasket)) {
-        const existingItemIndex = currentBasket.findIndex(
-          (item) => item.id === event.id
-        );
+      // Prepare event data for cart store
+      const eventData = {
+        id: event.offering.id, // Use offering_id as the main ID for Edge Function lookup
+        offering_id: event.offering.id, // The offering ID for database lookup
+        event_id: event.id, // The specific event instance ID
+        theme_id: event.id, // Keep for backward compatibility
+        theme_title: event.offering.title,
+        date: event.event_date,
+        start_time: event.event_start_time,
+        end_time: event.event_end_time,
+        price: event.price_gbp,
+        quantity: event.quantity,
+        stock: event.stock,
+        category: event.category || 'single',
+      };
 
-        if (existingItemIndex > -1) {
-          // If the item exists, update its quantity
-          currentBasket[existingItemIndex].quantity = event.quantity;
-        } else {
-          // If it doesn't exist, add it to the basket
-          currentBasket.push({
-            id: event.id,
-            event_id: event.id,
-            theme_id: event.id,
-            theme_title: event.offering.title,
-            date: event.event_date,
-            start_time: event.event_start_time,
-            end_time: event.event_end_time,
-            price: event.price_gbp,
-            quantity: event.quantity,
-            stock: event.stock,
-            category: event.category,
-          });
-        }
+      console.log('Event data being added to cart:', eventData);
+
+      // Check if item already exists in cart
+      const existingItem = cartStore.items.find(
+        (item) => item.theme_id === event.id && item.category === 'single'
+      );
+
+      if (existingItem) {
+        // Update quantity of existing item directly
+        existingItem.quantity = event.quantity;
+        // Manually save to localStorage since we're modifying directly
+        localStorage.setItem('basket', JSON.stringify(cartStore.items));
+      } else if (event.quantity > 0) {
+        // Add new item to cart only if quantity > 0
+        cartStore.addItem(eventData, event.quantity);
       }
-
-      store.commit("SET_BASKET", currentBasket);
     };
 
     const addQuantity = (event) => {
@@ -407,7 +416,18 @@ export default defineComponent({
     const subtractQuantity = (event) => {
       if (event.quantity > 0) {
         event.quantity -= 1;
-        updateBasket(event);
+
+        // If quantity reaches 0, remove from cart
+        if (event.quantity === 0) {
+          const existingItem = cartStore.items.find(
+            (item) => item.theme_id === event.id && item.category === 'single'
+          );
+          if (existingItem) {
+            cartStore.removeItem(existingItem);
+          }
+        } else {
+          updateBasket(event);
+        }
       }
     };
 

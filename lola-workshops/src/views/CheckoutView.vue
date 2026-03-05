@@ -279,10 +279,11 @@
       :color="snackbarColor"
       :timeout="5000"
     >
-      {{ errorMessage }}
+      <span class="text-white">{{ errorMessage }}</span>
       <template v-slot:actions>
         <v-btn
           variant="text"
+          color="white"
           @click="showError = false"
         >
           Close
@@ -296,6 +297,7 @@ import { computed, defineComponent, ref, onMounted } from "vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
 import { supabase } from "@/lib/supabase";
+import { useCartStore } from "@/stores/cart";
 import SiblingDiscountComponent from "@/components/SiblingDiscountComponent.vue";
 
 export default defineComponent({
@@ -307,6 +309,7 @@ export default defineComponent({
 
   setup() {
     const store = useStore();
+    const cartStore = useCartStore();
     const router = useRouter();
     const formRef = ref(null);
     const processing = ref(false);
@@ -353,10 +356,22 @@ export default defineComponent({
       email: (v) => /.+@.+\..+/.test(v) || "Email must be valid",
     };
 
-    // Computed properties
-    const basket = computed(() => store.state.basket);
+    // Computed properties - use Pinia cart store
+    const basket = computed(() => cartStore.items);
 
-    const total = computed(() => store.state.total || 0);
+    const total = computed(() => {
+      // Calculate total from cart items
+      return basket.value.reduce((sum, item) => {
+        let itemTotal = parseFloat(item.price) * item.quantity;
+
+        // If the item has nested items (term events), calculate accordingly
+        if (item.items && Array.isArray(item.items)) {
+          itemTotal = parseFloat(item.price) * item.items.length * item.quantity;
+        }
+
+        return sum + itemTotal;
+      }, 0);
+    });
 
     const basketTotalQuantity = computed(() => {
       return basket.value.reduce((sum, item) => {
@@ -440,16 +455,29 @@ export default defineComponent({
       try {
         processing.value = true;
 
+        // Debug: Log basket items before mapping
+        console.log('Basket items before mapping:', basket.value);
+
         // Prepare items with attendee details
-        const items = basket.value.map((item) => ({
-          id: item.event_id || item.id,
-          title: item.theme_title || item.title,
-          price: item.price,
-          quantity: item.quantity || 1,
-          type: "event",
-          eventDate: item.event_date,
-          eventTime: item.event_time,
-        }));
+        const items = basket.value.map((item) => {
+          console.log('Mapping item:', item);
+          return {
+            id: item.offering_id || item.id, // Use offering_id for Edge Function lookup
+            offering_id: item.offering_id || item.id,
+            event_id: item.event_id, // The specific event instance ID
+            title: item.theme_title || item.event_title || item.title,
+            price: item.price,
+            quantity: item.quantity || 1,
+            type: item.type || "event",
+            category: item.category,
+            eventDate: item.date || item.event_date,
+            eventTime: item.start_time || item.event_time,
+            // Include nested items for term events
+            items: item.items || null,
+          };
+        });
+
+        console.log('Items being sent to Edge Function:', items);
 
         // Call Supabase Edge Function to create checkout session
         const { data, error } = await supabase.functions.invoke(
@@ -513,8 +541,8 @@ export default defineComponent({
     // Calculate total on mount
     onMounted(() => {
       getTotalPrice();
-      // Redirect to basket if no items
-      if (!store.state.basket || store.state.basket.length === 0) {
+      // Redirect to basket if no items - use cart store
+      if (!cartStore.items || cartStore.items.length === 0) {
         router.push("/basket");
       }
     });

@@ -27,9 +27,9 @@
     <p v-if="errorMessage" class="error mt-4 font-weight-bold">
       {{ errorMessage }}
     </p>
-    <v-snackbar v-model="snackbar" :timeout="3000" color="#D8B061">{{
-      snackbarText
-    }}</v-snackbar>
+    <v-snackbar v-model="snackbar" :timeout="3000" color="#D8B061">
+      <span class="text-white">{{ snackbarText }}</span>
+    </v-snackbar>
   </div>
 </template>
 

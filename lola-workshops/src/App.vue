@@ -10,12 +10,11 @@
       <v-snackbar
         v-model="updateAvailable"
         :timeout="6000"
-        top
-        right
+        location="top right"
         color="#B26758"
       >
         <div class="d-flex align-center justify-space-between">
-          <p class="white--text font-weight-bold mb-0">
+          <p class="text-white font-weight-bold mb-0">
             A new version is available.
           </p>
           <v-btn color="white" class="mr-4" @click="refreshApp">Refresh</v-btn>

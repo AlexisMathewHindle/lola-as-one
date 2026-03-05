@@ -14,12 +14,14 @@
     "import-bookings": "node 7-import-bookings.js",
     "validate-bookings": "node 8-validate-bookings.js",
     "migrate-bookings": "npm run export-bookings && npm run transform-bookings && npm run import-bookings && npm run validate-bookings",
+    "migrate-terms": "node migrate-term-data.js",
     "rollback": "node rollback.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.93.3",
     "dotenv": "^16.4.5",
-    "firebase-admin": "^12.0.0"
+    "firebase-admin": "^12.0.0",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {}
 }
