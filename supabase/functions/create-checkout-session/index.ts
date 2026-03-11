@@ -14,6 +14,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🛒 Create checkout session request received')
+
     // Initialize Stripe
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY') || ''
 
@@ -40,6 +42,13 @@ serve(async (req) => {
 
     // Parse request body
     const { items, customer, shipping } = await req.json()
+
+    console.log('📦 Request data:', {
+      itemCount: items?.length,
+      customerEmail: customer?.email,
+      hasShipping: !!shipping,
+    })
+    console.log('📦 Items:', JSON.stringify(items, null, 2))
 
     // Validate request
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -239,9 +248,31 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error creating checkout session:', error)
+    console.error('❌ Error creating checkout session:', error)
+    console.error('Error name:', error.name)
+    console.error('Error message:', error.message)
+    console.error('Error stack:', error.stack)
+
+    // Log additional context for debugging
+    if (error.type === 'StripeInvalidRequestError') {
+      console.error('Stripe error details:', {
+        type: error.type,
+        code: error.code,
+        param: error.param,
+        statusCode: error.statusCode,
+      })
+    }
+
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        error: error.message,
+        errorType: error.name || error.type || 'UnknownError',
+        // Include more details in development
+        ...(Deno.env.get('ENVIRONMENT') !== 'production' && {
+          stack: error.stack,
+          details: error.toString()
+        })
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

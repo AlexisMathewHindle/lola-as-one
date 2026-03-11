@@ -268,6 +268,15 @@ const routes: Array<RouteRecordRaw> = [
     component: () =>
       import(/* webpackChunkName: "booking" */ "../views/BookingView.vue"),
   },
+  {
+    path: "/order/success",
+    name: "order-success",
+    meta: {
+      title: "Order Confirmation - LOLA Workshops",
+    },
+    component: () =>
+      import(/* webpackChunkName: "order-success" */ "../views/OrderSuccessView.vue"),
+  },
 ];
 
 const router = createRouter({

@@ -340,54 +340,46 @@ serve(async (req) => {
 
         console.log('📧 Email sending logic:', { hasEvents, hasProducts, hasPhysicalProducts })
 
-        // Send appropriate confirmation email based on order contents
+        // Send order confirmation email (serves as receipt) for ALL orders
         try {
-          // If order contains ONLY events, don't send general order confirmation
-          // (individual event confirmations will be sent below)
-          if (hasEvents && !hasProducts) {
-            console.log('📧 Event-only order - skipping general confirmation (event emails will be sent)')
-          }
-          // If order contains products (with or without events), send order confirmation
-          else {
-            console.log('📧 Sending order confirmation email to:', metadata.customer_email)
-            const emailResponse = await supabase.functions.invoke('send-email', {
-              body: {
-                template: 'order-confirmation',
-                to: metadata.customer_email,
-                data: {
-                  orderNumber: order.order_number,
-                  customerName: `${metadata.customer_first_name} ${metadata.customer_last_name}`,
-                  orderItems: items.map((item: any) => ({
-                    name: item.title,
-                    quantity: item.quantity,
-                    price: item.price * item.quantity,
-                    type: item.type,
-                  })),
-                  subtotal: parseFloat(metadata.subtotal),
-                  shipping: parseFloat(metadata.shipping_cost),
-                  vat: parseFloat(metadata.vat),
-                  total: parseFloat(metadata.total),
-                  shippingAddress: metadata.shipping_line1 ? {
-                    line1: metadata.shipping_line1,
-                    line2: metadata.shipping_line2 || undefined,
-                    city: metadata.shipping_city,
-                    postcode: metadata.shipping_postal_code,
-                    country: metadata.shipping_country || 'GB',
-                  } : undefined,
-                  paymentMethod: 'Card ending in ****',
-                  estimatedDelivery: undefined, // TODO: Calculate based on shipping method
-                  hasEvents: hasEvents,
-                  hasProducts: hasProducts,
-                },
+          console.log('📧 Sending order confirmation/receipt email to:', metadata.customer_email)
+          const emailResponse = await supabase.functions.invoke('send-email', {
+            body: {
+              template: 'order-confirmation',
+              to: metadata.customer_email,
+              data: {
+                orderNumber: order.order_number,
+                customerName: `${metadata.customer_first_name} ${metadata.customer_last_name}`,
+                orderItems: items.map((item: any) => ({
+                  name: item.title,
+                  quantity: item.quantity,
+                  price: item.price * item.quantity,
+                  type: item.type,
+                })),
+                subtotal: parseFloat(metadata.subtotal),
+                shipping: parseFloat(metadata.shipping_cost),
+                vat: parseFloat(metadata.vat),
+                total: parseFloat(metadata.total),
+                shippingAddress: metadata.shipping_line1 ? {
+                  line1: metadata.shipping_line1,
+                  line2: metadata.shipping_line2 || undefined,
+                  city: metadata.shipping_city,
+                  postcode: metadata.shipping_postal_code,
+                  country: metadata.shipping_country || 'GB',
+                } : undefined,
+                paymentMethod: 'Card ending in ****',
+                estimatedDelivery: undefined, // TODO: Calculate based on shipping method
+                hasEvents: hasEvents,
+                hasProducts: hasProducts,
               },
-            })
+            },
+          })
 
-            if (emailResponse.error) {
-              console.error('❌ Email function returned error:', emailResponse.error)
-            } else {
-              console.log('✅ Order confirmation email sent successfully')
-              console.log('Email response:', JSON.stringify(emailResponse.data, null, 2))
-            }
+          if (emailResponse.error) {
+            console.error('❌ Email function returned error:', emailResponse.error)
+          } else {
+            console.log('✅ Order confirmation/receipt email sent successfully')
+            console.log('Email response:', JSON.stringify(emailResponse.data, null, 2))
           }
         } catch (emailError) {
           console.error('❌ Error sending order confirmation email:', emailError)
@@ -434,11 +426,15 @@ serve(async (req) => {
             return baseItem
           }))
 
-          const adminEmailResponse = await supabase.functions.invoke('send-email', {
-            body: {
-              template: 'new-order-admin',
-              to: 'alexishindle@gmail.com',
-              data: {
+          // Send admin email to both admin addresses
+          const adminEmails = ['alexishindle@gmail.com', 'hello@lotsoflovelyart.com']
+
+          for (const adminEmail of adminEmails) {
+            const adminEmailResponse = await supabase.functions.invoke('send-email', {
+              body: {
+                template: 'new-order-admin',
+                to: adminEmail,
+                data: {
                 orderNumber: order.order_number,
                 customerName: `${metadata.customer_first_name} ${metadata.customer_last_name}`,
                 customerEmail: metadata.customer_email,
@@ -455,15 +451,16 @@ serve(async (req) => {
                 hasPhysicalProducts: hasPhysicalProducts,
               },
             },
-          })
+            })
 
-          if (adminEmailResponse.error) {
-            console.error('❌ Admin email function returned error:', adminEmailResponse.error)
-          } else {
-            console.log('✅ Admin notification email sent')
+            if (adminEmailResponse.error) {
+              console.error(`❌ Admin email function returned error for ${adminEmail}:`, adminEmailResponse.error)
+            } else {
+              console.log(`✅ Admin notification email sent to ${adminEmail}`)
+            }
           }
         } catch (emailError) {
-          console.error('❌ Error sending admin notification email:', emailError)
+          console.error('❌ Error sending admin notification emails:', emailError)
           // Don't throw - email failure shouldn't fail the webhook
         }
 
@@ -473,12 +470,30 @@ serve(async (req) => {
             try {
               console.log('📧 Preparing event confirmation email for:', item.title)
 
-              // Look up the offering_event_id
-              const { data: offeringEvent, error: eventLookupError } = await supabase
-                .from('offering_events')
-                .select('id, event_date, event_start_time, location_name, location_address, location_city, location_postcode')
-                .eq('offering_id', item.id)
-                .single()
+              // Look up the offering_event using event_id if available, otherwise offering_id
+              let offeringEvent
+              let eventLookupError
+
+              if (item.event_id) {
+                // Direct lookup by event_id (offering_events.id)
+                const result = await supabase
+                  .from('offering_events')
+                  .select('id, event_date, event_start_time, location_name, location_address, location_city, location_postcode')
+                  .eq('id', item.event_id)
+                  .single()
+                offeringEvent = result.data
+                eventLookupError = result.error
+              } else {
+                // Fallback: lookup by offering_id
+                const result = await supabase
+                  .from('offering_events')
+                  .select('id, event_date, event_start_time, location_name, location_address, location_city, location_postcode')
+                  .eq('offering_id', item.id || item.offering_id)
+                  .limit(1)
+                  .single()
+                offeringEvent = result.data
+                eventLookupError = result.error
+              }
 
               if (eventLookupError || !offeringEvent) {
                 console.error('❌ Error looking up event for email:', eventLookupError)
