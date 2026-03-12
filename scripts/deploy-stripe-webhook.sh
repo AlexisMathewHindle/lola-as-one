@@ -68,8 +68,8 @@ echo "✅ Secrets configured"
 echo ""
 
 # Deploy the stripe-webhook function
-echo "📦 Deploying stripe-webhook Edge Function..."
-supabase functions deploy stripe-webhook
+echo "📦 Deploying stripe-webhook Edge Function (no JWT verification - called by Stripe)..."
+supabase functions deploy stripe-webhook --no-verify-jwt
 
 if [ $? -eq 0 ]; then
     echo ""

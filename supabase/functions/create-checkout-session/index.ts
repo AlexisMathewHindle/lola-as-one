@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -86,6 +86,7 @@ serve(async (req) => {
 
         if (item.event_id) {
           // Direct lookup by event_id (offering_events.id)
+          console.log(`🔍 Looking up event by event_id: ${item.event_id}`)
           const result = await supabase
             .from('offering_events')
             .select('id, max_capacity, current_bookings, offering_id')
@@ -93,8 +94,10 @@ serve(async (req) => {
             .single()
           offeringEvent = result.data
           eventError = result.error
+          console.log('Event lookup result:', { data: offeringEvent, error: eventError })
         } else {
           // Fallback: lookup by offering_id (may return multiple, take first)
+          console.log(`🔍 Looking up event by offering_id: ${item.id || item.offering_id}`)
           const result = await supabase
             .from('offering_events')
             .select('id, max_capacity, current_bookings, offering_id')
@@ -103,11 +106,18 @@ serve(async (req) => {
             .single()
           offeringEvent = result.data
           eventError = result.error
+          console.log('Event lookup result:', { data: offeringEvent, error: eventError })
         }
 
         if (eventError || !offeringEvent) {
-          console.error('Error fetching offering_event:', eventError)
-          throw new Error(`Event not found: ${item.title}`)
+          console.error('❌ Error fetching offering_event:', eventError)
+          console.error('❌ Item details:', {
+            event_id: item.event_id,
+            offering_id: item.offering_id,
+            id: item.id,
+            title: item.title
+          })
+          throw new Error(`Event not found: ${item.title}. Event ID: ${item.event_id || 'not provided'}`)
         }
 
         // Check if there's an event_capacity record
@@ -137,8 +147,13 @@ serve(async (req) => {
           requested_quantity: item.quantity
         })
 
+        if (availableSpaces <= 0) {
+          throw new Error(`Sorry, "${item.title}" is now sold out. Please remove it from your cart and try again.`)
+        }
+
         if (availableSpaces < item.quantity) {
-          throw new Error(`Insufficient capacity for ${item.title}. Only ${availableSpaces} spaces available.`)
+          const plural = availableSpaces === 1 ? 'space' : 'spaces'
+          throw new Error(`Sorry, "${item.title}" only has ${availableSpaces} ${plural} available. You're trying to book ${item.quantity}. Please reduce the quantity or remove it from your cart.`)
         }
       }
     }

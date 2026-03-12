@@ -455,6 +455,33 @@ export default defineComponent({
       try {
         processing.value = true;
 
+        // Pre-validate event capacity before creating checkout session
+        for (const item of basket.value) {
+          if (item.type === 'event' && item.event_id) {
+            const { data: eventCapacity, error: capacityError } = await supabase
+              .from('event_capacity')
+              .select('spaces_available')
+              .eq('offering_event_id', item.event_id)
+              .maybeSingle();
+
+            if (capacityError) {
+              console.error('Error checking capacity:', capacityError);
+              continue; // Let the backend handle validation
+            }
+
+            if (eventCapacity) {
+              const available = eventCapacity.spaces_available;
+              if (available <= 0) {
+                throw new Error(`Sorry, "${item.title || item.theme_title}" is now sold out. Please remove it from your cart.`);
+              }
+              if (available < item.quantity) {
+                const plural = available === 1 ? 'space' : 'spaces';
+                throw new Error(`Sorry, "${item.title || item.theme_title}" only has ${available} ${plural} available. You're trying to book ${item.quantity}.`);
+              }
+            }
+          }
+        }
+
         // Debug: Log basket items before mapping
         console.log('Basket items before mapping:', basket.value);
 
@@ -502,6 +529,8 @@ export default defineComponent({
 
         if (error) {
           console.error("Error creating checkout session:", error);
+          console.error("Error context:", error.context);
+          console.error("Error message:", error.message);
           throw error;
         }
 
@@ -531,7 +560,16 @@ export default defineComponent({
           message = err.message;
         }
 
-        errorMessage.value = message;
+        // Show user-friendly error messages
+        if (message.includes('sold out') || message.includes('Insufficient capacity')) {
+          // Capacity error - show prominent message
+          errorMessage.value = message;
+        } else if (message.includes('Event not found')) {
+          errorMessage.value = "One or more events in your cart are no longer available. Please refresh the page and try again.";
+        } else {
+          errorMessage.value = message;
+        }
+
         showError.value = true;
       } finally {
         processing.value = false;

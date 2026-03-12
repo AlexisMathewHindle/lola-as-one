@@ -80,7 +80,7 @@
       </v-col>
     </v-row>
     <v-snackbar v-model="snackbar" :color="snackbarColor" location="top">
-      <p class="ma-0 text-white">Item added to basket</p>
+      <p class="ma-0 text-white">{{ snackbarMessage }}</p>
     </v-snackbar>
   </div>
 </template>
@@ -116,10 +116,12 @@ export default defineComponent({
     const store = useStore();
     const cartStore = useCartStore();
     const route = useRoute();
+
     const loading = ref(true);
     const error = ref(null);
     const events = ref([]);
     const snackbar = ref(false);
+    const snackbarMessage = ref("Item added to basket");
 
     console.log("Component setup - props:", props);
     console.log("Component setup - categoryId:", props.categoryId);
@@ -213,12 +215,24 @@ export default defineComponent({
         }
 
         // Process events and add quantity field
-        events.value = (data || []).map((event) => ({
-          ...event,
-          quantity: 0,
-          stock: event.max_capacity - event.current_bookings,
-          category: props.category,
-        }));
+        events.value = (data || []).map((event) => {
+          // Use event_capacity table if available, otherwise fall back to offering_events
+          let availableStock;
+          if (event.capacity && event.capacity.length > 0) {
+            // Use the first capacity record (should only be one per event)
+            availableStock = event.capacity[0].spaces_available || 0;
+          } else {
+            // Fallback to calculating from offering_events
+            availableStock = event.max_capacity - event.current_bookings;
+          }
+
+          return {
+            ...event,
+            quantity: 0,
+            stock: Math.max(0, availableStock), // Ensure stock is never negative
+            category: props.category,
+          };
+        });
 
         // Debug: Log first event to see category structure
         if (events.value.length > 0) {
@@ -389,6 +403,21 @@ export default defineComponent({
     };
 
     const addQuantity = (event) => {
+      // Check if event is sold out
+      if (event.stock <= 0) {
+        snackbarMessage.value = 'Sorry, this workshop is sold out.';
+        snackbar.value = true;
+        return;
+      }
+
+      // Check if adding one more would exceed available stock
+      if (event.quantity >= event.stock) {
+        snackbarMessage.value = `Sorry, only ${event.stock} spots available for this workshop.`;
+        snackbar.value = true;
+        return;
+      }
+
+      snackbarMessage.value = 'Item added to basket';
       snackbar.value = true;
       event.quantity += 1;
       updateBasket(event);
@@ -438,6 +467,7 @@ export default defineComponent({
       groupedEvents,
       isHalfTerm,
       snackbar,
+      snackbarMessage,
       snackbarColor,
       addQuantity,
       subtractQuantity,

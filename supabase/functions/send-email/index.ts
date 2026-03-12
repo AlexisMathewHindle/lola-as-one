@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // Email template types
 type EmailTemplate = 
@@ -26,6 +26,8 @@ interface EmailRequest {
 
 serve(async (req) => {
   try {
+    console.log('📧 Send email function called')
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
@@ -33,6 +35,8 @@ serve(async (req) => {
 
     // Get Resend API key
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    console.log('Resend API key present:', !!resendApiKey)
+
     if (!resendApiKey) {
       throw new Error('RESEND_API_KEY is not configured')
     }
@@ -40,15 +44,21 @@ serve(async (req) => {
     // Parse request body
     const { template, to, data }: EmailRequest = await req.json()
 
+    console.log('📧 Email request:', { template, to, dataKeys: Object.keys(data) })
+
     // Validate inputs
     if (!template || !to || !data) {
       throw new Error('Missing required fields: template, to, or data')
     }
 
     // Get email content based on template
+    console.log('📧 Getting email content for template:', template)
     const emailContent = await getEmailContent(template, data)
+    console.log('📧 Email content generated:', { subject: emailContent.subject, hasHtml: !!emailContent.html })
 
     // Send email via Resend
+    console.log('📧 Sending email via Resend to:', to)
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -64,12 +74,16 @@ serve(async (req) => {
       }),
     })
 
+    console.log('📧 Resend API response status:', response.status)
+
     if (!response.ok) {
       const error = await response.text()
+      console.error('❌ Resend API error:', error)
       throw new Error(`Resend API error: ${error}`)
     }
 
     const result = await response.json()
+    console.log('✅ Email sent successfully, Resend ID:', result.id)
 
     // Log email sent (optional - for tracking)
     await supabase.from('email_logs').insert({

@@ -20,6 +20,55 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+// Check specific event from the error
+async function checkSpecificEvent() {
+  console.log('🔍 Checking specific event from cart...\n')
+
+  const eventId = '52604556-e927-481f-887a-8df9d6e36c41'
+  const offeringId = '3bb7ffe8-8a17-4957-97f0-494dbb2f1987'
+
+  console.log(`Event ID: ${eventId}`)
+  console.log(`Offering ID: ${offeringId}\n`)
+
+  // Check if event exists
+  const { data: event, error: eventError } = await supabase
+    .from('offering_events')
+    .select('id, max_capacity, current_bookings, offering_id, event_date, event_time')
+    .eq('id', eventId)
+    .single()
+
+  if (eventError) {
+    console.error('❌ Event NOT found in offering_events table')
+    console.error('Error:', eventError.message)
+    console.error('Error code:', eventError.code)
+    console.error('Error details:', eventError.details)
+  } else if (event) {
+    console.log('✅ Event found in offering_events:')
+    console.log(JSON.stringify(event, null, 2))
+  } else {
+    console.error('❌ Event not found (no error, but no data)')
+  }
+
+  console.log('\n')
+
+  // Check if offering exists
+  const { data: offering, error: offeringError } = await supabase
+    .from('offerings')
+    .select('id, title, type, status')
+    .eq('id', offeringId)
+    .single()
+
+  if (offeringError) {
+    console.error('❌ Offering NOT found')
+    console.error('Error:', offeringError.message)
+  } else if (offering) {
+    console.log('✅ Offering found:')
+    console.log(JSON.stringify(offering, null, 2))
+  }
+
+  console.log('\n')
+}
+
 async function checkCheckoutIssues() {
   console.log('🔍 Checking for common checkout issues...\n')
 
