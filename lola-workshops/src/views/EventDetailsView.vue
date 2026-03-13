@@ -48,9 +48,8 @@
                   <v-list-item-title
                     ><strong>Description</strong></v-list-item-title
                   >
-                  <v-list-item-content v-html="event.description">
-        
-                  </v-list-item-content>
+                  {{  event  }}
+                  <v-list-item-content v-html="event.description"></v-list-item-content>
                 </v-list-item>
               </v-list>
               <v-divider></v-divider>
@@ -249,7 +248,7 @@ export default defineComponent({
             instructions: fetchedEvent.offering.metadata?.instructions || [],
             price: transformedEvent.price,
             term: fetchedEvent.offering.metadata?.term || "",
-            category: fetchedEvent.offering.metadata?.category || "single",
+            category: transformedEvent.category || fetchedEvent.category?.slug || "single",
             quantity: transformedEvent.quantity,
             event_id: transformedEvent.event_id,
           };

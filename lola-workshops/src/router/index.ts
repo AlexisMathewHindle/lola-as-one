@@ -142,6 +142,17 @@ const routes: Array<RouteRecordRaw> = [
       ),
   },
   {
+    path: "/category/:categorySlug",
+    name: "category-listing",
+    meta: {
+      title: "Workshops - LOLA Workshops",
+    },
+    component: () =>
+      import(
+        /* webpackChunkName: "category-listing" */ "../views/CategoryListingView.vue"
+      ),
+  },
+  {
     path: "/checkout",
     name: "checkout",
     meta: {

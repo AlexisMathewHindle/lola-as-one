@@ -216,7 +216,19 @@ const fetchEvent = async () => {
       .from('offering_events')
       .select(`
         *,
-        offering:offerings(*)
+        offering:offerings(*),
+        category:event_categories(
+          id,
+          name,
+          slug,
+          description,
+          age_range,
+          is_active,
+          featured_image_url,
+          color_hex,
+          icon,
+          parent_id
+        )
       `)
       .eq('id', eventId)
       .single()

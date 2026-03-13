@@ -147,6 +147,21 @@
             >
           </div>
 
+          <!-- Featured Image -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Featured Image
+            </label>
+            <ImageUploader
+              v-model="formData.featured_image_url"
+              bucket="category-images"
+              alt="Category featured image"
+              :max-size-m-b="5"
+              @upload-complete="handleImageUpload"
+              @upload-error="handleImageError"
+            />
+          </div>
+
           <!-- Active Status -->
           <div class="flex items-center">
             <input
@@ -192,6 +207,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useEventCategories } from '../../composables/useEventCategories'
+import ImageUploader from '../shared/ImageUploader.vue'
 
 const props = defineProps({
   show: {
@@ -230,6 +246,7 @@ const formData = ref({
   display_order: 0,
   color_hex: '',
   icon: '',
+  featured_image_url: '',
   is_active: true
 })
 
@@ -244,6 +261,7 @@ const resetForm = () => {
     display_order: 0,
     color_hex: '',
     icon: '',
+    featured_image_url: '',
     is_active: true
   }
 }
@@ -261,6 +279,7 @@ watch(() => props.category, (newCategory) => {
       display_order: newCategory.display_order || 0,
       color_hex: newCategory.color_hex || '',
       icon: newCategory.icon || '',
+      featured_image_url: newCategory.featured_image_url || '',
       is_active: newCategory.is_active ?? true
     }
   } else {
@@ -291,6 +310,7 @@ const handleSubmit = async () => {
       display_order: formData.value.display_order,
       color_hex: formData.value.color_hex || null,
       icon: formData.value.icon || null,
+      featured_image_url: formData.value.featured_image_url || null,
       is_active: formData.value.is_active
     }
 
@@ -307,6 +327,16 @@ const handleSubmit = async () => {
   } finally {
     saving.value = false
   }
+}
+
+// Handle image upload completion
+const handleImageUpload = ({ url, path }) => {
+  console.log('Category image uploaded:', { url, path })
+}
+
+// Handle image upload error
+const handleImageError = (err) => {
+  error.value = `Image upload failed: ${err.message || 'Unknown error'}`
 }
 </script>
 

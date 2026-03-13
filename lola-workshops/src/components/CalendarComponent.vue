@@ -140,7 +140,7 @@
                     )
                   }}
                 </div>
-                <div class="workshop-title">{{ workshop.offering.title }}</div>
+                <div class="workshop-title">{{ getCategoryName(workshop) }}</div>
               </div>
             </div>
           </div>
@@ -197,7 +197,7 @@
                   }}
                 </div>
                 <div class="workshop-title-day">
-                  {{ workshop.offering.title }}
+                  {{ getCategoryName(workshop) }}
                 </div>
               </div>
             </div>
@@ -247,7 +247,7 @@
 
                 <div class="workshop-info">
                   <div class="workshop-info-title">
-                    {{ workshop.offering.title }}
+                    {{ getCategoryName(workshop) }}
                   </div>
                   <div class="workshop-info-meta">
                     <span v-if="workshop.event_end_time">
@@ -639,14 +639,29 @@ export default defineComponent({
       fetchWorkshops();
     };
 
-    // Navigate to workshop detail
+    // Navigate to category listing page
     const goToWorkshop = (workshop) => {
       // Don't navigate if event is in the past
       if (isPastEvent(workshop)) {
         return;
       }
-      store.dispatch("setInitialDate", new Date(workshop.event_date));
-      router.push({ name: "event-details", params: { id: workshop.id } });
+
+      // Get the category slug from the workshop
+      const categorySlug = workshop.category?.slug;
+
+      if (categorySlug) {
+        // Navigate to category listing page using slug
+        router.push({ name: "category-listing", params: { categorySlug } });
+      } else {
+        // Fallback to event details if no category
+        store.dispatch("setInitialDate", new Date(workshop.event_date));
+        router.push({ name: "event-details", params: { id: workshop.id } });
+      }
+    };
+
+    // Get category name for display
+    const getCategoryName = (workshop) => {
+      return workshop.category?.name || workshop.offering?.title || "Workshop";
     };
 
     // Initialize
@@ -687,6 +702,7 @@ export default defineComponent({
       nextWeek,
       goToToday,
       goToWorkshop,
+      getCategoryName,
       store,
     };
   },

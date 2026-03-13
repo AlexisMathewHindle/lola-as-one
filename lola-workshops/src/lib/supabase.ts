@@ -199,6 +199,11 @@ export function transformSupabaseEventToLegacy(event: SupabaseEvent): any {
     secondary_images: event.offering.secondary_images || [],
     slug: event.offering.slug,
     metadata: event.offering.metadata,
+    // Category information from event_categories table
+    category: event.category?.slug || event.offering.metadata?.category || "single",
+    category_name: event.category?.name,
+    category_color: event.category?.color_hex,
+    category_icon: event.category?.icon,
     // Note: Supabase doesn't have recurring events like Firebase
     // Each event is a separate record with a single event_date
     // For calendar display, use date + start_time/end_time directly
@@ -227,6 +232,10 @@ export function transformSupabaseEventToFullCalendar(
       description:
         event.offering.description_long || event.offering.description_short,
       slug: event.offering.slug,
+      category: event.category?.slug,
+      categoryName: event.category?.name,
+      categoryColor: event.category?.color_hex,
+      categoryIcon: event.category?.icon,
     },
   };
 }
@@ -661,7 +670,15 @@ export async function fetchOfferingsWithEvents(): Promise<any[]> {
         *,
         events:offering_events(
           *,
-          capacity:event_capacity(*)
+          capacity:event_capacity(*),
+          category:event_categories(
+            id,
+            name,
+            slug,
+            color_hex,
+            icon,
+            parent_id
+          )
         )
       `
       )

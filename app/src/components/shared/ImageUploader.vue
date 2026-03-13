@@ -104,7 +104,7 @@ const props = defineProps({
   bucket: {
     type: String,
     required: true,
-    validator: (value) => ['product-images', 'blog-images', 'workshop-images'].includes(value)
+    validator: (value) => ['product-images', 'blog-images', 'workshop-images', 'category-images'].includes(value)
   },
   alt: {
     type: String,
