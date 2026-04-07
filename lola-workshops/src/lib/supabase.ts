@@ -6,6 +6,7 @@
  */
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { generateLegacyTerm, getTermData } from "@/utils/termFormatters";
 
 // Supabase configuration
 // You can set these in environment variables or hardcode them
@@ -47,6 +48,9 @@ export interface SupabaseEvent {
     secondary_images?: Array<{ url: string; order: number }>;
     status: string;
     metadata?: any;
+    term_season?: string | null;
+    term_half?: "first" | "second" | "full" | null;
+    term_year?: number | null;
   };
   category?: {
     id: string;
@@ -60,9 +64,12 @@ export interface SupabaseEvent {
 
 /**
  * Fetch all published events from Supabase
+ * Only returns future events (event_date >= today)
  */
 export async function fetchEventsFromSupabase(): Promise<SupabaseEvent[]> {
   try {
+    const today = new Date().toISOString().split("T")[0];
+
     const { data, error } = await supabase
       .from("offering_events")
       .select(
@@ -80,6 +87,7 @@ export async function fetchEventsFromSupabase(): Promise<SupabaseEvent[]> {
       `
       )
       .eq("offering.status", "published")
+      .gte("event_date", today)
       .order("event_date", { ascending: true })
       .order("event_start_time", { ascending: true });
 
@@ -144,10 +152,7 @@ export async function fetchEventById(
   eventId: string
 ): Promise<SupabaseEvent | null> {
   try {
-    const { data, error } = await supabase
-      .from("offering_events")
-      .select(
-        `
+    const selectClause = `
         *,
         offering:offerings!inner(*),
         category:event_categories(
@@ -158,21 +163,184 @@ export async function fetchEventById(
           icon,
           parent_id
         )
-      `
-      )
+      `;
+
+    const { data, error } = await supabase
+      .from("offering_events")
+      .select(selectClause)
       .eq("id", eventId)
       .single();
 
-    if (error) {
-      console.error("Error fetching event by ID:", error);
-      throw error;
+    if (!error && data) {
+      return data;
     }
 
-    return data;
+    const today = new Date().toISOString().split("T")[0];
+    const { data: matchingOfferings, error: offeringsError } = await supabase
+      .from("offerings")
+      .select("id")
+      .eq("status", "published")
+      .contains("metadata", { event_id: eventId });
+
+    if (offeringsError) {
+      console.error(
+        "Error fetching offering by legacy event ID:",
+        offeringsError
+      );
+      throw offeringsError;
+    }
+
+    const offeringIds = matchingOfferings?.map((offering) => offering.id) || [];
+    if (offeringIds.length === 0) {
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching event by ID:", error);
+        throw error;
+      }
+      return null;
+    }
+
+    const { data: matchingEvents, error: matchingEventsError } = await supabase
+      .from("offering_events")
+      .select(selectClause)
+      .in("offering_id", offeringIds)
+      .eq("offering.status", "published")
+      .gte("event_date", today)
+      .order("event_date", { ascending: true })
+      .order("event_start_time", { ascending: true })
+      .limit(1);
+
+    if (matchingEventsError) {
+      console.error(
+        "Error fetching event by legacy event ID:",
+        matchingEventsError
+      );
+      throw matchingEventsError;
+    }
+
+    return matchingEvents?.[0] || null;
   } catch (error) {
     console.error("Failed to fetch event by ID:", error);
     return null;
   }
+}
+
+function toBundleKeyPart(value: string | number | null | undefined): string {
+  return (
+    String(value ?? "unknown")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "unknown"
+  );
+}
+
+function extractLegacyEventSuffix(
+  eventId: string | null | undefined
+): string | null {
+  if (typeof eventId !== "string") {
+    return null;
+  }
+
+  const normalizedEventId = eventId.trim();
+  if (!normalizedEventId) {
+    return null;
+  }
+
+  return normalizedEventId.replace(/^[a-z]{2}\d{2}_/, "") || normalizedEventId;
+}
+
+function buildTermCourseKey(event: SupabaseEvent): string {
+  const legacyEventSuffix = extractLegacyEventSuffix(
+    event.offering.metadata?.event_id
+  );
+
+  return [
+    toBundleKeyPart(event.category?.id || event.category_id || "term"),
+    toBundleKeyPart(legacyEventSuffix || event.offering.title),
+  ].join("__");
+}
+
+function buildTermGroupKey(event: SupabaseEvent): string | null {
+  const termData = getTermData(event.offering);
+
+  if (!termData.season || !termData.half) {
+    return null;
+  }
+
+  return [
+    buildTermCourseKey(event),
+    toBundleKeyPart(termData.season),
+    toBundleKeyPart(termData.half),
+    toBundleKeyPart(termData.year || "unknown"),
+  ].join("__");
+}
+
+function applyBundleStock(
+  termGroups: Record<string, any[]>
+): Record<string, any[]> {
+  Object.values(termGroups).forEach((group) => {
+    const bundleStock = group.reduce((lowestStock, item) => {
+      const itemStock =
+        typeof item.stock === "number" ? item.stock : Number.POSITIVE_INFINITY;
+      return Math.min(lowestStock, itemStock);
+    }, Number.POSITIVE_INFINITY);
+
+    const normalizedStock = Number.isFinite(bundleStock)
+      ? Math.max(bundleStock, 0)
+      : 0;
+
+    group.forEach((item) => {
+      item.stock = normalizedStock;
+      item.bundle_stock = normalizedStock;
+    });
+  });
+
+  return termGroups;
+}
+
+function groupTransformedTermEvents(events: any[]): Record<string, any[]> {
+  const termGroups: Record<string, any[]> = {};
+
+  events.forEach((event) => {
+    const groupKey = event.term_group_key;
+
+    if (!event.term_season || !event.term_half || !groupKey) {
+      return;
+    }
+
+    if (!termGroups[groupKey]) {
+      termGroups[groupKey] = [];
+    }
+
+    termGroups[groupKey].push(event);
+  });
+
+  return applyBundleStock(termGroups);
+}
+
+function groupCategoryTermEvents(events: any[]): Record<string, any[]> {
+  const termGroups: Record<string, any[]> = {};
+
+  events.forEach((event) => {
+    if (!event.term_season || !event.term_half) {
+      return;
+    }
+
+    const groupKey = [
+      toBundleKeyPart(event.category_id || event.category || "term"),
+      toBundleKeyPart(event.term_season),
+      toBundleKeyPart(event.term_half),
+      toBundleKeyPart(event.term_year || "unknown"),
+    ].join("__");
+
+    if (!termGroups[groupKey]) {
+      termGroups[groupKey] = [];
+    }
+
+    termGroups[groupKey].push(event);
+  });
+
+  return applyBundleStock(termGroups);
 }
 
 /**
@@ -180,27 +348,71 @@ export async function fetchEventById(
  * This helps maintain compatibility with existing components
  */
 export function transformSupabaseEventToLegacy(event: SupabaseEvent): any {
+  const termData = getTermData(event.offering);
+  const capacity = Array.isArray((event as any).capacity)
+    ? (event as any).capacity[0]
+    : null;
+  const availableStock =
+    typeof capacity?.spaces_available === "number"
+      ? Math.max(0, capacity.spaces_available)
+      : Math.max(0, event.max_capacity - event.current_bookings);
+  const legacyEventId =
+    event.offering.metadata?.event_id ||
+    event.offering.slug ||
+    event.offering.id;
+  const legacyEventSuffix = extractLegacyEventSuffix(legacyEventId);
+  const themeId = event.offering.metadata?.theme_id || event.id;
+  const themeTitle = event.offering.description_short || event.offering.title;
+  const termCourseKey = buildTermCourseKey(event);
+  const termGroupKey = buildTermGroupKey(event);
+  const legacyTerm =
+    event.offering.metadata?.term ||
+    generateLegacyTerm(termData.season, termData.half);
+
   return {
+    id: event.id,
+    offering_id: event.offering.id,
+    offering_event_id: event.id,
     event_id: event.id,
+    legacy_event_id: legacyEventId,
+    legacy_event_suffix: legacyEventSuffix,
+    theme_id: themeId,
     event_title: event.offering.title,
+    theme_title: themeTitle,
+    theme_description: null,
     title: event.offering.title,
     description:
       event.offering.description_long || event.offering.description_short || "",
     date: event.event_date,
+    event_date: event.event_date, // Add both formats for compatibility
     start_time: event.event_start_time,
+    event_start_time: event.event_start_time, // Add both formats
     end_time: event.event_end_time,
+    event_end_time: event.event_end_time, // Add both formats
     location: event.location_name,
     address: event.location_address,
     city: event.location_city,
     postcode: event.location_postcode,
-    quantity: event.max_capacity,
+    quantity: 0,
+    originalStock: event.max_capacity,
+    max_capacity: event.max_capacity,
+    current_bookings: event.current_bookings,
     price: event.price_gbp,
+    stock: availableStock, // Available spaces for booking
     image: event.offering.featured_image_url,
     secondary_images: event.offering.secondary_images || [],
     slug: event.offering.slug,
     metadata: event.offering.metadata,
+    term: legacyTerm,
+    term_season: termData.season,
+    term_half: termData.half,
+    term_year: termData.year,
+    term_course_key: termCourseKey,
+    term_group_key: termGroupKey,
     // Category information from event_categories table
-    category: event.category?.slug || event.offering.metadata?.category || "single",
+    category:
+      event.category?.slug || event.offering.metadata?.category || "single",
+    category_id: event.category?.id || event.category_id,
     category_name: event.category?.name,
     category_color: event.category?.color_hex,
     category_icon: event.category?.icon,
@@ -311,7 +523,10 @@ export async function createOrUpdateCustomer(
           first_name: firstName || existingCustomer.first_name,
           last_name: lastName || existingCustomer.last_name,
           phone: phone || existingCustomer.phone,
-          marketing_opt_in: marketingOptIn !== undefined ? marketingOptIn : existingCustomer.marketing_opt_in,
+          marketing_opt_in:
+            marketingOptIn !== undefined
+              ? marketingOptIn
+              : existingCustomer.marketing_opt_in,
           updated_at: new Date().toISOString(),
         })
         .eq("email", email)
@@ -368,7 +583,7 @@ export interface Booking {
   customer_name: string;
   number_of_attendees: number;
   attendee_details?: any;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: "pending" | "confirmed" | "cancelled";
   total_price_gbp?: number;
   notes?: string;
   created_at?: string;
@@ -392,7 +607,7 @@ export async function createBooking(
         customer_name: bookingData.customer_name,
         number_of_attendees: bookingData.number_of_attendees || 1,
         attendee_details: bookingData.attendee_details,
-        status: bookingData.status || 'confirmed',
+        status: bookingData.status || "confirmed",
         total_price_gbp: bookingData.total_price_gbp,
         notes: bookingData.notes,
       })
@@ -414,9 +629,7 @@ export async function createBooking(
 /**
  * Fetch bookings by customer email
  */
-export async function getBookingsByEmail(
-  email: string
-): Promise<Booking[]> {
+export async function getBookingsByEmail(email: string): Promise<Booking[]> {
   try {
     const { data, error } = await supabase
       .from("bookings")
@@ -449,7 +662,7 @@ export async function decrementEventCapacity(
   attendees: number
 ): Promise<{ success: boolean; error: any }> {
   try {
-    const { error } = await supabase.rpc('decrement_event_capacity', {
+    const { error } = await supabase.rpc("decrement_event_capacity", {
       p_offering_event_id: offeringEventId,
       p_attendees: attendees,
     });
@@ -469,9 +682,12 @@ export async function decrementEventCapacity(
 /**
  * Fetch events with capacity information
  * Includes event_capacity table data if available
+ * Only returns future events (event_date >= today)
  */
 export async function fetchEventsWithCapacity(): Promise<SupabaseEvent[]> {
   try {
+    const today = new Date().toISOString().split("T")[0];
+
     const { data, error } = await supabase
       .from("offering_events")
       .select(
@@ -490,6 +706,7 @@ export async function fetchEventsWithCapacity(): Promise<SupabaseEvent[]> {
       `
       )
       .eq("offering.status", "published")
+      .gte("event_date", today)
       .order("event_date", { ascending: true })
       .order("event_start_time", { ascending: true });
 
@@ -554,7 +771,7 @@ export async function getAvailableSpaces(
 export interface Coupon {
   id: string;
   code: string;
-  discount_type: 'percentage' | 'fixed';
+  discount_type: "percentage" | "fixed";
   discount_value: number;
   is_active: boolean;
   expiration?: string;
@@ -600,12 +817,9 @@ export async function validateCoupon(
 /**
  * Apply coupon discount to a price
  */
-export function applyCouponDiscount(
-  price: number,
-  coupon: Coupon
-): number {
-  if (coupon.discount_type === 'percentage') {
-    return price - (price * coupon.discount_value / 100);
+export function applyCouponDiscount(price: number, coupon: Coupon): number {
+  if (coupon.discount_type === "percentage") {
+    return price - (price * coupon.discount_value) / 100;
   } else {
     return Math.max(0, price - coupon.discount_value);
   }
@@ -618,11 +832,14 @@ export function applyCouponDiscount(
 /**
  * Fetch events by offering ID (for term/theme bookings)
  * This helps when booking multiple events under the same offering
+ * Only returns future events (event_date >= today)
  */
 export async function fetchEventsByOfferingId(
   offeringId: string
 ): Promise<SupabaseEvent[]> {
   try {
+    const today = new Date().toISOString().split("T")[0];
+
     const { data, error } = await supabase
       .from("offering_events")
       .select(
@@ -642,6 +859,7 @@ export async function fetchEventsByOfferingId(
       )
       .eq("offering_id", offeringId)
       .eq("offering.status", "published")
+      .gte("event_date", today)
       .order("event_date", { ascending: true })
       .order("event_start_time", { ascending: true });
 
@@ -660,15 +878,18 @@ export async function fetchEventsByOfferingId(
 /**
  * Fetch offerings (themes/terms) with their events
  * Useful for displaying term bookings
+ * Only returns future events (event_date >= today)
  */
 export async function fetchOfferingsWithEvents(): Promise<any[]> {
   try {
+    const today = new Date().toISOString().split("T")[0];
+
     const { data, error } = await supabase
       .from("offerings")
       .select(
         `
         *,
-        events:offering_events(
+        events:offering_events!inner(
           *,
           capacity:event_capacity(*),
           category:event_categories(
@@ -683,6 +904,7 @@ export async function fetchOfferingsWithEvents(): Promise<any[]> {
       `
       )
       .eq("status", "published")
+      .gte("events.event_date", today)
       .order("title", { ascending: true });
 
     if (error) {
@@ -698,6 +920,251 @@ export async function fetchOfferingsWithEvents(): Promise<any[]> {
 }
 
 /**
+ * Fetch events by term (season, half, year) for a specific offering
+ * Groups events by their offering_id and returns them in a format suitable for TermListComponent
+ * Only returns future events (event_date >= today)
+ */
+export async function fetchEventsByTerm(
+  season: string,
+  half: string,
+  year?: number | null
+): Promise<Record<string, any[]>> {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+
+    let query = supabase
+      .from("offering_events")
+      .select(
+        `
+        *,
+        offering:offerings!inner(
+          id,
+          title,
+          slug,
+          description_short,
+          description_long,
+          featured_image_url,
+          secondary_images,
+          status,
+          metadata,
+          term_season,
+          term_half,
+          term_year
+        ),
+        capacity:event_capacity(*),
+        category:event_categories(
+          id,
+          name,
+          slug,
+          color_hex,
+          icon,
+          parent_id
+        )
+      `
+      )
+      .eq("offering.status", "published")
+      .eq("offering.term_season", season)
+      .eq("offering.term_half", half)
+      .gte("event_date", today)
+      .order("event_date", { ascending: true })
+      .order("event_start_time", { ascending: true });
+
+    // Add year filter if provided
+    if (year) {
+      query = query.eq("offering.term_year", year);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Error fetching events by term:", error);
+      throw error;
+    }
+
+    // Group events by offering_id
+    const groupedEvents: Record<string, any[]> = {};
+
+    if (data) {
+      data.forEach((event) => {
+        const offeringId = event.offering_id;
+        if (!groupedEvents[offeringId]) {
+          groupedEvents[offeringId] = [];
+        }
+
+        // Transform to legacy format for compatibility with TermListComponent
+        const transformedEvent = transformSupabaseEventToLegacy(event);
+        groupedEvents[offeringId].push(transformedEvent);
+      });
+    }
+
+    return groupedEvents;
+  } catch (error) {
+    console.error("Failed to fetch events by term:", error);
+    return {};
+  }
+}
+
+/**
+ * Fetch all events for a specific category, grouped by term if applicable
+ * Returns events grouped by term for term-based categories, or flat list for single events
+ */
+export async function fetchEventsByCategoryGroupedByTerm(
+  categoryId: string
+): Promise<{ termGroups: Record<string, any[]>; singleEvents: any[] }> {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data: childCategories } = await supabase
+      .from("event_categories")
+      .select("id")
+      .eq("parent_id", categoryId);
+
+    const categoryIds = [categoryId];
+    if (childCategories && childCategories.length > 0) {
+      categoryIds.push(...childCategories.map((category) => category.id));
+    }
+
+    const { data, error } = await supabase
+      .from("offering_events")
+      .select(
+        `
+        *,
+        offering:offerings!inner(
+          id,
+          title,
+          slug,
+          description_short,
+          description_long,
+          featured_image_url,
+          secondary_images,
+          status,
+          metadata,
+          term_season,
+          term_half,
+          term_year
+        ),
+        capacity:event_capacity(*),
+        category:event_categories(
+          id,
+          name,
+          slug,
+          color_hex,
+          icon,
+          parent_id
+        )
+      `
+      )
+      .eq("offering.status", "published")
+      .in("category_id", categoryIds)
+      .gte("event_date", today)
+      .order("event_date", { ascending: true })
+      .order("event_start_time", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching events by category:", error);
+      throw error;
+    }
+
+    const termEvents: any[] = [];
+    const singleEvents: any[] = [];
+
+    if (data) {
+      data.forEach((event) => {
+        const transformedEvent = transformSupabaseEventToLegacy(event);
+        const groupKey = transformedEvent.term_group_key;
+
+        if (
+          transformedEvent.term_season &&
+          transformedEvent.term_half &&
+          groupKey
+        ) {
+          termEvents.push(transformedEvent);
+        } else {
+          singleEvents.push(transformedEvent);
+        }
+      });
+    }
+
+    return {
+      termGroups: groupCategoryTermEvents(termEvents),
+      singleEvents,
+    };
+  } catch (error) {
+    console.error("Failed to fetch events by category grouped by term:", error);
+    return { termGroups: {}, singleEvents: [] };
+  }
+}
+
+export async function fetchEventsByLegacyEventSuffix(
+  legacyEventSuffix: string,
+  categoryId?: string
+): Promise<Record<string, any[]>> {
+  try {
+    const normalizedSuffix = toBundleKeyPart(legacyEventSuffix);
+    if (!normalizedSuffix || normalizedSuffix === "unknown") {
+      return {};
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data, error } = await supabase
+      .from("offering_events")
+      .select(
+        `
+        *,
+        offering:offerings!inner(
+          id,
+          title,
+          slug,
+          description_short,
+          description_long,
+          featured_image_url,
+          secondary_images,
+          status,
+          metadata,
+          term_season,
+          term_half,
+          term_year
+        ),
+        capacity:event_capacity(*),
+        category:event_categories(
+          id,
+          name,
+          slug,
+          color_hex,
+          icon,
+          parent_id
+        )
+      `
+      )
+      .eq("offering.status", "published")
+      .gte("event_date", today)
+      .order("event_date", { ascending: true })
+      .order("event_start_time", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching events by legacy event suffix:", error);
+      throw error;
+    }
+
+    const matchingEvents =
+      data
+        ?.map((event) => transformSupabaseEventToLegacy(event))
+        .filter(
+          (event) =>
+            event.term_group_key &&
+            toBundleKeyPart(event.legacy_event_suffix) === normalizedSuffix &&
+            (!categoryId || event.category_id === categoryId)
+        ) || [];
+
+    return groupTransformedTermEvents(matchingEvents);
+  } catch (error) {
+    console.error("Failed to fetch events by legacy event suffix:", error);
+    return {};
+  }
+}
+
+/**
  * Create bulk bookings for term/theme bookings
  * Books multiple events at once (e.g., all events in a term)
  */
@@ -709,12 +1176,12 @@ export async function createBulkBookings(
   totalPrice: number
 ): Promise<{ success: boolean; bookingIds: string[]; error: any }> {
   try {
-    const bookings = eventIds.map(eventId => ({
+    const bookings = eventIds.map((eventId) => ({
       offering_event_id: eventId,
       customer_email: customerEmail,
       customer_name: customerName,
       number_of_attendees: attendees,
-      status: 'confirmed' as const,
+      status: "confirmed" as const,
       total_price_gbp: totalPrice / eventIds.length, // Split price evenly
     }));
 
@@ -735,8 +1202,8 @@ export async function createBulkBookings(
 
     return {
       success: true,
-      bookingIds: data.map(b => b.id),
-      error: null
+      bookingIds: data.map((b) => b.id),
+      error: null,
     };
   } catch (error) {
     console.error("Failed to create bulk bookings:", error);

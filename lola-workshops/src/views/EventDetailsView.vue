@@ -48,7 +48,6 @@
                   <v-list-item-title
                     ><strong>Description</strong></v-list-item-title
                   >
-                  {{  event  }}
                   <v-list-item-content v-html="event.description"></v-list-item-content>
                 </v-list-item>
               </v-list>
@@ -92,6 +91,8 @@ import { useRoute } from "vue-router";
 import { Lit } from "@/main";
 import {
   fetchEventById,
+  fetchEventsByCategoryGroupedByTerm,
+  fetchEventsByLegacyEventSuffix,
   transformSupabaseEventToLegacy,
   SupabaseEvent,
 } from "@/lib/supabase";
@@ -126,7 +127,7 @@ export default defineComponent({
     const store = useStore();
     const error = ref<string | null>(null);
     const supabaseEvent = ref<SupabaseEvent | null>(null);
-    const eventThemes = ref<any>([]);
+    const eventThemes = ref<Record<string, any[]>>({});
     const eventImages = ref<any>([]);
     const imageLoaded = ref(false);
     const headerHeight = 223;
@@ -262,6 +263,11 @@ export default defineComponent({
 
           // Load secondary images after event data is fetched
           halfTermPrefixCheck();
+
+          // If this is a term event, fetch all events for this offering
+          if (event.value.category === 'term') {
+            await fetchTermEvents(fetchedEvent, transformedEvent);
+          }
         } else {
           error.value = "Workshop not found";
           console.error("No such event!");
@@ -271,6 +277,76 @@ export default defineComponent({
         store.dispatch("setLoading", false);
         error.value = "Failed to load workshop details. Please try again.";
         console.error("Error fetching event:", err);
+      }
+    };
+
+    const fetchTermEvents = async (
+      fetchedEvent: SupabaseEvent,
+      transformedEvent: any
+    ) => {
+      try {
+        const fallbackGroupKey = transformedEvent.term_group_key || transformedEvent.event_id;
+        const legacyMatchedGroups = transformedEvent.legacy_event_suffix
+          ? await fetchEventsByLegacyEventSuffix(
+              transformedEvent.legacy_event_suffix,
+              fetchedEvent.category_id
+            )
+          : {};
+
+        if (Object.keys(legacyMatchedGroups).length > 0) {
+          eventThemes.value = legacyMatchedGroups;
+          return;
+        }
+
+        if (!fetchedEvent.category_id) {
+          eventThemes.value = {
+            [fallbackGroupKey]: [transformedEvent],
+          };
+          return;
+        }
+
+        const { termGroups } = await fetchEventsByCategoryGroupedByTerm(
+          fetchedEvent.category_id
+        );
+
+        const relatedGroups = Object.fromEntries(
+          Object.entries(termGroups).filter(([, group]) => {
+            return group[0]?.term_course_key === transformedEvent.term_course_key;
+          })
+        );
+
+        if (Object.keys(relatedGroups).length > 0) {
+          eventThemes.value = relatedGroups;
+          return;
+        }
+
+        const matchingGroup = Object.entries(termGroups).find(([, group]) =>
+          group.some(
+            (item) =>
+              item.offering_event_id === fetchedEvent.id ||
+              item.event_id === fetchedEvent.id ||
+              item.id === fetchedEvent.id
+          )
+        );
+
+        if (matchingGroup) {
+          const [groupKey, groupEvents] = matchingGroup;
+          eventThemes.value = {
+            [groupKey]: groupEvents,
+          };
+          return;
+        }
+
+        eventThemes.value = {
+          [fallbackGroupKey]: [transformedEvent],
+        };
+      } catch (err) {
+        console.error("Error fetching term events:", err);
+        eventThemes.value = {
+          [transformedEvent.term_group_key || transformedEvent.event_id]: [
+            transformedEvent,
+          ],
+        };
       }
     };
 

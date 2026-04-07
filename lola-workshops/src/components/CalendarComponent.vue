@@ -8,7 +8,11 @@
 
     <!-- Calendar Controls -->
     <v-container>
-      <v-card class="mb-4 pa-3">
+      <v-card
+        flat
+        color="transparent"
+        class="calendar-controls-card mb-4 pa-3"
+      >
         <v-row align="center" justify="space-between">
           <!-- Navigation -->
           <v-col cols="auto">
@@ -639,24 +643,23 @@ export default defineComponent({
       fetchWorkshops();
     };
 
-    // Navigate to category listing page
+    // Category pages remain the public entry point from the calendar.
+    // Term-time categories then render a workshop-style details layout.
     const goToWorkshop = (workshop) => {
       // Don't navigate if event is in the past
       if (isPastEvent(workshop)) {
         return;
       }
 
-      // Get the category slug from the workshop
       const categorySlug = workshop.category?.slug;
 
       if (categorySlug) {
-        // Navigate to category listing page using slug
         router.push({ name: "category-listing", params: { categorySlug } });
-      } else {
-        // Fallback to event details if no category
-        store.dispatch("setInitialDate", new Date(workshop.event_date));
-        router.push({ name: "event-details", params: { id: workshop.id } });
+        return;
       }
+
+      store.dispatch("setInitialDate", new Date(workshop.event_date));
+      router.push({ name: "event-details", params: { id: workshop.id } });
     };
 
     // Get category name for display
@@ -722,6 +725,11 @@ export default defineComponent({
     color: #6b7280;
     margin-bottom: 1.5rem;
   }
+}
+
+.calendar-controls-card {
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 /* Week View */

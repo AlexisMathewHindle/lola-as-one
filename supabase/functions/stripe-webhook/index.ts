@@ -248,18 +248,40 @@ serve(async (req) => {
 
           // Update event capacity and create booking for events
           if (item.type === 'event') {
-            console.log('🎫 Processing event booking for offering_id:', item.id)
+            console.log('🎫 Processing event booking:', {
+              offering_id: item.id,
+              event_id: item.event_id,
+            })
 
-            // First, look up the offering_event_id from the offering_events table
-            const { data: offeringEvent, error: eventLookupError } = await supabase
-              .from('offering_events')
-              .select('id')
-              .eq('offering_id', item.id)
-              .single()
+            let offeringEvent
+            let eventLookupError
+
+            if (item.event_id) {
+              const result = await supabase
+                .from('offering_events')
+                .select('id')
+                .eq('id', item.event_id)
+                .single()
+
+              offeringEvent = result.data
+              eventLookupError = result.error
+            } else {
+              const result = await supabase
+                .from('offering_events')
+                .select('id')
+                .eq('offering_id', item.id)
+                .single()
+
+              offeringEvent = result.data
+              eventLookupError = result.error
+            }
 
             if (eventLookupError || !offeringEvent) {
               console.error('❌ Error looking up offering_event:', eventLookupError)
-              console.error('Could not find offering_event for offering_id:', item.id)
+              console.error('Could not find offering_event for item:', {
+                offering_id: item.id,
+                event_id: item.event_id,
+              })
               // Skip booking creation for this item
               continue
             }
@@ -853,4 +875,3 @@ serve(async (req) => {
     )
   }
 })
-

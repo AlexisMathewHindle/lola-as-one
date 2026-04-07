@@ -51,7 +51,9 @@
                     v-model="form.parent.email"
                     required
                   />
-                  <p class="text-caption mt-1">Booking confirmation will be sent to this email</p>
+                  <p class="text-caption mt-1">
+                    Booking confirmation will be sent to this email
+                  </p>
                 </div>
                 <div class="form-group">
                   <label>Phone Number</label>
@@ -157,16 +159,17 @@
                       @click.stop
                     />
                     <span @click.prevent="toggleAgreement('healthSafety')">
-                      Health and Safety - The children attend the art classes (although
-                      overseen by the art teacher) at their own risk. I hereby agree,
-                      that while the person/s in charge of the art class will oversee my
-                      child to the best of their ability, neither they nor any person
-                      connected with Lots of Lovely Art will accept any liability for
-                      any claims arising from any accident or injury happening to the
-                      child whilst in the session or which may arise as a result of the
-                      venue. Lots of Lovely Art undertakes that all reasonable
-                      precautions will be taken to ensure the safety and welfare of my
-                      child.
+                      Health and Safety - The children attend the art classes
+                      (although overseen by the art teacher) at their own risk.
+                      I hereby agree, that while the person/s in charge of the
+                      art class will oversee my child to the best of their
+                      ability, neither they nor any person connected with Lots
+                      of Lovely Art will accept any liability for any claims
+                      arising from any accident or injury happening to the child
+                      whilst in the session or which may arise as a result of
+                      the venue. Lots of Lovely Art undertakes that all
+                      reasonable precautions will be taken to ensure the safety
+                      and welfare of my child.
                     </span>
                   </label>
                 </div>
@@ -207,85 +210,78 @@
 
           <!-- Right Column - Order Summary -->
           <v-col cols="12" md="5">
-              <v-card class="order-summary pa-6">
-                <h2 class="mb-4">Order Summary</h2>
+            <v-card class="order-summary pa-6">
+              <h2 class="mb-4">Order Summary</h2>
 
-                <!-- Basket Items -->
-                <div class="mb-4">
-                  <div
-                    v-for="(item, index) in basket"
-                    :key="index"
-                    class="mb-3"
-                  >
-                    <p class="mb-0">
-                      <span class="mr-2">{{ item.quantity || 1 }}</span>
-                      <span class="mr-2">x</span>
-                      <span>{{ item.theme_title || item.title }}</span>
-                      <span class="ml-3">£{{ (item.price * (item.quantity || 1)).toFixed(2) }}</span>
-                    </p>
-                  </div>
+              <!-- Basket Items -->
+              <div class="mb-4">
+                <div v-for="(item, index) in basket" :key="index" class="mb-3">
+                  <p class="mb-0">
+                    <span class="mr-2">{{ item.quantity || 1 }}</span>
+                    <span class="mr-2">x</span>
+                    <span>{{ getSummaryTitle(item) }}</span>
+                    <span class="ml-3"
+                      >£{{ getSummaryLineTotal(item).toFixed(2) }}</span
+                    >
+                  </p>
                 </div>
+              </div>
 
-                <hr class="my-4" />
+              <hr class="my-4" />
 
-                <!-- Subtotal -->
-                <div class="d-flex justify-space-between mb-2">
-                  <span>Subtotal</span>
-                  <span>£{{ total.toFixed(2) }}</span>
-                </div>
+              <!-- Subtotal -->
+              <div class="d-flex justify-space-between mb-2">
+                <span>Subtotal</span>
+                <span>£{{ total.toFixed(2) }}</span>
+              </div>
 
-                <!-- Sibling Discount -->
-                <div
-                  v-if="attendees.length > 1 && siblingDiscount > 0"
-                  class="d-flex justify-space-between mb-2"
-                  style="color: #22c55e"
-                >
-                  <span>Sibling Discount</span>
-                  <span>-£{{ siblingDiscount.toFixed(2) }}</span>
-                </div>
+              <!-- Sibling Discount -->
+              <div
+                v-if="attendees.length > 1 && siblingDiscount > 0"
+                class="d-flex justify-space-between mb-2"
+                style="color: #22c55e"
+              >
+                <span>Sibling Discount</span>
+                <span>-£{{ siblingDiscount.toFixed(2) }}</span>
+              </div>
 
-                <hr class="my-4" />
+              <hr class="my-4" />
 
-                <!-- Total -->
-                <div class="d-flex justify-space-between mb-4">
-                  <h2>Total</h2>
-                  <h2>£{{ finalTotal.toFixed(2) }}</h2>
-                </div>
+              <!-- Total -->
+              <div class="d-flex justify-space-between mb-4">
+                <h2>Total</h2>
+                <h2>£{{ finalTotal.toFixed(2) }}</h2>
+              </div>
 
-                <!-- Submit Button -->
-                <v-btn
-                  type="submit"
-                  class="btn"
-                  block
-                  :loading="processing"
-                  :disabled="processing"
-                >
-                  <v-icon class="mr-2">mdi-lock</v-icon>
-                  Proceed to Payment
-                </v-btn>
+              <!-- Submit Button -->
+              <v-btn
+                type="submit"
+                class="btn"
+                block
+                :loading="processing"
+                :disabled="processing"
+              >
+                <v-icon class="mr-2">mdi-lock</v-icon>
+                Proceed to Payment
+              </v-btn>
 
-                <p class="text-caption text-center mt-3 mb-0" style="color: #707070">
-                  Secure payment powered by Stripe
-                </p>
-              </v-card>
-            </v-col>
-          </v-row>
-        </v-form>
-      </v-container>
+              <p
+                class="text-caption text-center mt-3 mb-0"
+                style="color: #707070"
+              >
+                Secure payment powered by Stripe
+              </p>
+            </v-card>
+          </v-col>
+        </v-row>
+      </v-form>
+    </v-container>
 
     <!-- Error Snackbar -->
-    <v-snackbar
-      v-model="showError"
-      :color="snackbarColor"
-      :timeout="5000"
-    >
+    <v-snackbar v-model="showError" :color="snackbarColor" :timeout="5000">
       <span class="text-white">{{ errorMessage }}</span>
       <template v-slot:actions>
-        <v-btn
-          variant="text"
-          color="white"
-          @click="showError = false"
-        >
+        <v-btn variant="text" color="white" @click="showError = false">
           Close
         </v-btn>
       </template>
@@ -366,7 +362,12 @@ export default defineComponent({
 
         // If the item has nested items (term events), calculate accordingly
         if (item.items && Array.isArray(item.items)) {
-          itemTotal = parseFloat(item.price) * item.items.length * item.quantity;
+          itemTotal =
+            item.items.reduce(
+              (sessionTotal, session) =>
+                sessionTotal + parseFloat(session.price || item.price),
+              0
+            ) * item.quantity;
         }
 
         return sum + itemTotal;
@@ -420,11 +421,12 @@ export default defineComponent({
 
         // If the item has a nested items array, add those items' totals as well
         if (item.items && Array.isArray(item.items)) {
-          item.items.forEach((subItem) => {
-            // For each sub-item, multiply its price by its quantity and add to itemTotal
-            itemTotal =
-              parseFloat(subItem.price) * item.items.length * item.quantity;
-          });
+          itemTotal =
+            item.items.reduce(
+              (sessionTotal, session) =>
+                sessionTotal + parseFloat(session.price || item.price),
+              0
+            ) * item.quantity;
         }
         // Add the item's total to the overall total
         return total + itemTotal;
@@ -434,6 +436,85 @@ export default defineComponent({
         "SET_TOTAL",
         store.state.discount ? totalPrice - store.state.discount : totalPrice
       );
+    };
+
+    const getSummaryTitle = (item) => {
+      if (
+        item.category === "term" &&
+        Array.isArray(item.items) &&
+        item.items.length > 0
+      ) {
+        return `${item.category_name || item.title || item.event_title} (${
+          item.items.length
+        } sessions)`;
+      }
+
+      return item.theme_title || item.event_title || item.title;
+    };
+
+    const getSummaryLineTotal = (item) => {
+      let lineTotal = parseFloat(item.price) * (item.quantity || 1);
+
+      if (
+        item.category === "term" &&
+        Array.isArray(item.items) &&
+        item.items.length > 0
+      ) {
+        lineTotal =
+          item.items.reduce(
+            (sum, session) => sum + parseFloat(session.price || item.price),
+            0
+          ) * (item.quantity || 1);
+      }
+
+      return lineTotal;
+    };
+
+    const expandBasketItemsForCheckout = () => {
+      return basket.value.flatMap((item) => {
+        if (
+          item.category === "term" &&
+          Array.isArray(item.items) &&
+          item.items.length > 0
+        ) {
+          return item.items.map((session) => ({
+            id: session.offering_id || session.id,
+            offering_id: session.offering_id || session.id,
+            event_id:
+              session.offering_event_id || session.theme_id || session.id,
+            legacy_event_id: session.legacy_event_id || item.event_id,
+            title:
+              session.theme_title ||
+              session.title ||
+              session.event_title ||
+              item.category_name ||
+              item.title ||
+              item.event_title,
+            price: session.price || item.price,
+            quantity: item.quantity || 1,
+            type: item.type || "event",
+            category: item.category,
+            eventDate: session.date || session.event_date,
+            eventTime: session.start_time || session.event_start_time,
+          }));
+        }
+
+        return [
+          {
+            id: item.offering_id || item.id,
+            offering_id: item.offering_id || item.id,
+            event_id: item.offering_event_id || item.theme_id || item.event_id,
+            legacy_event_id: item.legacy_event_id || item.event_id,
+            title: item.theme_title || item.event_title || item.title,
+            price: item.price,
+            quantity: item.quantity || 1,
+            type: item.type || "event",
+            category: item.category,
+            eventDate: item.date || item.event_date,
+            eventTime: item.start_time || item.event_time,
+          },
+        ];
+      });
     };
 
     const handleCheckout = async () => {
@@ -454,57 +535,55 @@ export default defineComponent({
 
       try {
         processing.value = true;
+        const checkoutItems = expandBasketItemsForCheckout();
 
         // Pre-validate event capacity before creating checkout session
-        for (const item of basket.value) {
-          if (item.type === 'event' && item.event_id) {
+        for (const item of checkoutItems) {
+          if (item.type === "event" && item.event_id) {
             const { data: eventCapacity, error: capacityError } = await supabase
-              .from('event_capacity')
-              .select('spaces_available')
-              .eq('offering_event_id', item.event_id)
+              .from("event_capacity")
+              .select("spaces_available")
+              .eq("offering_event_id", item.event_id)
               .maybeSingle();
 
             if (capacityError) {
-              console.error('Error checking capacity:', capacityError);
+              console.error("Error checking capacity:", capacityError);
               continue; // Let the backend handle validation
             }
 
             if (eventCapacity) {
               const available = eventCapacity.spaces_available;
               if (available <= 0) {
-                throw new Error(`Sorry, "${item.title || item.theme_title}" is now sold out. Please remove it from your cart.`);
+                throw new Error(
+                  `Sorry, "${
+                    item.title || item.theme_title
+                  }" is now sold out. Please remove it from your cart.`
+                );
               }
               if (available < item.quantity) {
-                const plural = available === 1 ? 'space' : 'spaces';
-                throw new Error(`Sorry, "${item.title || item.theme_title}" only has ${available} ${plural} available. You're trying to book ${item.quantity}.`);
+                const plural = available === 1 ? "space" : "spaces";
+                throw new Error(
+                  `Sorry, "${
+                    item.title || item.theme_title
+                  }" only has ${available} ${plural} available. You're trying to book ${
+                    item.quantity
+                  }.`
+                );
               }
             }
           }
         }
 
         // Debug: Log basket items before mapping
-        console.log('Basket items before mapping:', basket.value);
+        console.log("Basket items before mapping:", basket.value);
+        console.log("Expanded checkout items:", checkoutItems);
 
-        // Prepare items with attendee details
-        const items = basket.value.map((item) => {
-          console.log('Mapping item:', item);
-          return {
-            id: item.offering_id || item.id, // Use offering_id for Edge Function lookup
-            offering_id: item.offering_id || item.id,
-            event_id: item.event_id, // The specific event instance ID
-            title: item.theme_title || item.event_title || item.title,
-            price: item.price,
-            quantity: item.quantity || 1,
-            type: item.type || "event",
-            category: item.category,
-            eventDate: item.date || item.event_date,
-            eventTime: item.start_time || item.event_time,
-            // Include nested items for term events
-            items: item.items || null,
-          };
+        const items = checkoutItems.map((item) => {
+          console.log("Mapping item:", item);
+          return item;
         });
 
-        console.log('Items being sent to Edge Function:', items);
+        console.log("Items being sent to Edge Function:", items);
 
         // Call Supabase Edge Function to create checkout session
         const { data, error } = await supabase.functions.invoke(
@@ -561,11 +640,15 @@ export default defineComponent({
         }
 
         // Show user-friendly error messages
-        if (message.includes('sold out') || message.includes('Insufficient capacity')) {
+        if (
+          message.includes("sold out") ||
+          message.includes("Insufficient capacity")
+        ) {
           // Capacity error - show prominent message
           errorMessage.value = message;
-        } else if (message.includes('Event not found')) {
-          errorMessage.value = "One or more events in your cart are no longer available. Please refresh the page and try again.";
+        } else if (message.includes("Event not found")) {
+          errorMessage.value =
+            "One or more events in your cart are no longer available. Please refresh the page and try again.";
         } else {
           errorMessage.value = message;
         }
@@ -604,6 +687,8 @@ export default defineComponent({
       removeAttendee,
       toggleAgreement,
       getTotalPrice,
+      getSummaryTitle,
+      getSummaryLineTotal,
       handleCheckout,
     };
   },
@@ -612,7 +697,7 @@ export default defineComponent({
 
 <style scoped>
 .c-checkout {
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: "Source Sans Pro", sans-serif;
 }
 
 .name-fields {
