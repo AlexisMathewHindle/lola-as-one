@@ -237,6 +237,14 @@ export const useCartStore = defineStore("cart", () => {
   }
 
   /**
+   * Replace cart contents with a validated list of items.
+   */
+  function replaceItems(nextItems: any[]) {
+    items.value = Array.isArray(nextItems) ? coalesceCartItems(nextItems) : [];
+    saveToLocalStorage();
+  }
+
+  /**
    * Save cart to localStorage
    */
   function saveToLocalStorage() {
@@ -271,6 +279,7 @@ export const useCartStore = defineStore("cart", () => {
     subtotal,
     addItem,
     removeItem,
+    replaceItems,
     clearCart,
   };
 });

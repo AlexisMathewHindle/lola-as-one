@@ -64,6 +64,9 @@
                   </span>
                   <span class="font-semibold text-gray-900">{{ parent.name }}</span>
                 </div>
+                <div class="text-xs text-gray-500 mt-1">
+                  {{ formatLayoutKey(parent.layout_key) }}
+                </div>
                 <div class="md:hidden text-xs text-gray-500 mt-1">
                   {{ parent.slug }}
                 </div>
@@ -105,6 +108,9 @@
                 <div class="flex items-center pl-4 sm:pl-8">
                   <span class="text-gray-400 mr-2">└─</span>
                   <span class="text-gray-700">{{ child.name }}</span>
+                </div>
+                <div class="text-xs text-gray-500 mt-1 pl-4 sm:pl-8">
+                  {{ formatLayoutKey(child.layout_key) }}
                 </div>
                 <div class="md:hidden text-xs text-gray-500 mt-1 pl-4 sm:pl-8">
                   {{ child.slug }}
@@ -203,6 +209,15 @@ const formatAgeRange = (ageRange) => {
   return `${min}-${max}`
 }
 
+const formatLayoutKey = (layoutKey) => {
+  const labels = {
+    standard: 'Standard workshop template',
+    adult_workshop: 'Adult workshop template'
+  }
+
+  return labels[layoutKey] || 'Standard workshop template'
+}
+
 // Modal actions
 const openCreateModal = () => {
   modalMode.value = 'create'
@@ -239,5 +254,4 @@ const handleSave = async () => {
   closeModal()
 }
 </script>
-
 

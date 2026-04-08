@@ -7,7 +7,7 @@
         v-for="(eventGroup, offeringTitle) in groupedEvents"
         :key="offeringTitle"
       >
-        <h2 class="mb-4">{{ offeringTitle }}</h2>
+        <!-- <h2 class="mb-4">{{ offeringTitle }}</h2> -->
         <v-card
           flat
           class="mb-4 py-1 px-4 c-single-list__card"

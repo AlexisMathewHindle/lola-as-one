@@ -312,6 +312,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
+import { getWorkshopAgeLabel, isAdultWorkshopLayout } from '../utils/workshopDisplay'
 
 const router = useRouter()
 
@@ -436,7 +437,18 @@ const fetchWorkshops = async () => {
       .select(`
         *,
         offering:offerings!inner(*),
-        capacity:event_capacity(*)
+        capacity:event_capacity(*),
+        category:event_categories(
+          id,
+          name,
+          slug,
+          age_range,
+          color_hex,
+          icon,
+          featured_image_url,
+          layout_key,
+          parent_id
+        )
       `)
       .gte('event_date', startDate)
       .lte('event_date', endDate)
@@ -452,26 +464,10 @@ const fetchWorkshops = async () => {
     console.log('Fetched workshops:', data)
     console.log('Date range:', startDate, 'to', endDate)
 
-    // Process workshops with age group from metadata
     workshops.value = (data || []).map(workshop => {
-      const metadata = workshop.offering?.metadata || {}
-      const category = metadata.category || ''
-
-      // Extract age group
-      let ageGroup = ''
-      if (metadata.age_group) {
-        ageGroup = metadata.age_group
-      } else if (workshop.offering?.title.includes('all ages')) {
-        ageGroup = '(all ages)'
-      } else if (workshop.offering?.title.match(/\(ages? [\d-+]+\)/i)) {
-        const match = workshop.offering.title.match(/\((ages? [\d-+]+)\)/i)
-        ageGroup = match ? `(${match[1]})` : ''
-      }
-
       return {
         ...workshop,
-        category,
-        age_group: ageGroup
+        age_group: getWorkshopAgeLabel(workshop)
       }
     })
 
@@ -492,7 +488,11 @@ const getWorkshopsForDay = (dateString) => {
 // Get workshop color class based on category/title
 const getWorkshopColorClass = (workshop) => {
   const title = workshop.offering.title.toLowerCase()
-  const category = workshop.category?.toLowerCase() || ''
+  const categorySlug = workshop.category?.slug?.toLowerCase() || ''
+
+  if (isAdultWorkshopLayout(workshop) || categorySlug.includes('adult')) {
+    return 'bg-rose-700 hover:bg-rose-800'
+  }
 
   // Open Studio - Blue/Teal
   if (title.includes('open studio')) {

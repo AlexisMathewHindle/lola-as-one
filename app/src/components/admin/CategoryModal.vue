@@ -61,6 +61,23 @@
             ></textarea>
           </div>
 
+          <!-- Layout Template -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Layout Template
+            </label>
+            <select
+              v-model="formData.layout_key"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="standard">Standard Workshop</option>
+              <option value="adult_workshop">Adult Workshop</option>
+            </select>
+            <p class="text-xs text-gray-500 mt-1">
+              Controls which public-facing workshop template this category uses.
+            </p>
+          </div>
+
           <!-- Parent Category -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -240,6 +257,7 @@ const formData = ref({
   name: '',
   slug: '',
   description: '',
+  layout_key: 'standard',
   parent_id: null,
   age_min: null,
   age_max: null,
@@ -255,6 +273,7 @@ const resetForm = () => {
     name: '',
     slug: '',
     description: '',
+    layout_key: 'standard',
     parent_id: null,
     age_min: null,
     age_max: null,
@@ -273,6 +292,7 @@ watch(() => props.category, (newCategory) => {
       name: newCategory.name || '',
       slug: newCategory.slug || '',
       description: newCategory.description || '',
+      layout_key: newCategory.layout_key || 'standard',
       parent_id: newCategory.parent_id || null,
       age_min: newCategory.age_range?.min || null,
       age_max: newCategory.age_range?.max || null,
@@ -305,6 +325,7 @@ const handleSubmit = async () => {
       name: formData.value.name,
       slug: formData.value.slug,
       description: formData.value.description || null,
+      layout_key: formData.value.layout_key || 'standard',
       parent_id: formData.value.parent_id || null,
       age_range: Object.keys(age_range).length > 0 ? age_range : null,
       display_order: formData.value.display_order,
@@ -339,5 +360,4 @@ const handleImageError = (err) => {
   error.value = `Image upload failed: ${err.message || 'Unknown error'}`
 }
 </script>
-
 

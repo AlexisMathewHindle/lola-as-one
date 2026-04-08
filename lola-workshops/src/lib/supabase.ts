@@ -728,7 +728,7 @@ export async function fetchEventsWithCapacity(): Promise<SupabaseEvent[]> {
  */
 export async function getAvailableSpaces(
   offeringEventId: string
-): Promise<number> {
+): Promise<number | null> {
   try {
     // First try to get from event_capacity table
     const { data: capacityData, error: capacityError } = await supabase
@@ -750,13 +750,17 @@ export async function getAvailableSpaces(
 
     if (eventError) {
       console.error("Error fetching event capacity:", eventError);
-      return 0;
+      return null;
+    }
+
+    if (!eventData) {
+      return null;
     }
 
     return eventData.max_capacity - eventData.current_bookings;
   } catch (error) {
     console.error("Failed to get available spaces:", error);
-    return 0;
+    return null;
   }
 }
 

@@ -103,7 +103,17 @@ serve(async (req) => {
         console.log('Full metadata:', JSON.stringify(metadata, null, 2))
         console.log('Customer email from metadata:', metadata.customer_email)
 
-        const items = JSON.parse(metadata.items || '[]')
+        let items: any[] = []
+        const lineItemCount = parseInt(metadata.line_item_count || '0', 10)
+
+        if (lineItemCount > 0) {
+          items = Array.from({ length: lineItemCount })
+            .map((_, index) => metadata[`line_item_${index}`])
+            .filter(Boolean)
+            .map((serializedItem) => JSON.parse(serializedItem))
+        } else {
+          items = JSON.parse(metadata.items || '[]')
+        }
 
         // Reconstruct attendees from separate metadata fields
         items.forEach((item: any, index: number) => {

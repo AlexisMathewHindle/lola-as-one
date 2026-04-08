@@ -292,7 +292,7 @@
 import { computed, defineComponent, ref, onMounted } from "vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
-import { supabase } from "@/lib/supabase";
+import { getAvailableSpaces, supabase } from "@/lib/supabase";
 import { useCartStore } from "@/stores/cart";
 import SiblingDiscountComponent from "@/components/SiblingDiscountComponent.vue";
 
@@ -470,6 +470,199 @@ export default defineComponent({
       return lineTotal;
     };
 
+    const normalizeCheckoutTitle = (...candidates) => {
+      const cleanedCandidates = candidates
+        .map((candidate) =>
+          typeof candidate === "string"
+            ? candidate.replace(/\s+/g, " ").trim()
+            : ""
+        )
+        .filter(Boolean);
+
+      const compactTitle = cleanedCandidates.find(
+        (candidate) => candidate.length <= 120 && !candidate.includes('"')
+      );
+
+      if (compactTitle) {
+        return compactTitle;
+      }
+
+      return cleanedCandidates[0] || "Workshop";
+    };
+
+    const formatAvailabilityIssueMessage = (issues) => {
+      if (!issues.length) {
+        return "";
+      }
+
+      if (issues.length === 1) {
+        const issue = issues[0];
+
+        if (issue.action === "removed") {
+          return `Sorry, "${issue.title}" is now sold out and has been removed from your basket.`;
+        }
+
+        const plural = issue.availableSpaces === 1 ? "space" : "spaces";
+        return `Sorry, "${issue.title}" only has ${issue.availableSpaces} ${plural} available. Your basket has been updated.`;
+      }
+
+      return "Some events in your basket are no longer available. Your basket has been updated.";
+    };
+
+    const extractCheckoutErrorMessage = async (err) => {
+      const fallbackMessage = "Failed to process checkout. Please try again.";
+      const context = err?.context;
+
+      if (context) {
+        try {
+          if (typeof context.clone === "function") {
+            const response = context.clone();
+            const rawText = await response.text();
+
+            if (rawText) {
+              try {
+                const parsed = JSON.parse(rawText);
+                return parsed.error || parsed.message || rawText;
+              } catch {
+                return rawText;
+              }
+            }
+          } else if (typeof context.body === "string") {
+            const parsed = JSON.parse(context.body);
+            return parsed.error || parsed.message || fallbackMessage;
+          } else if (context.body?.error || context.body?.message) {
+            return context.body.error || context.body.message;
+          }
+        } catch (parseError) {
+          console.error("Error parsing error response:", parseError);
+        }
+      }
+
+      return err?.message || fallbackMessage;
+    };
+
+    const syncBasketAvailability = async () => {
+      const issues = [];
+      const nextItems = [];
+
+      for (const item of basket.value) {
+        if (item.type && item.type !== "event") {
+          nextItems.push(item);
+          continue;
+        }
+
+        const requestedQuantity = Math.max(1, Number(item.quantity || 1));
+        const itemTitle = getSummaryTitle(item);
+
+        if (
+          item.category === "term" &&
+          Array.isArray(item.items) &&
+          item.items.length > 0
+        ) {
+          const sessionAvailabilities = await Promise.all(
+            item.items.map(async (session) => {
+              const eventId =
+                session.offering_event_id ||
+                session.event_id ||
+                session.theme_id ||
+                session.id;
+
+              if (!eventId) {
+                return null;
+              }
+
+              return getAvailableSpaces(eventId);
+            })
+          );
+
+          const knownAvailabilities = sessionAvailabilities.filter((value) =>
+            Number.isFinite(value)
+          );
+
+          if (!knownAvailabilities.length) {
+            nextItems.push(item);
+            continue;
+          }
+
+          const minimumAvailable = Math.max(
+            0,
+            Math.min(...knownAvailabilities)
+          );
+
+          if (minimumAvailable <= 0) {
+            issues.push({
+              action: "removed",
+              title: itemTitle,
+              availableSpaces: 0,
+            });
+            continue;
+          }
+
+          if (minimumAvailable < requestedQuantity) {
+            issues.push({
+              action: "reduced",
+              title: itemTitle,
+              availableSpaces: minimumAvailable,
+            });
+            nextItems.push({
+              ...item,
+              quantity: minimumAvailable,
+            });
+            continue;
+          }
+
+          nextItems.push(item);
+          continue;
+        }
+
+        const eventId =
+          item.offering_event_id || item.event_id || item.theme_id || item.id;
+
+        if (!eventId) {
+          nextItems.push(item);
+          continue;
+        }
+
+        const availableSpaces = await getAvailableSpaces(eventId);
+
+        if (availableSpaces === null) {
+          nextItems.push(item);
+          continue;
+        }
+
+        if (availableSpaces <= 0) {
+          issues.push({
+            action: "removed",
+            title: itemTitle,
+            availableSpaces: 0,
+          });
+          continue;
+        }
+
+        if (availableSpaces < requestedQuantity) {
+          issues.push({
+            action: "reduced",
+            title: itemTitle,
+            availableSpaces,
+          });
+          nextItems.push({
+            ...item,
+            quantity: availableSpaces,
+          });
+          continue;
+        }
+
+        nextItems.push(item);
+      }
+
+      if (issues.length > 0) {
+        cartStore.replaceItems(nextItems);
+        getTotalPrice();
+      }
+
+      return issues;
+    };
+
     const expandBasketItemsForCheckout = () => {
       return basket.value.flatMap((item) => {
         if (
@@ -483,13 +676,20 @@ export default defineComponent({
             event_id:
               session.offering_event_id || session.theme_id || session.id,
             legacy_event_id: session.legacy_event_id || item.event_id,
-            title:
-              session.theme_title ||
-              session.title ||
-              session.event_title ||
-              item.category_name ||
-              item.title ||
+            title: normalizeCheckoutTitle(
+              session.event_title,
+              session.theme_title,
+              session.title,
+              item.category_name,
               item.event_title,
+              item.theme_title,
+              item.title
+            ),
+            event_title:
+              session.event_title ||
+              item.event_title ||
+              item.category_name ||
+              item.title,
             price: session.price || item.price,
             quantity: item.quantity || 1,
             type: item.type || "event",
@@ -505,7 +705,12 @@ export default defineComponent({
             offering_id: item.offering_id || item.id,
             event_id: item.offering_event_id || item.theme_id || item.event_id,
             legacy_event_id: item.legacy_event_id || item.event_id,
-            title: item.theme_title || item.event_title || item.title,
+            title: normalizeCheckoutTitle(
+              item.event_title,
+              item.theme_title,
+              item.title
+            ),
+            event_title: item.event_title || item.theme_title || item.title,
             price: item.price,
             quantity: item.quantity || 1,
             type: item.type || "event",
@@ -533,46 +738,20 @@ export default defineComponent({
         return;
       }
 
+      const availabilityIssues = await syncBasketAvailability();
+      if (availabilityIssues.length > 0) {
+        errorMessage.value = formatAvailabilityIssueMessage(availabilityIssues);
+        showError.value = true;
+
+        if (!cartStore.items || cartStore.items.length === 0) {
+          router.push("/basket");
+        }
+        return;
+      }
+
       try {
         processing.value = true;
         const checkoutItems = expandBasketItemsForCheckout();
-
-        // Pre-validate event capacity before creating checkout session
-        for (const item of checkoutItems) {
-          if (item.type === "event" && item.event_id) {
-            const { data: eventCapacity, error: capacityError } = await supabase
-              .from("event_capacity")
-              .select("spaces_available")
-              .eq("offering_event_id", item.event_id)
-              .maybeSingle();
-
-            if (capacityError) {
-              console.error("Error checking capacity:", capacityError);
-              continue; // Let the backend handle validation
-            }
-
-            if (eventCapacity) {
-              const available = eventCapacity.spaces_available;
-              if (available <= 0) {
-                throw new Error(
-                  `Sorry, "${
-                    item.title || item.theme_title
-                  }" is now sold out. Please remove it from your cart.`
-                );
-              }
-              if (available < item.quantity) {
-                const plural = available === 1 ? "space" : "spaces";
-                throw new Error(
-                  `Sorry, "${
-                    item.title || item.theme_title
-                  }" only has ${available} ${plural} available. You're trying to book ${
-                    item.quantity
-                  }.`
-                );
-              }
-            }
-          }
-        }
 
         // Debug: Log basket items before mapping
         console.log("Basket items before mapping:", basket.value);
@@ -607,9 +786,8 @@ export default defineComponent({
         );
 
         if (error) {
-          console.error("Error creating checkout session:", error);
-          console.error("Error context:", error.context);
-          console.error("Error message:", error.message);
+          const detailedMessage = await extractCheckoutErrorMessage(error);
+          console.error("Checkout session rejected:", detailedMessage);
           throw error;
         }
 
@@ -620,32 +798,20 @@ export default defineComponent({
         // Redirect to Stripe Checkout
         window.location.href = data.url;
       } catch (err) {
-        console.error("Checkout error:", err);
-
         // Extract error message
-        let message = "Failed to process checkout. Please try again.";
-
-        if (err.context?.body) {
-          try {
-            const errorBody =
-              typeof err.context.body === "string"
-                ? JSON.parse(err.context.body)
-                : err.context.body;
-            message = errorBody.error || message;
-          } catch (parseError) {
-            console.error("Error parsing error response:", parseError);
-          }
-        } else if (err.message) {
-          message = err.message;
-        }
+        const message = await extractCheckoutErrorMessage(err);
+        console.error("Checkout error:", message);
 
         // Show user-friendly error messages
         if (
           message.includes("sold out") ||
-          message.includes("Insufficient capacity")
+          message.includes("Insufficient capacity") ||
+          message.includes("only has")
         ) {
-          // Capacity error - show prominent message
-          errorMessage.value = message;
+          const availabilityIssues = await syncBasketAvailability();
+          errorMessage.value = availabilityIssues.length
+            ? formatAvailabilityIssueMessage(availabilityIssues)
+            : message;
         } else if (message.includes("Event not found")) {
           errorMessage.value =
             "One or more events in your cart are no longer available. Please refresh the page and try again.";
@@ -661,11 +827,23 @@ export default defineComponent({
 
     // Calculate total on mount
     onMounted(() => {
-      getTotalPrice();
-      // Redirect to basket if no items - use cart store
-      if (!cartStore.items || cartStore.items.length === 0) {
-        router.push("/basket");
-      }
+      const initializeCheckout = async () => {
+        const availabilityIssues = await syncBasketAvailability();
+
+        getTotalPrice();
+
+        if (availabilityIssues.length > 0) {
+          errorMessage.value =
+            formatAvailabilityIssueMessage(availabilityIssues);
+          showError.value = true;
+        }
+
+        if (!cartStore.items || cartStore.items.length === 0) {
+          router.push("/basket");
+        }
+      };
+
+      initializeCheckout();
     });
 
     return {

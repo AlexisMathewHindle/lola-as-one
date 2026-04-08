@@ -7,6 +7,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function sanitizeMetadataTitle(title: unknown, fallbackTitle?: unknown): string {
+  const normalizedTitle = String(title || fallbackTitle || 'Item')
+    .replace(/\s+/g, ' ')
+    .replace(/^"+|"+$/g, '')
+    .trim()
+
+  return normalizedTitle.slice(0, 120) || 'Item'
+}
+
+function buildItemMetadata(item: any) {
+  return {
+    id: item.id || item.offering_id,
+    event_id: item.event_id || null,
+    title: sanitizeMetadataTitle(item.event_title, item.title),
+    price: item.price,
+    quantity: item.quantity,
+    type: item.type,
+    eventDate: item.eventDate || null,
+    eventTime: item.eventTime || null,
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -181,7 +203,7 @@ serve(async (req) => {
       price_data: {
         currency: 'gbp',
         product_data: {
-          name: item.title,
+          name: sanitizeMetadataTitle(item.event_title, item.title),
           description: item.type === 'event' 
             ? `Event on ${item.eventDate} at ${item.eventTime}`
             : undefined,
@@ -207,12 +229,19 @@ serve(async (req) => {
 
     // Prepare items for metadata (without attendees to avoid 500 char limit)
     console.log('📦 Original items:', JSON.stringify(items))
-    const itemsForMetadata = items.map((item: any) => {
-      const { attendees, ...itemWithoutAttendees } = item
-      return itemWithoutAttendees
-    })
+    const itemsForMetadata = items.map((item: any) => buildItemMetadata(item))
     console.log('📦 Items without attendees:', JSON.stringify(itemsForMetadata))
     console.log('📦 Items metadata length:', JSON.stringify(itemsForMetadata).length)
+
+    const itemMetadataFields: Record<string, string> = {
+      line_item_count: String(itemsForMetadata.length),
+    }
+
+    itemsForMetadata.forEach((item: any, index: number) => {
+      const serializedItem = JSON.stringify(item)
+      console.log(`📦 line_item_${index} length:`, serializedItem.length)
+      itemMetadataFields[`line_item_${index}`] = serializedItem
+    })
 
     // Prepare attendees data separately (only for items that have attendees)
     const attendeesData: Record<string, any> = {}
@@ -243,11 +272,11 @@ serve(async (req) => {
         shipping_city: shipping?.address?.city || '',
         shipping_postal_code: shipping?.address?.postal_code || '',
         shipping_country: shipping?.address?.country || 'GB',
-        items: JSON.stringify(itemsForMetadata),
         subtotal: subtotal.toFixed(2),
         shipping_cost: shippingCost.toFixed(2),
         vat: vat.toFixed(2),
         total: total.toFixed(2),
+        ...itemMetadataFields,
         ...attendeesData, // Spread attendees data as separate metadata fields
       },
     })
@@ -295,4 +324,3 @@ serve(async (req) => {
     )
   }
 })
-

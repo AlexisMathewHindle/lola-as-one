@@ -39,127 +39,16 @@
       </nav>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Main Content (Left Column) -->
-        <div class="lg:col-span-2 space-y-6">
-          <!-- Hero Section -->
-          <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <!-- Featured Image -->
-            <div v-if="workshop.offering.featured_image_url" class="aspect-video bg-gray-100">
-              <img
-                :src="workshop.offering.featured_image_url"
-                :alt="workshop.offering.title"
-                class="w-full h-full object-cover"
-              />
-            </div>
-            <div v-else class="aspect-video bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
-              <font-awesome-icon icon="palette" class="w-24 h-24 text-primary-400" />
-            </div>
-
-            <!-- Workshop Info -->
-            <div class="p-6 sm:p-8">
-              <h1 class="text-3xl sm:text-4xl font-display font-bold text-gray-900 mb-4">
-                {{ workshop.offering.title }}
-              </h1>
-
-              <!-- Short Description -->
-              <p v-if="workshop.offering.description_short" class="text-lg text-gray-600 mb-6">
-                {{ workshop.offering.description_short }}
-              </p>
-
-              <!-- Event Details Grid -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                <!-- Date -->
-                <div class="flex items-start">
-                  <font-awesome-icon icon="calendar" class="w-5 h-5 text-primary-600 mr-3 mt-1" />
-                  <div>
-                    <div class="text-sm font-medium text-gray-500">Date</div>
-                    <div class="text-base font-semibold text-gray-900">{{ formatDate(workshop.event_date) }}</div>
-                  </div>
-                </div>
-
-                <!-- Time -->
-                <div class="flex items-start">
-                  <font-awesome-icon icon="clock" class="w-5 h-5 text-primary-600 mr-3 mt-1" />
-                  <div>
-                    <div class="text-sm font-medium text-gray-500">Time</div>
-                    <div class="text-base font-semibold text-gray-900">
-                      {{ formatTime(workshop.event_start_time) }} - {{ formatTime(workshop.event_end_time) }}
-                      <span class="text-sm text-gray-500">({{ duration }})</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Location -->
-                <div class="flex items-start">
-                  <font-awesome-icon icon="map-marker-alt" class="w-5 h-5 text-primary-600 mr-3 mt-1" />
-                  <div>
-                    <div class="text-sm font-medium text-gray-500">Location</div>
-                    <div class="text-base font-semibold text-gray-900">{{ workshop.location_name || 'TBA' }}</div>
-                    <div v-if="workshop.location_city" class="text-sm text-gray-600">
-                      {{ workshop.location_city }}{{ workshop.location_postcode ? ', ' + workshop.location_postcode : '' }}
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Age Group -->
-                <div v-if="ageGroup" class="flex items-start">
-                  <font-awesome-icon icon="users" class="w-5 h-5 text-primary-600 mr-3 mt-1" />
-                  <div>
-                    <div class="text-sm font-medium text-gray-500">Age Group</div>
-                    <div class="text-base font-semibold text-gray-900">{{ ageGroup }}</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Capacity Progress Bar -->
-              <div class="mb-6">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-sm font-medium text-gray-700">Availability</span>
-                  <span class="text-sm font-semibold" :class="capacityTextClass">
-                    {{ capacityText }}
-                  </span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div
-                    class="h-3 rounded-full transition-all duration-300"
-                    :class="capacityBarClass"
-                    :style="{ width: capacityPercentage + '%' }"
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Full Description -->
-          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
-            <h2 class="text-2xl font-display font-bold text-gray-900 mb-4">About This Workshop</h2>
-            <div class="prose max-w-none text-gray-700" v-html="formattedDescription"></div>
-          </div>
-
-          <!-- Related Workshops (if any) -->
-          <div v-if="relatedWorkshops.length > 0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
-            <h2 class="text-2xl font-display font-bold text-gray-900 mb-4">More Workshops</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div
-                v-for="related in relatedWorkshops"
-                :key="related.id"
-                @click="goToWorkshop(related)"
-                class="border border-gray-200 rounded-lg p-4 hover:border-primary-300 hover:shadow-md transition-all cursor-pointer"
-              >
-                <h3 class="font-semibold text-gray-900 mb-2">{{ related.offering.title }}</h3>
-                <div class="text-sm text-gray-600 space-y-1">
-                  <div class="flex items-center">
-                    <font-awesome-icon icon="calendar" class="w-3 h-3 mr-2" />
-                    {{ formatDate(related.event_date) }}
-                  </div>
-                  <div class="flex items-center">
-                    <font-awesome-icon icon="clock" class="w-3 h-3 mr-2" />
-                    {{ formatTime(related.event_start_time) }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="lg:col-span-2">
+          <component
+            :is="contentTemplateComponent"
+            :workshop="workshop"
+            :age-group="ageGroup"
+            :duration="duration"
+            :formatted-description="formattedDescription"
+            :related-workshops="relatedWorkshops"
+            @select-related="goToWorkshop"
+          />
         </div>
 
         <!-- Booking Sidebar (Right Column) -->
@@ -171,6 +60,22 @@
               <div class="text-4xl font-bold text-gray-900">
                 £{{ workshop.price_gbp }}
                 <span class="text-lg text-gray-500 font-normal">/ person</span>
+              </div>
+            </div>
+
+            <div class="mb-6">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-700">Availability</span>
+                <span class="text-sm font-semibold" :class="capacityTextClass">
+                  {{ capacityText }}
+                </span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div
+                  class="h-3 rounded-full transition-all duration-300"
+                  :class="capacityBarClass"
+                  :style="{ width: capacityPercentage + '%' }"
+                ></div>
               </div>
             </div>
 
@@ -350,6 +255,9 @@ import { supabase } from '../lib/supabase'
 import { useCartStore } from '../stores/cart'
 import { useToastStore } from '../stores/toast'
 import JoinEventWaitlistModal from '../components/JoinEventWaitlistModal.vue'
+import WorkshopContentAdult from '../components/workshops/WorkshopContentAdult.vue'
+import WorkshopContentDefault from '../components/workshops/WorkshopContentDefault.vue'
+import { getWorkshopAgeLabel, isAdultWorkshopLayout } from '../utils/workshopDisplay'
 
 const route = useRoute()
 const router = useRouter()
@@ -386,7 +294,19 @@ const fetchWorkshop = async () => {
       .from('offering_events')
       .select(`
         *,
-        offering:offerings!inner(*)
+        offering:offerings!inner(*),
+        category:event_categories(
+          id,
+          name,
+          slug,
+          description,
+          age_range,
+          color_hex,
+          icon,
+          parent_id,
+          featured_image_url,
+          layout_key
+        )
       `)
       .eq('offering.slug', route.params.slug)
       .eq('offering.status', 'published')
@@ -452,13 +372,23 @@ const fetchRelatedWorkshops = async () => {
   if (!workshop.value) return
 
   try {
-    const category = workshop.value.offering.metadata?.category
-
-    const { data, error: fetchError } = await supabase
+    let query = supabase
       .from('offering_events')
       .select(`
         *,
-        offering:offerings!inner(*)
+        offering:offerings!inner(*),
+        category:event_categories(
+          id,
+          name,
+          slug,
+          description,
+          age_range,
+          color_hex,
+          icon,
+          parent_id,
+          featured_image_url,
+          layout_key
+        )
       `)
       .eq('offering.status', 'published')
       .eq('offering.type', 'event')
@@ -467,14 +397,15 @@ const fetchRelatedWorkshops = async () => {
       .order('event_date', { ascending: true })
       .limit(4)
 
+    if (workshop.value.category_id) {
+      query = query.eq('category_id', workshop.value.category_id)
+    }
+
+    const { data, error: fetchError } = await query
+
     if (fetchError) throw fetchError
 
-    // Filter by category if available
-    if (category && data) {
-      relatedWorkshops.value = data.filter(w => w.offering.metadata?.category === category).slice(0, 4)
-    } else {
-      relatedWorkshops.value = data || []
-    }
+    relatedWorkshops.value = data || []
   } catch (err) {
     console.error('Error fetching related workshops:', err)
     relatedWorkshops.value = []
@@ -484,8 +415,12 @@ const fetchRelatedWorkshops = async () => {
 // Computed properties
 const ageGroup = computed(() => {
   if (!workshop.value) return null
-  const metadata = workshop.value.offering.metadata || {}
-  return metadata.age_group || null
+  return getWorkshopAgeLabel(workshop.value)
+})
+
+const contentTemplateComponent = computed(() => {
+  if (!workshop.value) return WorkshopContentDefault
+  return isAdultWorkshopLayout(workshop.value) ? WorkshopContentAdult : WorkshopContentDefault
 })
 
 const duration = computed(() => {
@@ -652,7 +587,7 @@ const handleBooking = async () => {
       image: workshop.value.offering.featured_image_url,
       slug: workshop.value.offering.slug,
       eventDate: workshop.value.event_date,
-      eventTime: workshop.value.event_time
+      eventTime: workshop.value.event_start_time
     }, bookingForm.value.numberOfAttendees, null, bookingForm.value.attendees)
 
     // Navigate to cart
