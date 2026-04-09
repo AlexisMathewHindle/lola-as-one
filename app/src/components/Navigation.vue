@@ -5,46 +5,30 @@
         <!-- Logo -->
         <router-link to="/" class="flex items-center">
           <span class="text-2xl font-display font-bold text-primary-600">
-            Lola As One
+            {{ siteName }}
           </span>
         </router-link>
         
         <!-- Desktop Navigation -->
         <div class="hidden md:flex items-center space-x-8">
-          <router-link 
-            to="/workshops" 
-            class="text-gray-700 hover:text-primary-600 transition-colors"
-          >
-            Workshops
-          </router-link>
-          
-          <router-link 
-            to="/boxes" 
-            class="text-gray-700 hover:text-secondary-600 transition-colors"
-          >
-            Boxes
-          </router-link>
-          
-          <router-link 
-            to="/blog" 
-            class="text-gray-700 hover:text-primary-600 transition-colors"
-          >
-            Blog
-          </router-link>
-          
-          <router-link 
-            to="/about" 
-            class="text-gray-700 hover:text-primary-600 transition-colors"
-          >
-            About
-          </router-link>
-          
-          <router-link 
-            to="/contact" 
-            class="text-gray-700 hover:text-primary-600 transition-colors"
-          >
-            Contact
-          </router-link>
+          <template v-for="item in navigationItems" :key="item.id">
+            <router-link
+              v-if="item.itemType === 'page'"
+              :to="item.href"
+              :class="desktopNavClass(item)"
+            >
+              {{ item.label }}
+            </router-link>
+            <a
+              v-else
+              :href="item.href"
+              :target="item.openInNewTab ? '_blank' : undefined"
+              :rel="item.openInNewTab ? 'noreferrer noopener' : undefined"
+              :class="desktopNavClass(item)"
+            >
+              {{ item.label }}
+            </a>
+          </template>
         </div>
         
         <!-- Right Side Actions -->
@@ -107,41 +91,26 @@
       
       <!-- Mobile Menu -->
       <div v-if="mobileMenuOpen" class="md:hidden py-4 space-y-2">
-        <router-link
-          to="/workshops"
-          class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
-          @click="mobileMenuOpen = false"
-        >
-          Workshops
-        </router-link>
-        <router-link
-          to="/boxes"
-          class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
-          @click="mobileMenuOpen = false"
-        >
-          Boxes
-        </router-link>
-        <router-link
-          to="/blog"
-          class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
-          @click="mobileMenuOpen = false"
-        >
-          Blog
-        </router-link>
-        <router-link
-          to="/about"
-          class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
-          @click="mobileMenuOpen = false"
-        >
-          About
-        </router-link>
-        <router-link
-          to="/contact"
-          class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
-          @click="mobileMenuOpen = false"
-        >
-          Contact
-        </router-link>
+        <template v-for="item in navigationItems" :key="`${item.id}-mobile`">
+          <router-link
+            v-if="item.itemType === 'page'"
+            :to="item.href"
+            class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+            @click="mobileMenuOpen = false"
+          >
+            {{ item.label }}
+          </router-link>
+          <a
+            v-else
+            :href="item.href"
+            :target="item.openInNewTab ? '_blank' : undefined"
+            :rel="item.openInNewTab ? 'noreferrer noopener' : undefined"
+            class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+            @click="mobileMenuOpen = false"
+          >
+            {{ item.label }}
+          </a>
+        </template>
         <router-link
           to="/cart"
           class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
@@ -163,12 +132,65 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useCartStore } from '../stores/cart'
+import { getMenuByKey, getPublicSettingsMap } from '../lib/cms'
 
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 const mobileMenuOpen = ref(false)
-</script>
+const siteName = ref('Lola As One')
 
+const fallbackNavigationItems = [
+  { id: 'workshops', label: 'Workshops', itemType: 'page', href: '/workshops', pageKey: 'workshops' },
+  { id: 'adult-workshops', label: 'Adult Workshops', itemType: 'page', href: '/adult-workshops', pageKey: 'adult-workshops' },
+  { id: 'boxes', label: 'Boxes', itemType: 'page', href: '/boxes', pageKey: 'boxes' },
+  { id: 'blog', label: 'Blog', itemType: 'page', href: '/blog', pageKey: 'blog' },
+  { id: 'about', label: 'About', itemType: 'page', href: '/about', pageKey: 'about' },
+  { id: 'contact', label: 'Contact', itemType: 'page', href: '/contact', pageKey: 'contact' }
+]
+
+const navigationItems = ref([...fallbackNavigationItems])
+
+const desktopNavClass = (item) => {
+  if (item.pageKey === 'adult-workshops') {
+    return 'text-gray-700 hover:text-rose-700 transition-colors'
+  }
+
+  if (item.pageKey === 'boxes') {
+    return 'text-gray-700 hover:text-secondary-600 transition-colors'
+  }
+
+  return 'text-gray-700 hover:text-primary-600 transition-colors'
+}
+
+const loadNavigation = async () => {
+  try {
+    const menu = await getMenuByKey('header_primary')
+    if (menu?.items?.length) {
+      navigationItems.value = menu.items
+    }
+  } catch (error) {
+    console.error('Error loading header navigation:', error)
+  }
+}
+
+const loadSiteName = async () => {
+  try {
+    const settings = await getPublicSettingsMap()
+    const configuredSiteName = settings.site_name?.value
+
+    if (configuredSiteName) {
+      siteName.value = configuredSiteName
+    }
+  } catch (error) {
+    console.error('Error loading site settings:', error)
+  }
+}
+
+onMounted(() => {
+  loadNavigation()
+  loadSiteName()
+})
+</script>

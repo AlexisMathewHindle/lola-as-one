@@ -72,9 +72,10 @@
             >
               <option value="standard">Standard Workshop</option>
               <option value="adult_workshop">Adult Workshop</option>
+              <option value="enquiry_only">Enquiry Only (Email Us)</option>
             </select>
             <p class="text-xs text-gray-500 mt-1">
-              Controls which public-facing workshop template this category uses.
+              Controls which public-facing workshop template this category uses, including categories that should email instead of going to checkout.
             </p>
           </div>
 
@@ -360,4 +361,3 @@ const handleImageError = (err) => {
   error.value = `Image upload failed: ${err.message || 'Unknown error'}`
 }
 </script>
-

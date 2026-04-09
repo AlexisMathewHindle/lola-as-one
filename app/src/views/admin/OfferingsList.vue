@@ -312,7 +312,10 @@ const fetchOfferings = async () => {
       .from('offerings')
       .select(`
         *,
-        offering_events (*),
+        offering_events (
+          *,
+          capacity:event_capacity(*)
+        ),
         offering_products (*),
         offering_digital_products (*)
       `)
@@ -494,8 +497,13 @@ const getOfferingDetails = (offering) => {
       ? offering.offering_events[0]
       : offering.offering_events
     if (event) {
+      const capacity = Array.isArray(event.capacity)
+        ? event.capacity[0]
+        : event.capacity
+      const booked = capacity?.spaces_booked ?? event.current_bookings ?? 0
+      const maxCapacity = capacity?.total_capacity ?? event.max_capacity ?? 0
       const formattedDate = formatDate(event.event_date)
-      return `${formattedDate} • ${event.current_bookings}/${event.max_capacity} booked`
+      return `${formattedDate} • ${booked}/${maxCapacity} booked`
     }
   }
 
@@ -572,4 +580,3 @@ onMounted(() => {
   fetchOfferings()
 })
 </script>
-

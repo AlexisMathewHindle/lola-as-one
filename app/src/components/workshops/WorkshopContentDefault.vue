@@ -33,6 +33,13 @@
           {{ workshop.offering.description_short }}
         </p>
 
+        <div
+          v-if="layoutLabel === 'Enquiry Only'"
+          class="mb-6 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-800"
+        >
+          This event is booked by enquiry. Use the email option on the right to check availability and arrange details.
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <div class="flex items-start">
             <font-awesome-icon icon="calendar" class="w-5 h-5 text-primary-600 mr-3 mt-1" />

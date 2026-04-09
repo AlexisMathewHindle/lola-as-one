@@ -13,6 +13,11 @@ const routes = [
     component: () => import('../views/Workshops.vue')
   },
   {
+    path: '/adult-workshops',
+    name: 'AdultWorkshops',
+    component: () => import('../views/AdultWorkshops.vue')
+  },
+  {
     path: '/workshops/:slug',
     name: 'WorkshopDetail',
     component: () => import('../views/WorkshopDetail.vue')
@@ -235,6 +240,16 @@ const routes = [
         component: () => import('../views/admin/ReviewsList.vue')
       },
       {
+        path: 'homepage',
+        name: 'AdminHomepageContent',
+        component: () => import('../views/admin/HomepageContent.vue')
+      },
+      {
+        path: 'navigation',
+        name: 'AdminNavigation',
+        component: () => import('../views/admin/Navigation.vue')
+      },
+      {
         path: 'settings',
         name: 'AdminSettings',
         component: () => import('../views/admin/Settings.vue')
@@ -276,4 +291,3 @@ router.beforeEach(async (to, from, next) => {
 })
 
 export default router
-

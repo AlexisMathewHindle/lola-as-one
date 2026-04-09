@@ -1,5 +1,6 @@
 <script setup>
 import Navigation from './components/Navigation.vue'
+import Footer from './components/Footer.vue'
 import Toast from './components/Toast.vue'
 </script>
 
@@ -7,6 +8,7 @@ import Toast from './components/Toast.vue'
   <div id="app">
     <Navigation />
     <router-view />
+    <Footer />
     <Toast />
   </div>
 </template>

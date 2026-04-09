@@ -17,10 +17,10 @@
         </div>
         <p class="text-red-700">{{ error }}</p>
         <router-link
-          to="/workshops"
+          :to="backRoute"
           class="inline-block mt-4 text-primary-600 hover:text-primary-700"
         >
-          ← Back to Workshops
+          ← {{ backLabel }}
         </router-link>
       </div>
     </div>
@@ -30,11 +30,11 @@
       <!-- Breadcrumb -->
       <nav class="mb-6">
         <router-link
-          to="/workshops"
+          :to="backRoute"
           class="text-sm text-gray-600 hover:text-primary-600 flex items-center"
         >
           <font-awesome-icon icon="chevron-left" class="w-3 h-3 mr-1" />
-          Back to Workshops
+          {{ backLabel }}
         </router-link>
       </nav>
 
@@ -55,15 +55,15 @@
         <div class="lg:col-span-1">
           <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sticky top-8">
             <!-- Price -->
-            <div class="mb-6">
-              <div class="text-sm text-gray-600 mb-1">Price per person</div>
+            <div v-if="hasPrice" class="mb-6">
+              <div class="text-sm text-gray-600 mb-1">{{ priceLabel }}</div>
               <div class="text-4xl font-bold text-gray-900">
-                £{{ workshop.price_gbp }}
-                <span class="text-lg text-gray-500 font-normal">/ person</span>
+                £{{ formattedPrice }}
+                <span v-if="priceSuffix" class="text-lg text-gray-500 font-normal">{{ priceSuffix }}</span>
               </div>
             </div>
 
-            <div class="mb-6">
+            <div v-if="!isEnquiryOnly" class="mb-6">
               <div class="flex items-center justify-between mb-2">
                 <span class="text-sm font-medium text-gray-700">Availability</span>
                 <span class="text-sm font-semibold" :class="capacityTextClass">
@@ -79,8 +79,40 @@
               </div>
             </div>
 
+            <!-- Enquiry Only -->
+            <div v-if="isEnquiryOnly" class="space-y-4">
+              <div class="rounded-xl border border-primary-200 bg-primary-50 p-4">
+                <div class="flex items-center mb-2">
+                  <font-awesome-icon icon="envelope" class="w-5 h-5 text-primary-700 mr-2" />
+                  <span class="font-semibold text-primary-900">Book By Email</span>
+                </div>
+                <p class="text-sm text-primary-800">
+                  This event is arranged by enquiry rather than instant checkout. Email us to check availability and tell us what you have in mind.
+                </p>
+              </div>
+
+              <a
+                :href="enquiryEmailHref"
+                class="w-full px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center"
+              >
+                <font-awesome-icon icon="envelope" class="w-4 h-4 mr-2" />
+                Email {{ enquiryEmail }}
+              </a>
+
+              <router-link
+                to="/contact"
+                class="w-full px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center"
+              >
+                Go To Contact Page
+              </router-link>
+
+              <p class="text-xs text-gray-500 text-center">
+                We’ll confirm availability and next steps by email.
+              </p>
+            </div>
+
             <!-- Sold Out / Waitlist -->
-            <div v-if="isSoldOut">
+            <div v-else-if="isSoldOut">
               <div v-if="workshop.waitlist_enabled" class="space-y-4">
                 <div class="bg-warning-50 border border-warning-200 rounded-lg p-4">
                   <div class="flex items-center mb-2">
@@ -257,7 +289,7 @@ import { useToastStore } from '../stores/toast'
 import JoinEventWaitlistModal from '../components/JoinEventWaitlistModal.vue'
 import WorkshopContentAdult from '../components/workshops/WorkshopContentAdult.vue'
 import WorkshopContentDefault from '../components/workshops/WorkshopContentDefault.vue'
-import { getWorkshopAgeLabel, isAdultWorkshopLayout } from '../utils/workshopDisplay'
+import { getWorkshopAgeLabel, isAdultWorkshopLayout, isEnquiryOnlyWorkshop as usesEnquiryOnlyLayout } from '../utils/workshopDisplay'
 
 const route = useRoute()
 const router = useRouter()
@@ -272,6 +304,7 @@ const loading = ref(true)
 const error = ref(null)
 const submitting = ref(false)
 const showWaitlistModal = ref(false)
+const enquiryEmail = 'hello@lolaasone.com'
 
 // Booking form
 const bookingForm = ref({
@@ -423,6 +456,21 @@ const contentTemplateComponent = computed(() => {
   return isAdultWorkshopLayout(workshop.value) ? WorkshopContentAdult : WorkshopContentDefault
 })
 
+const isEnquiryOnly = computed(() => {
+  if (!workshop.value) return false
+  return usesEnquiryOnlyLayout(workshop.value)
+})
+
+const backRoute = computed(() => {
+  if (!workshop.value) return '/workshops'
+  return isAdultWorkshopLayout(workshop.value) ? '/adult-workshops' : '/workshops'
+})
+
+const backLabel = computed(() => {
+  if (!workshop.value) return 'Back to Workshops'
+  return isAdultWorkshopLayout(workshop.value) ? 'Back to Adult Workshops' : 'Back to Workshops'
+})
+
 const duration = computed(() => {
   if (!workshop.value || !workshop.value.event_start_time || !workshop.value.event_end_time) {
     return ''
@@ -478,6 +526,32 @@ const totalPrice = computed(() => {
   const price = parseFloat(workshop.value.price_gbp)
   const total = price * bookingForm.value.numberOfAttendees
   return total.toFixed(2)
+})
+
+const hasPrice = computed(() => {
+  if (!workshop.value) return false
+  return workshop.value.price_gbp !== null && workshop.value.price_gbp !== undefined && workshop.value.price_gbp !== ''
+})
+
+const formattedPrice = computed(() => {
+  if (!hasPrice.value) return null
+  return Number(workshop.value.price_gbp).toFixed(2)
+})
+
+const priceLabel = computed(() => {
+  return isEnquiryOnly.value ? 'Event price' : 'Price per person'
+})
+
+const priceSuffix = computed(() => {
+  return isEnquiryOnly.value ? '' : '/ person'
+})
+
+const enquiryEmailHref = computed(() => {
+  const subject = workshop.value?.offering?.title
+    ? `Booking enquiry: ${workshop.value.offering.title}`
+    : 'Booking enquiry'
+
+  return `mailto:${enquiryEmail}?subject=${encodeURIComponent(subject)}`
 })
 
 const capacityPercentage = computed(() => {

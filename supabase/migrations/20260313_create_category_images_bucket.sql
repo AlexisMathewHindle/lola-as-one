@@ -6,8 +6,9 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('category-images', 'category-images', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Enable RLS on the bucket
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- RLS is already enabled by default on storage.objects in Supabase.
+-- Recent platform permission changes no longer allow altering tables in the
+-- storage schema from project SQL, so do not run ALTER TABLE here.
 
 -- Drop existing policies if they exist (to make migration idempotent)
 DROP POLICY IF EXISTS "Public read access for category images" ON storage.objects;
@@ -49,4 +50,3 @@ USING (
 );
 
 COMMENT ON TABLE storage.buckets IS 'Storage buckets for file uploads';
-

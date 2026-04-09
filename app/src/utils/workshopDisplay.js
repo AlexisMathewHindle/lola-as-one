@@ -62,7 +62,8 @@ export function getWorkshopLayoutLabel(workshop) {
   const labels = {
     standard: 'Single Event',
     term_series: 'Term Workshop',
-    adult_workshop: 'Adult Workshop'
+    adult_workshop: 'Adult Workshop',
+    enquiry_only: 'Enquiry Only'
   }
 
   return labels[getWorkshopLayoutKey(workshop)] || 'Workshop'
@@ -70,4 +71,8 @@ export function getWorkshopLayoutLabel(workshop) {
 
 export function isAdultWorkshopLayout(workshop) {
   return getWorkshopLayoutKey(workshop) === 'adult_workshop'
+}
+
+export function isEnquiryOnlyWorkshop(workshop) {
+  return getWorkshopLayoutKey(workshop) === 'enquiry_only'
 }

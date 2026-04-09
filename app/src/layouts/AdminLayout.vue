@@ -169,6 +169,27 @@
 
           <div class="border-t border-dark-800 my-2"></div>
 
+          <router-link
+            to="/admin/homepage"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
+            :class="isActive('/admin/homepage') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
+            @click="mobileMenuOpen = false"
+          >
+            <font-awesome-icon icon="images" class="w-5 h-5 mr-3" />
+            Homepage Content
+          </router-link>
+
+          <!-- Navigation -->
+          <router-link
+            to="/admin/navigation"
+            class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200"
+            :class="isActive('/admin/navigation') ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-300 hover:bg-dark-800 hover:text-white'"
+            @click="mobileMenuOpen = false"
+          >
+            <font-awesome-icon icon="list" class="w-5 h-5 mr-3" />
+            Navigation
+          </router-link>
+
           <!-- Settings -->
           <router-link
             to="/admin/settings"
@@ -252,6 +273,8 @@ const pageTitle = computed(() => {
     '/admin/inventory': 'Inventory',
     '/admin/analytics': 'Analytics',
     '/admin/reviews': 'Reviews',
+    '/admin/homepage': 'Homepage Content',
+    '/admin/navigation': 'Navigation',
     '/admin/settings': 'Settings'
   }
 
@@ -275,4 +298,3 @@ const isActive = (path, exact = false) => {
   return route.path.startsWith(path)
 }
 </script>
-

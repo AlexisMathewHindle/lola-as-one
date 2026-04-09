@@ -212,7 +212,8 @@ const formatAgeRange = (ageRange) => {
 const formatLayoutKey = (layoutKey) => {
   const labels = {
     standard: 'Standard workshop template',
-    adult_workshop: 'Adult workshop template'
+    adult_workshop: 'Adult workshop template',
+    enquiry_only: 'Enquiry-only template'
   }
 
   return labels[layoutKey] || 'Standard workshop template'
@@ -254,4 +255,3 @@ const handleSave = async () => {
   closeModal()
 }
 </script>
-

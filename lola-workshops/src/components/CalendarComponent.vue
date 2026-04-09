@@ -643,11 +643,33 @@ export default defineComponent({
       fetchWorkshops();
     };
 
-    // Category pages remain the public entry point from the calendar.
-    // Term-time categories then render a workshop-style details layout.
+    const isPrivatePartyWorkshop = (workshop) => {
+      const normalizedValues = [
+        workshop.category?.slug,
+        workshop.category?.name,
+        workshop.offering?.title,
+      ]
+        .filter(Boolean)
+        .map((value) => value.toLowerCase());
+
+      return normalizedValues.some(
+        (value) =>
+          value.includes("private party") ||
+          value.includes("private-part") ||
+          value.includes("art party")
+      );
+    };
+
+    // Category pages remain the public entry point from the calendar,
+    // except for dedicated landing pages like private parties.
     const goToWorkshop = (workshop) => {
       // Don't navigate if event is in the past
       if (isPastEvent(workshop)) {
+        return;
+      }
+
+      if (isPrivatePartyWorkshop(workshop)) {
+        router.push("/private-parties");
         return;
       }
 
