@@ -1,20 +1,20 @@
 <template>
-  <section :id="section.section_key" class="bg-[#fbf7ef] py-16 sm:py-20">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+  <section :id="section.section_key" class="section-surface-cream section-frame py-16 sm:py-20">
+    <div class="section-shell">
       <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div class="max-w-3xl">
+        <div class="section-header-left max-w-3xl">
           <p
             v-if="config.eyebrow"
-            class="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-primary-600"
+            class="section-kicker"
           >
             {{ config.eyebrow }}
           </p>
-          <h2 class="text-3xl font-display font-bold text-stone-900 sm:text-4xl">
+          <h2 class="section-title">
             {{ config.title || 'Creative Workshops' }}
           </h2>
           <p
             v-if="config.intro"
-            class="mt-4 text-base leading-7 text-stone-600"
+            class="section-intro"
           >
             {{ config.intro }}
           </p>
@@ -24,7 +24,7 @@
           <router-link
             v-if="!isExternalCmsLink(primaryCta)"
             :to="resolveCmsLink(primaryCta)"
-            class="inline-flex items-center justify-center rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-800"
+            class="inline-flex items-center justify-center rounded-full bg-dark-800 px-6 py-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-dark-700"
           >
             {{ primaryCta.label }}
           </router-link>
@@ -33,7 +33,7 @@
             :href="resolveCmsLink(primaryCta)"
             :target="primaryCta.open_in_new_tab ? '_blank' : undefined"
             :rel="primaryCta.open_in_new_tab ? 'noreferrer noopener' : undefined"
-            class="inline-flex items-center justify-center rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-800"
+            class="inline-flex items-center justify-center rounded-full bg-dark-800 px-6 py-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-dark-700"
           >
             {{ primaryCta.label }}
           </a>

@@ -70,7 +70,7 @@
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Order Items</h2>
             <div class="space-y-4">
               <div
-                v-for="item in orderItems"
+                v-for="item in displayOrderItems"
                 :key="item.id"
                 class="flex justify-between items-start pb-4 border-b border-gray-200 last:border-0 last:pb-0"
               >
@@ -102,6 +102,10 @@
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">Shipping</span>
                 <span class="text-gray-900">£{{ order.shipping_gbp.toFixed(2) }}</span>
+              </div>
+              <div v-if="discountAmount > 0" class="flex justify-between text-sm">
+                <span class="text-gray-600">Discount</span>
+                <span class="text-green-700">-£{{ discountAmount.toFixed(2) }}</span>
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">Tax (VAT)</span>
@@ -346,7 +350,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { useToastStore } from '../../stores/toast'
@@ -371,6 +375,18 @@ const fulfillmentForm = ref({
   tracking_number: '',
   tracking_url: '',
   notes: ''
+})
+
+const displayOrderItems = computed(() => {
+  return orderItems.value.filter(item => item.item_type !== 'discount')
+})
+
+const discountAmount = computed(() => {
+  return Math.abs(
+    orderItems.value
+      .filter(item => item.item_type === 'discount')
+      .reduce((sum, item) => sum + item.total_price_gbp, 0)
+  )
 })
 
 // Fetch order details
@@ -536,7 +552,8 @@ const formatItemType = (type) => {
   const types = {
     'event': 'Event/Workshop',
     'product_physical': 'Physical Product',
-    'product_digital': 'Digital Product'
+    'product_digital': 'Digital Product',
+    'discount': 'Discount'
   }
   return types[type] || type
 }

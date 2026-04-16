@@ -1,19 +1,19 @@
 <template>
-  <section class="bg-stone-50 py-20 sm:py-24">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="text-center">
+  <section class="section-surface-muted section-frame py-20 sm:py-24">
+    <div class="section-shell">
+      <div class="section-header">
         <p
           v-if="config.eyebrow"
-          class="text-xs font-semibold uppercase tracking-[0.28em] text-primary-600"
+          class="section-kicker"
         >
           {{ config.eyebrow }}
         </p>
-        <h2 class="mt-4 font-display text-3xl text-gray-900 sm:text-5xl">
+        <h2 class="section-title mt-4 sm:text-[2.8rem]">
           {{ config.title }}
         </h2>
         <p
           v-if="config.intro"
-          class="mx-auto mt-4 max-w-2xl text-sm leading-7 text-gray-600 sm:text-base"
+          class="section-intro mx-auto mt-4 max-w-2xl text-sm sm:text-base"
         >
           {{ config.intro }}
         </p>
@@ -21,9 +21,9 @@
 
       <div
         v-if="currentItem"
-        class="mx-auto mt-12 max-w-4xl text-center"
+        class="section-card mx-auto mt-12 max-w-4xl rounded-[1.2rem] px-6 py-10 text-center sm:px-10"
       >
-        <div class="flex justify-center gap-1 text-primary-500">
+        <div class="flex justify-center gap-1 text-secondary-500">
           <font-awesome-icon
             v-for="star in currentItem.stars"
             :key="star"
@@ -32,15 +32,15 @@
           />
         </div>
 
-        <blockquote class="mx-auto mt-8 max-w-3xl text-2xl italic leading-relaxed text-gray-800 sm:text-[2rem]">
+        <blockquote class="mx-auto mt-8 max-w-3xl text-[1.8rem] italic leading-[1.55] text-gray-800 sm:text-[2.1rem]">
           “{{ currentItem.quote }}”
         </blockquote>
 
         <div class="mt-10">
-          <p class="text-2xl font-semibold text-gray-900">{{ currentItem.name }}</p>
+          <p class="text-[1.4rem] font-medium text-gray-900">{{ currentItem.name }}</p>
           <p
             v-if="currentItem.role"
-            class="mt-2 text-sm uppercase tracking-[0.24em] text-gray-500"
+            class="mt-2 text-[12px] uppercase tracking-[0.18em] text-gray-500"
           >
             {{ currentItem.role }}
           </p>
@@ -52,7 +52,7 @@
         >
           <button
             type="button"
-            class="flex h-12 w-12 items-center justify-center rounded-full border border-stone-300 bg-white text-gray-800 transition-colors hover:border-primary-400 hover:text-primary-600"
+            class="flex h-12 w-12 items-center justify-center rounded-full border border-dark-300 bg-white text-gray-800 transition-colors hover:border-primary-400 hover:text-primary-600"
             aria-label="Previous review"
             @click="goToPrevious"
           >
@@ -65,7 +65,7 @@
               :key="`testimonial-dot-${index}`"
               type="button"
               class="h-2.5 w-2.5 rounded-full transition-colors"
-              :class="index === currentIndex ? 'bg-primary-500' : 'bg-stone-300 hover:bg-stone-400'"
+              :class="index === currentIndex ? 'bg-secondary-500' : 'bg-dark-300 hover:bg-dark-400'"
               :aria-label="`Go to review ${index + 1}`"
               @click="goTo(index)"
             />
@@ -73,7 +73,7 @@
 
           <button
             type="button"
-            class="flex h-12 w-12 items-center justify-center rounded-full border border-stone-300 bg-white text-gray-800 transition-colors hover:border-primary-400 hover:text-primary-600"
+            class="flex h-12 w-12 items-center justify-center rounded-full border border-dark-300 bg-white text-gray-800 transition-colors hover:border-primary-400 hover:text-primary-600"
             aria-label="Next review"
             @click="goToNext(true)"
           >

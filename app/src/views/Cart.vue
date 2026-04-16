@@ -126,6 +126,18 @@
                   </div>
                 </div>
 
+                <div
+                  v-if="item.type === 'event'"
+                  class="mb-3 rounded-lg bg-primary-50 px-3 py-2 text-xs text-primary-800"
+                >
+                  <span v-if="hasCompleteAttendeeDetails(item)">
+                    Attendee details added for this booking.
+                  </span>
+                  <span v-else>
+                    Attendee names will be collected at checkout for this event.
+                  </span>
+                </div>
+
                 <!-- Price and Quantity -->
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-4">
@@ -288,6 +300,20 @@ const getItemTypeLabel = (item) => {
 // Calculate line total for an item
 const lineTotal = (item) => {
   return item.price * item.quantity
+}
+
+const hasCompleteAttendeeDetails = (item) => {
+  if (item.type !== 'event') {
+    return false
+  }
+
+  if (!Array.isArray(item.attendees) || item.attendees.length !== item.quantity) {
+    return false
+  }
+
+  return item.attendees.every(attendee =>
+    attendee?.firstName?.trim() && attendee?.lastName?.trim()
+  )
 }
 
 // Quantity management functions

@@ -12,11 +12,13 @@ export const useCartStore = defineStore('cart', () => {
 
   function addItem(product, quantity = 1, variantId = null, attendees = null) {
     // Handle both old and new product structures
-    const productId = product.id || product.productId
+    const productType = product.type || product.productType
+    const eventId = product.event_id || null
+    const offeringId = product.offering_id || product.id || product.productId || null
+    const productId = productType === 'event' && eventId ? eventId : (product.id || product.productId)
     const productName = product.title || product.name
     const productPrice = product.price || product.price_gbp
     const productImage = product.image || product.image_url || product.featured_image_url
-    const productType = product.type || product.productType
 
     const existingItem = items.value.find(item =>
       (item.id || item.productId) === productId && item.variantId === variantId
@@ -25,7 +27,7 @@ export const useCartStore = defineStore('cart', () => {
     if (existingItem) {
       existingItem.quantity += quantity
       // If attendees are provided, update them
-      if (attendees && product.type === 'event') {
+      if (attendees && productType === 'event') {
         existingItem.attendees = attendees
       }
       // Show toast for updated quantity
@@ -42,6 +44,8 @@ export const useCartStore = defineStore('cart', () => {
         image: productImage,
         type: productType,
         slug: product.slug,
+        offering_id: offeringId,
+        event_id: eventId,
         eventDate: product.eventDate,
         eventTime: product.eventTime,
         // Optional: subscription configuration for subscription items
@@ -78,6 +82,19 @@ export const useCartStore = defineStore('cart', () => {
     }
   }
 
+  function updateItemAttendees(productId, attendees, variantId = null) {
+    const item = items.value.find(item =>
+      item.productId === productId && item.variantId === variantId
+    )
+
+    if (!item) {
+      return
+    }
+
+    item.attendees = attendees
+    saveToLocalStorage()
+  }
+
   function clearCart() {
     items.value = []
     sessionId.value = null
@@ -111,7 +128,7 @@ export const useCartStore = defineStore('cart', () => {
     addItem,
     removeItem,
     updateQuantity,
+    updateItemAttendees,
     clearCart
   }
 })
-

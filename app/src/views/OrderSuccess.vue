@@ -77,7 +77,7 @@
           <!-- Order Items -->
           <div class="space-y-4 mb-6">
             <div
-              v-for="item in orderItems"
+              v-for="item in displayOrderItems"
               :key="item.id"
               class="flex gap-4 pb-4 border-b border-gray-200 last:border-0 last:pb-0"
             >
@@ -137,6 +137,11 @@
               <span class="font-semibold text-gray-900">
                 {{ shipping === 0 ? 'FREE' : `£${shipping.toFixed(2)}` }}
               </span>
+            </div>
+
+            <div v-if="discountAmount > 0" class="flex justify-between text-sm">
+              <span class="text-gray-600">Discount</span>
+              <span class="font-semibold text-green-700">-£{{ discountAmount.toFixed(2) }}</span>
             </div>
 
             <div class="flex justify-between text-xs text-gray-500">
@@ -260,16 +265,28 @@ const shippingPostcode = ref('')
 const shippingCountry = ref('')
 
 // Computed properties
+const displayOrderItems = computed(() => {
+  return orderItems.value.filter(item => item.item_type !== 'discount')
+})
+
+const discountAmount = computed(() => {
+  return Math.abs(
+    orderItems.value
+      .filter(item => item.item_type === 'discount')
+      .reduce((sum, item) => sum + item.total_price_gbp, 0)
+  )
+})
+
 const hasPhysicalItems = computed(() => {
-  return orderItems.value.some(item => item.item_type === 'product_physical')
+  return displayOrderItems.value.some(item => item.item_type === 'product_physical')
 })
 
 const hasDigitalProducts = computed(() => {
-  return orderItems.value.some(item => item.item_type === 'product_digital')
+  return displayOrderItems.value.some(item => item.item_type === 'product_digital')
 })
 
 const hasEvents = computed(() => {
-  return orderItems.value.some(item => item.item_type === 'event')
+  return displayOrderItems.value.some(item => item.item_type === 'event')
 })
 
 const estimatedDelivery = computed(() => {
@@ -407,5 +424,4 @@ onMounted(() => {
   fetchOrderDetails()
 })
 </script>
-
 

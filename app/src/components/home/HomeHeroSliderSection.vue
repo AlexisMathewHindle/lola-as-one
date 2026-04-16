@@ -1,13 +1,13 @@
 <template>
-  <section class="relative overflow-hidden bg-stone-900 text-white">
-    <div v-if="utilityCtas.length" class="relative bg-[#cda448] px-4 py-2.5 text-center text-sm text-white">
+  <section class="relative overflow-hidden bg-dark-800 text-white">
+    <div v-if="utilityCtas.length" class="relative bg-secondary-500 px-4 py-2.5 text-center text-sm text-white">
       <div class="mx-auto flex max-w-7xl items-center justify-center gap-4 sm:gap-6">
         <template v-for="(cta, index) in utilityCtas" :key="`${activeSlide.id || activeIndex}-${index}`">
           <router-link
             v-if="!isExternalCmsLink(cta)"
             :to="resolveCmsLink(cta)"
             class="transition-colors hover:text-white/85"
-            :class="index === utilityCtas.length - 1 ? 'rounded-md bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-stone-900 hover:bg-stone-100 hover:text-stone-900' : 'text-sm font-medium text-white'"
+            :class="index === utilityCtas.length - 1 ? 'rounded-md bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-dark-900 hover:bg-dark-100 hover:text-dark-900' : 'text-sm font-medium text-white'"
           >
             {{ cta.label }}
           </router-link>
@@ -17,7 +17,7 @@
             :target="cta.open_in_new_tab ? '_blank' : undefined"
             :rel="cta.open_in_new_tab ? 'noreferrer noopener' : undefined"
             class="transition-colors hover:text-white/85"
-            :class="index === utilityCtas.length - 1 ? 'rounded-md bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-stone-900 hover:bg-stone-100 hover:text-stone-900' : 'text-sm font-medium text-white'"
+            :class="index === utilityCtas.length - 1 ? 'rounded-md bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-dark-900 hover:bg-dark-100 hover:text-dark-900' : 'text-sm font-medium text-white'"
           >
             {{ cta.label }}
           </a>
@@ -30,7 +30,7 @@
         class="absolute inset-0 transition-all duration-700"
         :style="activeBackgroundStyle"
       ></div>
-      <div class="absolute inset-0 bg-[linear-gradient(180deg,rgba(36,22,12,0.16),rgba(36,22,12,0.38))]"></div>
+      <div class="absolute inset-0 bg-[linear-gradient(180deg,rgba(51,47,44,0.1),rgba(51,47,44,0.34))]"></div>
 
       <button
         type="button"
@@ -52,12 +52,12 @@
         <div class="max-w-4xl">
           <p
             v-if="activeSlide.eyebrow"
-            class="mb-5 text-[11px] font-semibold uppercase tracking-[0.32em] text-white/90"
+            class="mb-5 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/90"
           >
             {{ activeSlide.eyebrow }}
           </p>
 
-          <h1 class="font-display text-4xl font-light leading-none text-white sm:text-6xl lg:text-[4.5rem]">
+          <h1 class="font-display text-[3rem] leading-[0.96] text-white sm:text-[4.25rem] lg:text-[4.9rem]">
             {{ activeSlide.headline }}
           </h1>
 
@@ -99,10 +99,10 @@ const activeIndex = ref(0)
 let intervalId = null
 
 const gradientThemes = [
-  'linear-gradient(135deg, rgba(121,63,34,0.95), rgba(220,138,77,0.8))',
-  'linear-gradient(135deg, rgba(90,111,82,0.95), rgba(192,151,85,0.78))',
-  'linear-gradient(135deg, rgba(91,46,87,0.95), rgba(238,138,105,0.75))',
-  'linear-gradient(135deg, rgba(25,94,114,0.95), rgba(234,164,92,0.75))'
+  'linear-gradient(135deg, rgba(91,51,46,0.92), rgba(178,103,88,0.76))',
+  'linear-gradient(135deg, rgba(63,79,67,0.9), rgba(216,176,97,0.72))',
+  'linear-gradient(135deg, rgba(76,68,62,0.92), rgba(197,139,118,0.72))',
+  'linear-gradient(135deg, rgba(104,83,52,0.92), rgba(178,103,88,0.68))'
 ]
 
 const slides = computed(() => {

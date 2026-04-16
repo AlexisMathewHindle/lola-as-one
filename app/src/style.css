@@ -2,67 +2,228 @@
 
 /* Custom Design System Colors */
 @theme {
-  /* Primary - Orange */
-  --color-primary-50: #fff7ed;
-  --color-primary-100: #ffedd5;
-  --color-primary-200: #fed7aa;
-  --color-primary-300: #fdba74;
-  --color-primary-400: #fb923c;
-  --color-primary-500: #f97316;
-  --color-primary-600: #ea580c;
-  --color-primary-700: #c2410c;
-  --color-primary-800: #9a3412;
-  --color-primary-900: #7c2d12;
+  /* Primary - Warm Clay */
+  --color-primary-50: #fbf4f1;
+  --color-primary-100: #f4e4dd;
+  --color-primary-200: #e8cdc1;
+  --color-primary-300: #d7ad9b;
+  --color-primary-400: #c58b76;
+  --color-primary-500: #b26758;
+  --color-primary-600: #9e584a;
+  --color-primary-700: #84483e;
+  --color-primary-800: #6d3c35;
+  --color-primary-900: #5b332e;
 
-  /* Success - Green */
-  --color-success-50: #f0fdf4;
-  --color-success-100: #dcfce7;
-  --color-success-200: #bbf7d0;
-  --color-success-300: #86efac;
-  --color-success-400: #4ade80;
-  --color-success-500: #22c55e;
-  --color-success-600: #16a34a;
-  --color-success-700: #15803d;
-  --color-success-800: #166534;
-  --color-success-900: #14532d;
+  /* Secondary - Soft Ochre */
+  --color-secondary-50: #fcf8ee;
+  --color-secondary-100: #f7eed7;
+  --color-secondary-200: #efddaf;
+  --color-secondary-300: #e5ca82;
+  --color-secondary-400: #dcbb63;
+  --color-secondary-500: #d8b061;
+  --color-secondary-600: #be9852;
+  --color-secondary-700: #9c7c43;
+  --color-secondary-800: #7d643a;
+  --color-secondary-900: #685334;
 
-  /* Warning - Yellow */
-  --color-warning-50: #fefce8;
-  --color-warning-100: #fef9c3;
-  --color-warning-200: #fef08a;
-  --color-warning-300: #fde047;
-  --color-warning-400: #facc15;
-  --color-warning-500: #eab308;
-  --color-warning-600: #ca8a04;
-  --color-warning-700: #a16207;
-  --color-warning-800: #854d0e;
-  --color-warning-900: #713f12;
+  /* Success - Muted Moss */
+  --color-success-50: #f4f7f4;
+  --color-success-100: #e4ebe4;
+  --color-success-200: #cad8cb;
+  --color-success-300: #aabfad;
+  --color-success-400: #89a38e;
+  --color-success-500: #6f8c75;
+  --color-success-600: #5c7662;
+  --color-success-700: #4b6050;
+  --color-success-800: #3f4f43;
+  --color-success-900: #364239;
 
-  /* Danger - Red */
-  --color-danger-50: #fef2f2;
-  --color-danger-100: #fee2e2;
-  --color-danger-200: #fecaca;
-  --color-danger-300: #fca5a5;
-  --color-danger-400: #f87171;
-  --color-danger-500: #ef4444;
-  --color-danger-600: #dc2626;
-  --color-danger-700: #b91c1c;
-  --color-danger-800: #991b1b;
-  --color-danger-900: #7f1d1d;
+  /* Warning - Honey */
+  --color-warning-50: #fcf7ea;
+  --color-warning-100: #f7ecd0;
+  --color-warning-200: #efd8a0;
+  --color-warning-300: #e4bf69;
+  --color-warning-400: #d7a642;
+  --color-warning-500: #c79334;
+  --color-warning-600: #ab7a2c;
+  --color-warning-700: #896125;
+  --color-warning-800: #6f4f21;
+  --color-warning-900: #5c431f;
 
-  /* Dark - Navy/Slate */
-  --color-dark-50: #f8fafc;
-  --color-dark-100: #f1f5f9;
-  --color-dark-200: #e2e8f0;
-  --color-dark-300: #cbd5e1;
-  --color-dark-400: #94a3b8;
-  --color-dark-500: #64748b;
-  --color-dark-600: #475569;
-  --color-dark-700: #334155;
-  --color-dark-800: #1e293b;
-  --color-dark-900: #0f172a;
+  /* Danger - Soft Brick */
+  --color-danger-50: #fcf2f1;
+  --color-danger-100: #f8e1df;
+  --color-danger-200: #f0c4bf;
+  --color-danger-300: #e39d94;
+  --color-danger-400: #d47165;
+  --color-danger-500: #c4564a;
+  --color-danger-600: #ad473d;
+  --color-danger-700: #8f3d36;
+  --color-danger-800: #763631;
+  --color-danger-900: #62312d;
+
+  /* Dark - Studio Neutrals */
+  --color-dark-50: #f9f8f6;
+  --color-dark-100: #f2efea;
+  --color-dark-200: #e4ddd4;
+  --color-dark-300: #cfc4b7;
+  --color-dark-400: #a99b8d;
+  --color-dark-500: #7a6d61;
+  --color-dark-600: #5d544c;
+  --color-dark-700: #4b443e;
+  --color-dark-800: #403a35;
+  --color-dark-900: #332f2c;
 
   /* Font Families */
-  --font-sans: 'Roboto', system-ui, -apple-system, sans-serif;
-  --font-display: 'Playfair Display', serif;
+  --font-sans: 'Source Sans Pro', system-ui, -apple-system, sans-serif;
+  --font-display: 'Source Sans Pro', system-ui, -apple-system, sans-serif;
+}
+
+html {
+  font-size: 16px;
+  font-family: var(--font-sans);
+  color: #404040;
+  font-weight: 300;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100%;
+  font-family: var(--font-sans);
+  color: #404040;
+  font-weight: 300;
+  letter-spacing: 0.003em;
+  background-color: #fcfaf5;
+}
+
+p,
+li,
+input,
+textarea,
+select,
+button {
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #404040;
+  text-wrap: balance;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 300;
+  letter-spacing: -0.012em;
+}
+
+:is(h1, h2, h3, h4, h5, h6).font-semibold,
+:is(h1, h2, h3, h4, h5, h6).font-bold {
+  font-weight: 400;
+  letter-spacing: -0.012em;
+}
+
+:is(h1, h2, h3, h4, h5, h6).font-display.font-semibold,
+:is(h1, h2, h3, h4, h5, h6).font-display.font-bold {
+  font-weight: 300;
+}
+
+.prose {
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.prose :where(h1, h2, h3, h4) {
+  font-family: var(--font-display);
+  font-weight: 300;
+  letter-spacing: -0.012em;
+  color: #404040;
+}
+
+:where(.section-shell) {
+  margin-inline: auto;
+  max-width: 80rem;
+  padding-inline: 1rem;
+}
+
+:where(.section-surface) {
+  background: #ffffff;
+}
+
+:where(.section-surface-muted) {
+  background: #f9f8f6;
+}
+
+:where(.section-surface-cream) {
+  background: #fcfaf5;
+}
+
+:where(.section-frame) {
+  border-top: 1px solid #e4ddd4;
+  border-bottom: 1px solid #e4ddd4;
+}
+
+:where(.section-header) {
+  margin-inline: auto;
+  max-width: 44rem;
+  text-align: center;
+}
+
+:where(.section-header-left) {
+  margin-inline: 0;
+  max-width: 44rem;
+  text-align: left;
+}
+
+:where(.section-kicker) {
+  margin-bottom: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #b26758;
+}
+
+:where(.section-title) {
+  font-family: var(--font-display);
+  font-size: clamp(1.95rem, 3.5vw, 2.5rem);
+  line-height: 1.06;
+  letter-spacing: -0.015em;
+  color: #332f2c;
+}
+
+:where(.section-intro) {
+  margin-top: 1rem;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: #5d544c;
+}
+
+:where(.section-card) {
+  border: 1px solid #e4ddd4;
+  background: #ffffff;
+}
+
+:where(.section-card-soft) {
+  border: 1px solid #e4ddd4;
+  background: #f9f8f6;
+}
+
+@media (min-width: 640px) {
+  :where(.section-shell) {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  :where(.section-shell) {
+    padding-inline: 2rem;
+  }
 }

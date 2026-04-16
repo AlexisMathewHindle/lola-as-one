@@ -73,6 +73,14 @@ export function isAdultWorkshopLayout(workshop) {
   return getWorkshopLayoutKey(workshop) === 'adult_workshop'
 }
 
+export function isTermWorkshopLayout(workshop) {
+  return getWorkshopLayoutKey(workshop) === 'term_series'
+}
+
+export function isSingleSeriesWorkshopLayout(workshop) {
+  return getWorkshopLayoutKey(workshop) === 'standard'
+}
+
 export function isEnquiryOnlyWorkshop(workshop) {
   return getWorkshopLayoutKey(workshop) === 'enquiry_only'
 }

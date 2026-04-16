@@ -1,19 +1,19 @@
 <template>
   <section :class="sectionClasses">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-12">
+    <div class="section-shell">
+      <div class="section-header mb-12">
         <p
           v-if="config.eyebrow"
-          class="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-primary-600"
+          class="section-kicker"
         >
           {{ config.eyebrow }}
         </p>
-        <h2 class="text-3xl sm:text-4xl font-display font-bold text-gray-900 mb-4">
+        <h2 class="section-title mb-4">
           {{ config.title }}
         </h2>
         <p
           v-if="config.intro"
-          class="mx-auto max-w-2xl text-lg text-gray-600"
+          class="section-intro mx-auto max-w-2xl"
         >
           {{ config.intro }}
         </p>
@@ -27,7 +27,7 @@
         <article
           v-for="item in items"
           :key="item.id"
-          class="group overflow-hidden rounded-[1.5rem] border border-stone-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"
+          class="group section-card overflow-hidden rounded-[1.1rem] transition-colors hover:border-primary-300"
         >
           <router-link :to="item.href" class="block">
             <div class="relative h-56 overflow-hidden bg-stone-100">
@@ -49,21 +49,21 @@
 
               <div
                 v-if="item.badge"
-                class="absolute right-4 top-4 rounded-full bg-stone-900/80 px-3 py-1 text-xs font-semibold text-white backdrop-blur"
+                class="absolute right-4 top-4 rounded-full bg-dark-800/80 px-3 py-1 text-xs font-semibold text-white backdrop-blur"
               >
                 {{ item.badge }}
               </div>
             </div>
 
             <div class="p-6">
-              <h3 class="text-xl font-semibold text-gray-900">{{ item.title }}</h3>
+              <h3 class="text-[1.2rem] font-medium text-gray-900">{{ item.title }}</h3>
               <p class="mt-3 text-sm leading-6 text-gray-600 line-clamp-3">
                 {{ item.description_short || item.fallbackDescription }}
               </p>
 
               <div class="mt-6 flex items-center justify-between gap-4">
                 <div>
-                  <p class="text-lg font-semibold text-primary-700">{{ item.priceLabel }}</p>
+                  <p class="text-lg font-medium text-primary-700">{{ item.priceLabel }}</p>
                   <p class="mt-1 text-sm text-gray-500">{{ item.metaLabel }}</p>
                 </div>
                 <font-awesome-icon icon="arrow-right" class="text-primary-500 transition-transform group-hover:translate-x-1" />
@@ -73,7 +73,7 @@
         </article>
       </div>
 
-      <div v-else class="rounded-[1.5rem] border border-dashed border-stone-300 bg-stone-50 px-6 py-12 text-center">
+      <div v-else class="rounded-[1.1rem] border border-dashed border-dark-300 bg-dark-50 px-6 py-12 text-center">
         <p class="text-sm text-gray-500">{{ emptyMessage }}</p>
       </div>
 
@@ -81,7 +81,7 @@
         <router-link
           v-if="!isExternalCmsLink(config.cta)"
           :to="resolveCmsLink(config.cta)"
-          class="inline-flex items-center rounded-full bg-primary-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+          class="inline-flex items-center rounded-full bg-primary-600 px-6 py-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-primary-700"
         >
           {{ config.cta.label }}
           <font-awesome-icon icon="arrow-right" class="ml-2" />
@@ -91,7 +91,7 @@
           :href="resolveCmsLink(config.cta)"
           :target="config.cta.open_in_new_tab ? '_blank' : undefined"
           :rel="config.cta.open_in_new_tab ? 'noreferrer noopener' : undefined"
-          class="inline-flex items-center rounded-full bg-primary-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+          class="inline-flex items-center rounded-full bg-primary-600 px-6 py-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-primary-700"
         >
           {{ config.cta.label }}
           <font-awesome-icon icon="arrow-right" class="ml-2" />
@@ -118,8 +118,8 @@ const items = ref([])
 const config = computed(() => props.section.config_json || {})
 
 const sectionClasses = computed(() => config.value.background_style === 'muted'
-  ? 'bg-stone-50 py-16 sm:py-20'
-  : 'bg-white py-16 sm:py-20'
+  ? 'section-surface-muted section-frame py-16 sm:py-20'
+  : 'section-surface py-16 sm:py-20'
 )
 
 const emptyMessage = computed(() => {

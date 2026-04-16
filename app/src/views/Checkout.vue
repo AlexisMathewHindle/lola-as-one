@@ -110,6 +110,112 @@
             </div>
           </div>
 
+          <!-- Event Attendees -->
+          <div v-if="eventBookings.length > 0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
+              <div>
+                <h2 class="text-xl font-display font-bold text-gray-900">
+                  Workshop Attendees
+                </h2>
+                <p class="text-sm text-gray-600 mt-1">
+                  Add the attendee names for each workshop booking so we know who is coming to which event.
+                </p>
+              </div>
+              <div class="inline-flex items-center rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700">
+                {{ eventBookings.length }} {{ eventBookings.length === 1 ? 'event booking' : 'event bookings' }}
+              </div>
+            </div>
+
+            <div class="space-y-6">
+              <div
+                v-for="booking in eventBookings"
+                :key="booking.itemKey"
+                class="rounded-xl border border-gray-200 bg-gray-50 p-4 sm:p-5"
+              >
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                  <div>
+                    <h3 class="text-lg font-semibold text-gray-900">
+                      {{ booking.title }}
+                    </h3>
+                    <div class="mt-1 flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                      <span v-if="booking.eventDate" class="flex items-center">
+                        <font-awesome-icon icon="calendar" class="w-4 h-4 mr-1" />
+                        {{ formatDate(booking.eventDate) }}
+                      </span>
+                      <span v-if="booking.eventTime" class="flex items-center">
+                        <font-awesome-icon icon="clock" class="w-4 h-4 mr-1" />
+                        {{ booking.eventTime }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="text-sm font-medium text-gray-700">
+                    {{ booking.quantity }} {{ booking.quantity === 1 ? 'attendee' : 'attendees' }}
+                  </div>
+                </div>
+
+                <div class="space-y-4">
+                  <div
+                    v-for="(attendee, attendeeIndex) in booking.attendees"
+                    :key="`${booking.itemKey}-${attendeeIndex}`"
+                    class="rounded-lg border border-white bg-white p-4 shadow-sm"
+                  >
+                    <div class="text-sm font-semibold text-gray-900 mb-3">
+                      Attendee {{ attendeeIndex + 1 }}
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          :for="`attendee-${booking.itemKey}-${attendeeIndex}-firstName`"
+                          class="block text-sm font-medium text-gray-700 mb-2"
+                        >
+                          First Name <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                          :id="`attendee-${booking.itemKey}-${attendeeIndex}-firstName`"
+                          v-model="attendee.firstName"
+                          type="text"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          :class="{ 'border-red-500': errors[`attendee-${booking.itemKey}-${attendeeIndex}-firstName`] }"
+                          @input="persistEventAttendees(booking)"
+                        />
+                        <p
+                          v-if="errors[`attendee-${booking.itemKey}-${attendeeIndex}-firstName`]"
+                          class="text-red-500 text-sm mt-1"
+                        >
+                          {{ errors[`attendee-${booking.itemKey}-${attendeeIndex}-firstName`] }}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label
+                          :for="`attendee-${booking.itemKey}-${attendeeIndex}-lastName`"
+                          class="block text-sm font-medium text-gray-700 mb-2"
+                        >
+                          Last Name <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                          :id="`attendee-${booking.itemKey}-${attendeeIndex}-lastName`"
+                          v-model="attendee.lastName"
+                          type="text"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          :class="{ 'border-red-500': errors[`attendee-${booking.itemKey}-${attendeeIndex}-lastName`] }"
+                          @input="persistEventAttendees(booking)"
+                        />
+                        <p
+                          v-if="errors[`attendee-${booking.itemKey}-${attendeeIndex}-lastName`]"
+                          class="text-red-500 text-sm mt-1"
+                        >
+                          {{ errors[`attendee-${booking.itemKey}-${attendeeIndex}-lastName`] }}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Shipping Address (only if physical items) -->
           <div v-if="hasPhysicalItems" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 class="text-xl font-display font-bold text-gray-900 mb-6">
@@ -217,7 +323,7 @@
             <div class="space-y-4 mb-6">
               <div
                 v-for="item in cartStore.items"
-                :key="item.id"
+                :key="getItemKey(item)"
                 class="flex gap-4"
               >
                 <!-- Item Image -->
@@ -247,6 +353,9 @@
                   <p v-if="item.eventDate" class="text-xs text-gray-500">
                     {{ formatDate(item.eventDate) }}
                   </p>
+                  <p v-if="item.type === 'event'" class="text-xs text-primary-700 mt-1">
+                    Attendee names are collected below for this event.
+                  </p>
                 </div>
 
                 <!-- Item Price -->
@@ -254,6 +363,28 @@
                   £{{ (item.price * item.quantity).toFixed(2) }}
                 </div>
               </div>
+            </div>
+
+            <!-- Discount Code -->
+            <div class="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <label for="discountCode" class="block text-sm font-medium text-gray-700 mb-2">
+                Discount Code
+              </label>
+              <input
+                id="discountCode"
+                v-model="form.discountCode"
+                type="text"
+                autocapitalize="characters"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                :class="{ 'border-red-500': errors.discountCode }"
+                placeholder="Enter your code"
+              />
+              <p v-if="errors.discountCode" class="text-red-500 text-sm mt-1">
+                {{ errors.discountCode }}
+              </p>
+              <p class="text-xs text-gray-500 mt-2">
+                We’ll validate and apply any valid code before you reach the payment step.
+              </p>
             </div>
 
             <!-- Totals -->
@@ -305,14 +436,11 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, watch } from 'vue'
 import { useCartStore } from '../stores/cart'
 import { useToastStore } from '../stores/toast'
-import { loadStripe } from '@stripe/stripe-js'
 import { supabase } from '../lib/supabase'
 
-const router = useRouter()
 const cartStore = useCartStore()
 const toastStore = useToastStore()
 
@@ -322,6 +450,7 @@ const form = ref({
   lastName: '',
   email: '',
   phone: '',
+  discountCode: '',
   addressLine1: '',
   addressLine2: '',
   city: '',
@@ -334,6 +463,71 @@ const errors = ref({})
 
 // Processing state
 const processing = ref(false)
+const attendeeDrafts = ref({})
+
+const getItemKey = (item) => {
+  const id = item.id || item.productId
+  return `${id}-${item.variantId || 'default'}`
+}
+
+const createEmptyAttendee = (attendee = {}) => ({
+  firstName: attendee.firstName || '',
+  lastName: attendee.lastName || '',
+  email: attendee.email || '',
+  phone: attendee.phone || '',
+  notes: attendee.notes || ''
+})
+
+const normalizeAttendeeList = (attendees = [], quantity = 0) => {
+  const normalized = Array.isArray(attendees)
+    ? attendees.slice(0, quantity).map(createEmptyAttendee)
+    : []
+
+  while (normalized.length < quantity) {
+    normalized.push(createEmptyAttendee())
+  }
+
+  return normalized
+}
+
+const syncAttendeeDrafts = () => {
+  const nextDrafts = {}
+
+  cartStore.items
+    .filter(item => item.type === 'event')
+    .forEach((item) => {
+      const itemKey = getItemKey(item)
+      const sourceAttendees = attendeeDrafts.value[itemKey] || item.attendees || []
+      nextDrafts[itemKey] = normalizeAttendeeList(sourceAttendees, item.quantity)
+    })
+
+  attendeeDrafts.value = nextDrafts
+}
+
+watch(
+  () => cartStore.items.map(item => ({
+    key: getItemKey(item),
+    type: item.type,
+    quantity: item.quantity,
+    attendees: item.attendees || []
+  })),
+  syncAttendeeDrafts,
+  { deep: true, immediate: true }
+)
+
+const eventBookings = computed(() => {
+  return cartStore.items
+    .filter(item => item.type === 'event')
+    .map((item) => {
+      const itemKey = getItemKey(item)
+
+      return {
+        ...item,
+        itemKey,
+        attendees: attendeeDrafts.value[itemKey] || normalizeAttendeeList(item.attendees, item.quantity)
+      }
+    })
+})
 
 // Check if cart has physical items
 const hasPhysicalItems = computed(() => {
@@ -388,6 +582,22 @@ const validateForm = () => {
     errors.value.email = 'Please enter a valid email'
   }
 
+  // Validate attendee names for event bookings
+  eventBookings.value.forEach((booking) => {
+    booking.attendees.forEach((attendee, attendeeIndex) => {
+      const firstNameKey = `attendee-${booking.itemKey}-${attendeeIndex}-firstName`
+      const lastNameKey = `attendee-${booking.itemKey}-${attendeeIndex}-lastName`
+
+      if (!attendee.firstName.trim()) {
+        errors.value[firstNameKey] = 'First name is required'
+      }
+
+      if (!attendee.lastName.trim()) {
+        errors.value[lastNameKey] = 'Last name is required'
+      }
+    })
+  })
+
   // Validate shipping address if physical items
   if (hasPhysicalItems.value) {
     if (!form.value.addressLine1.trim()) {
@@ -402,6 +612,40 @@ const validateForm = () => {
   }
 
   return Object.keys(errors.value).length === 0
+}
+
+const persistEventAttendees = (booking) => {
+  cartStore.updateItemAttendees(
+    booking.productId || booking.id,
+    booking.attendees.map(attendee => ({ ...attendee })),
+    booking.variantId
+  )
+}
+
+const buildCheckoutItems = () => {
+  return cartStore.items.map((item) => {
+    if (item.type !== 'event') {
+      return item
+    }
+
+    const itemKey = getItemKey(item)
+    const attendees = normalizeAttendeeList(attendeeDrafts.value[itemKey] || item.attendees, item.quantity)
+      .map(attendee => ({
+        ...attendee,
+        firstName: attendee.firstName.trim(),
+        lastName: attendee.lastName.trim(),
+        email: attendee.email?.trim() || '',
+        phone: attendee.phone?.trim() || '',
+        notes: attendee.notes?.trim() || ''
+      }))
+
+    cartStore.updateItemAttendees(item.productId || item.id, attendees, item.variantId)
+
+    return {
+      ...item,
+      attendees
+    }
+  })
 }
 
 // Handle checkout
@@ -419,11 +663,14 @@ const handleCheckout = async () => {
 
   try {
     processing.value = true
+    const items = buildCheckoutItems()
+    const discountCode = form.value.discountCode.trim().toUpperCase()
 
     // Call Supabase Edge Function to create checkout session
     const { data, error } = await supabase.functions.invoke('create-checkout-session', {
       body: {
-        items: cartStore.items,
+        items,
+        discountCode: discountCode || null,
         customer: {
           email: form.value.email,
           firstName: form.value.firstName,
@@ -479,6 +726,13 @@ const handleCheckout = async () => {
       const match = errorMessage.match(/Insufficient stock for (.+)/)
       const productName = match ? match[1] : 'one or more items'
       toastStore.error(`${productName} is out of stock. Please remove it from your cart and try again.`)
+    } else if (errorMessage.toLowerCase().includes('discount code')) {
+      errors.value.discountCode = errorMessage
+      const element = document.getElementById('discountCode')
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        element.focus()
+      }
     } else if (errorMessage.includes('Insufficient capacity')) {
       toastStore.error(errorMessage + ' Please reduce the number of attendees.')
     } else {
@@ -489,4 +743,3 @@ const handleCheckout = async () => {
   }
 }
 </script>
-

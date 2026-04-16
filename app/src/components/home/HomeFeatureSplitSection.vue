@@ -1,13 +1,13 @@
 <template>
-  <section v-if="layout === 'columns'" class="bg-white py-10 sm:py-12">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+  <section v-if="layout === 'columns'" class="section-surface-cream section-frame py-12 sm:py-14">
+    <div class="section-shell">
       <div class="grid gap-8 lg:grid-cols-3 lg:gap-10">
         <article
           v-for="(item, index) in items"
           :key="item.id || index"
-          class="flex items-start gap-4"
+          class="section-card-soft flex items-start gap-4 rounded-[1rem] px-5 py-6"
         >
-          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#fbf5ea] text-[#d1a13b]">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary-50 text-secondary-500">
             <font-awesome-icon
               :icon="item.icon || 'book-open'"
               class="h-5 w-5"
@@ -15,10 +15,10 @@
           </div>
 
           <div class="min-w-0">
-            <h3 class="text-[1.7rem] font-semibold leading-tight text-stone-900">
+            <h3 class="text-[1.45rem] font-medium leading-tight text-stone-900">
               {{ item.title }}
             </h3>
-            <p class="mt-2 text-lg leading-8 text-stone-600">
+            <p class="mt-2 text-[16px] leading-7 text-stone-600">
               {{ item.body }}
             </p>
           </div>
@@ -27,15 +27,15 @@
     </div>
   </section>
 
-  <section v-else class="bg-white py-12 sm:py-16">
-    <div class="mx-auto max-w-7xl divide-y divide-stone-200 px-4 sm:px-6 lg:px-8">
+  <section v-else class="section-surface py-14 sm:py-18">
+    <div class="section-shell divide-y divide-dark-200">
       <article
         v-for="(item, index) in items"
         :key="item.id || index"
         class="grid gap-10 py-12 lg:grid-cols-2 lg:items-center"
       >
         <div :class="imageColumnClass(item, index)">
-          <div class="overflow-hidden rounded-[0.7rem] bg-stone-100 shadow-sm">
+          <div class="section-card overflow-hidden rounded-[0.7rem]">
             <img
               v-if="item.image_url"
               :src="item.image_url"
@@ -44,7 +44,7 @@
             >
             <div
               v-else
-              class="aspect-[1.12/1] bg-gradient-to-br from-[#ead9bf] to-[#d7a774]"
+              class="aspect-[1.12/1] bg-gradient-to-br from-secondary-100 to-secondary-400"
             ></div>
           </div>
         </div>
@@ -52,12 +52,12 @@
         <div :class="contentColumnClass(item, index)">
           <p
             v-if="item.eyebrow"
-            class="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#d1a13b]"
+            class="section-kicker"
           >
             {{ item.eyebrow }}
           </p>
 
-          <h3 class="mt-3 text-4xl font-light tracking-[-0.02em] text-stone-800">
+          <h3 class="section-title mt-3">
             {{ item.title }}
           </h3>
 
@@ -75,7 +75,7 @@
               <router-link
                 v-if="!isExternalCmsLink(cta)"
                 :to="resolveCmsLink(cta)"
-                class="inline-flex items-center rounded-[0.35rem] border border-[#e7d7b8] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#c79b32] transition-colors hover:bg-[#fbf7ef]"
+                class="inline-flex items-center rounded-[0.35rem] border border-secondary-200 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-primary-500 transition-colors hover:bg-secondary-50"
               >
                 {{ cta.label }}
               </router-link>
@@ -84,7 +84,7 @@
                 :href="resolveCmsLink(cta)"
                 :target="cta.open_in_new_tab ? '_blank' : undefined"
                 :rel="cta.open_in_new_tab ? 'noreferrer noopener' : undefined"
-                class="inline-flex items-center rounded-[0.35rem] border border-[#e7d7b8] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#c79b32] transition-colors hover:bg-[#fbf7ef]"
+                class="inline-flex items-center rounded-[0.35rem] border border-secondary-200 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-primary-500 transition-colors hover:bg-secondary-50"
               >
                 {{ cta.label }}
               </a>

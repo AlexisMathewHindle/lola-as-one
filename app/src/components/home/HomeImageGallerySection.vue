@@ -1,20 +1,20 @@
 <template>
-  <section class="bg-white py-16 sm:py-20">
-    <div class="mx-auto max-w-[116rem] px-4 sm:px-6 lg:px-8">
+  <section class="section-surface py-16 sm:py-20">
+    <div class="section-shell max-w-[116rem]">
       <div class="mx-auto max-w-7xl">
-        <div class="mb-10 text-center">
+        <div class="section-header mb-10">
           <p
             v-if="config.eyebrow"
-            class="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-primary-600"
+            class="section-kicker"
           >
             {{ config.eyebrow }}
           </p>
-          <h2 class="text-3xl font-display font-bold text-stone-900 sm:text-4xl">
+          <h2 class="section-title">
             {{ config.title || 'Gallery' }}
           </h2>
           <p
             v-if="config.intro"
-            class="mx-auto mt-4 max-w-2xl text-base leading-7 text-stone-600"
+            class="section-intro mx-auto max-w-2xl"
           >
             {{ config.intro }}
           </p>
@@ -26,7 +26,7 @@
           <article
             v-for="(item, index) in visibleItems"
             :key="item.id || `${currentPage}-${index}`"
-            class="overflow-hidden bg-stone-100"
+            class="section-card overflow-hidden"
           >
             <div class="aspect-[1.04/1] overflow-hidden" :style="fallbackBackground(item)">
               <img
@@ -54,7 +54,7 @@
               :key="page"
               type="button"
               class="h-3 w-3 rounded-full transition-colors"
-              :class="page - 1 === currentPage ? 'bg-[#c9a23f]' : 'bg-stone-300 hover:bg-stone-400'"
+              :class="page - 1 === currentPage ? 'bg-secondary-500' : 'bg-dark-300 hover:bg-dark-400'"
               @click="goTo(page - 1)"
             ></button>
           </div>
@@ -129,7 +129,7 @@ watch([itemsPerPage, pageCount], () => {
 })
 
 const fallbackBackground = (item) => ({
-  background: item.background || 'linear-gradient(135deg, #ead9bf, #d7a774)'
+  background: item.background || 'linear-gradient(135deg, #f7eed7, #d8b061)'
 })
 
 onMounted(() => {

@@ -1,21 +1,128 @@
 <template>
-  <nav class="bg-white shadow-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center h-16">
-        <!-- Logo -->
-        <router-link to="/" class="flex items-center">
-          <span class="text-2xl font-display font-bold text-primary-600">
-            {{ siteName }}
-          </span>
+  <header class="border-b border-dark-200 bg-dark-50 text-dark-800">
+    <nav class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Main navigation">
+      <div class="flex min-h-[5.25rem] items-center justify-between gap-6 py-4">
+        <router-link to="/" class="min-w-0 flex-1 md:flex-none" @click="closeMobileMenu">
+          <div class="flex flex-col">
+            <span class="text-[10px] font-semibold uppercase tracking-[0.32em] text-dark-500">
+              Creative Studio
+            </span>
+            <span class="mt-1 truncate text-[1.65rem] font-light leading-none text-dark-800 sm:text-[1.9rem]">
+              {{ siteName }}
+            </span>
+          </div>
         </router-link>
-        
-        <!-- Desktop Navigation -->
-        <div class="hidden md:flex items-center space-x-8">
-          <template v-for="item in navigationItems" :key="item.id">
+
+        <div class="hidden lg:flex min-w-0 flex-1 items-center justify-center">
+          <div class="flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
+            <template v-for="item in navigationItems" :key="item.id">
+              <router-link
+                v-if="item.itemType === 'page'"
+                :to="item.href"
+                :class="desktopNavClass(item)"
+              >
+                {{ item.label }}
+              </router-link>
+              <a
+                v-else
+                :href="item.href"
+                :target="item.openInNewTab ? '_blank' : undefined"
+                :rel="item.openInNewTab ? 'noreferrer noopener' : undefined"
+                :class="desktopNavClass(item)"
+              >
+                {{ item.label }}
+              </a>
+            </template>
+          </div>
+        </div>
+
+        <div class="hidden lg:flex items-center gap-3 lg:flex-none">
+          <router-link
+            to="/cart"
+            class="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-dark-300 bg-white text-dark-700 transition-colors hover:border-primary-500 hover:text-primary-500"
+            aria-label="View cart"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span
+              v-if="cartStore.itemCount > 0"
+              class="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-secondary-500 px-1 text-[10px] font-semibold text-white"
+            >
+              {{ cartStore.itemCount }}
+            </span>
+          </router-link>
+
+          <router-link
+            v-if="authStore.isAuthenticated"
+            to="/account"
+            class="inline-flex items-center rounded-full border border-dark-300 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-dark-700 transition-colors hover:border-primary-500 hover:text-primary-500"
+          >
+            Account
+          </router-link>
+
+          <router-link
+            v-else
+            to="/login"
+            class="inline-flex items-center rounded-full border border-dark-300 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-dark-700 transition-colors hover:border-primary-500 hover:text-primary-500"
+          >
+            Sign In
+          </router-link>
+
+          <router-link
+            v-if="authStore.isAdmin"
+            to="/admin"
+            class="inline-flex items-center rounded-full border border-dark-400 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-dark-800 transition-colors hover:border-dark-700 hover:text-dark-900"
+          >
+            Admin
+          </router-link>
+        </div>
+
+        <div class="flex items-center gap-3 lg:hidden">
+          <router-link
+            to="/cart"
+            class="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-dark-300 bg-white text-dark-700"
+            aria-label="View cart"
+            @click="closeMobileMenu"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span
+              v-if="cartStore.itemCount > 0"
+              class="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-secondary-500 px-1 text-[10px] font-semibold text-white"
+            >
+              {{ cartStore.itemCount }}
+            </span>
+          </router-link>
+
+          <button
+            type="button"
+            class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-dark-300 bg-white text-dark-700 transition-colors hover:border-primary-500 hover:text-primary-500"
+            :aria-expanded="mobileMenuOpen ? 'true' : 'false'"
+            aria-label="Toggle menu"
+            @click="mobileMenuOpen = !mobileMenuOpen"
+          >
+            <svg v-if="!mobileMenuOpen" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+            <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <div v-if="mobileMenuOpen" class="border-t border-dark-200 bg-white lg:hidden">
+      <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        <div class="space-y-1">
+          <template v-for="item in navigationItems" :key="`${item.id}-mobile`">
             <router-link
               v-if="item.itemType === 'page'"
               :to="item.href"
-              :class="desktopNavClass(item)"
+              :class="mobileNavClass(item)"
+              @click="closeMobileMenu"
             >
               {{ item.label }}
             </router-link>
@@ -24,121 +131,57 @@
               :href="item.href"
               :target="item.openInNewTab ? '_blank' : undefined"
               :rel="item.openInNewTab ? 'noreferrer noopener' : undefined"
-              :class="desktopNavClass(item)"
+              :class="mobileNavClass(item)"
+              @click="closeMobileMenu"
             >
               {{ item.label }}
             </a>
           </template>
         </div>
-        
-        <!-- Right Side Actions -->
-        <div class="flex items-center space-x-4">
-          <!-- Cart -->
+
+        <div class="mt-5 flex flex-wrap gap-3 border-t border-dark-200 pt-5">
           <router-link
-            to="/cart"
-            class="relative text-gray-700 hover:text-primary-600 transition-colors"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <span
-              v-if="cartStore.itemCount > 0"
-              class="absolute -top-2 -right-2 bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
-            >
-              {{ cartStore.itemCount }}
-            </span>
-          </router-link>
-          
-          <!-- Account -->
-          <router-link 
             v-if="authStore.isAuthenticated"
             to="/account"
-            class="text-gray-700 hover:text-primary-600"
+            class="inline-flex items-center rounded-full border border-dark-300 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-dark-700"
+            @click="closeMobileMenu"
           >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
+            Account
           </router-link>
-          
-          <router-link 
+
+          <router-link
             v-else
             to="/login"
-            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            class="inline-flex items-center rounded-full border border-dark-300 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-dark-700"
+            @click="closeMobileMenu"
           >
             Sign In
           </router-link>
-          
-          <!-- Admin Link -->
-          <router-link 
+
+          <router-link
             v-if="authStore.isAdmin"
             to="/admin"
-            class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors"
+            class="inline-flex items-center rounded-full border border-dark-400 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-dark-800"
+            @click="closeMobileMenu"
           >
             Admin
           </router-link>
         </div>
-        
-        <!-- Mobile Menu Button -->
-        <button 
-          @click="mobileMenuOpen = !mobileMenuOpen"
-          class="md:hidden text-gray-700"
-        >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-      </div>
-      
-      <!-- Mobile Menu -->
-      <div v-if="mobileMenuOpen" class="md:hidden py-4 space-y-2">
-        <template v-for="item in navigationItems" :key="`${item.id}-mobile`">
-          <router-link
-            v-if="item.itemType === 'page'"
-            :to="item.href"
-            class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
-            @click="mobileMenuOpen = false"
-          >
-            {{ item.label }}
-          </router-link>
-          <a
-            v-else
-            :href="item.href"
-            :target="item.openInNewTab ? '_blank' : undefined"
-            :rel="item.openInNewTab ? 'noreferrer noopener' : undefined"
-            class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
-            @click="mobileMenuOpen = false"
-          >
-            {{ item.label }}
-          </a>
-        </template>
-        <router-link
-          to="/cart"
-          class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
-          @click="mobileMenuOpen = false"
-        >
-          <div class="flex items-center justify-between">
-            <span>Cart</span>
-            <span
-              v-if="cartStore.itemCount > 0"
-              class="bg-primary-600 text-white text-xs rounded-full px-2 py-1"
-            >
-              {{ cartStore.itemCount }}
-            </span>
-          </div>
-        </router-link>
       </div>
     </div>
-  </nav>
+  </header>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useCartStore } from '../stores/cart'
 import { getMenuByKey, getPublicSettingsMap } from '../lib/cms'
 
 const authStore = useAuthStore()
 const cartStore = useCartStore()
+const route = useRoute()
 const mobileMenuOpen = ref(false)
 const siteName = ref('Lola As One')
 
@@ -153,16 +196,28 @@ const fallbackNavigationItems = [
 
 const navigationItems = ref([...fallbackNavigationItems])
 
-const desktopNavClass = (item) => {
-  if (item.pageKey === 'adult-workshops') {
-    return 'text-gray-700 hover:text-rose-700 transition-colors'
-  }
+const isActiveNavItem = (item) => {
+  if (!item?.href) return false
+  if (item.href === '/') return route.path === '/'
+  return route.path === item.href || route.path.startsWith(`${item.href}/`)
+}
 
-  if (item.pageKey === 'boxes') {
-    return 'text-gray-700 hover:text-secondary-600 transition-colors'
-  }
+const desktopNavClass = (item) => [
+  'border-b border-transparent pb-1 text-[13px] font-semibold uppercase tracking-[0.14em] transition-colors',
+  isActiveNavItem(item)
+    ? 'border-primary-500 text-primary-500'
+    : 'text-dark-700 hover:text-primary-500'
+]
 
-  return 'text-gray-700 hover:text-primary-600 transition-colors'
+const mobileNavClass = (item) => [
+  'block rounded-md px-1 py-3 text-[14px] font-semibold uppercase tracking-[0.14em] transition-colors',
+  isActiveNavItem(item)
+    ? 'text-primary-500'
+    : 'text-dark-700 hover:text-primary-500'
+]
+
+const closeMobileMenu = () => {
+  mobileMenuOpen.value = false
 }
 
 const loadNavigation = async () => {
@@ -188,6 +243,10 @@ const loadSiteName = async () => {
     console.error('Error loading site settings:', error)
   }
 }
+
+watch(() => route.fullPath, () => {
+  closeMobileMenu()
+})
 
 onMounted(() => {
   loadNavigation()

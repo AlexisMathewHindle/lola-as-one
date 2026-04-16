@@ -1,111 +1,129 @@
 <template>
   <footer
     v-if="!isAdminRoute"
-    class="border-t border-stone-200 bg-[#f5efe4] text-stone-700"
+    class="border-t border-dark-200 bg-dark-50 text-dark-700"
   >
-    <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-18">
-      <div class="grid gap-12 lg:grid-cols-[1.4fr_0.8fr_0.8fr_1fr]">
-        <div class="space-y-5">
-          <div>
-            <p class="text-[11px] font-semibold uppercase tracking-[0.35em] text-stone-500">
-              Lola As One
-            </p>
-            <h2 class="mt-4 font-display text-3xl text-stone-900 sm:text-4xl">
-              {{ siteName }}
-            </h2>
-          </div>
-
-          <p class="max-w-md text-sm leading-7 text-stone-600 sm:text-[15px]">
+    <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-14">
+      <div class="border-b border-dark-200 pb-8">
+        <div class="max-w-3xl">
+          <p class="text-[10px] font-semibold uppercase tracking-[0.32em] text-dark-500">
+            Lola As One
+          </p>
+          <h2 class="mt-3 text-[1.85rem] font-light leading-tight text-dark-900 sm:text-[2.15rem]">
+            {{ siteName }}
+          </h2>
+          <p class="mt-4 max-w-2xl text-[15px] leading-7 text-dark-600">
             {{ footerIntro }}
           </p>
-
-          <p class="max-w-sm text-sm italic text-stone-500">
+          <p class="mt-3 text-sm text-dark-500">
             {{ siteTagline }}
           </p>
         </div>
+      </div>
 
-        <div class="space-y-4">
-          <h3 class="text-xs font-semibold uppercase tracking-[0.3em] text-stone-500">
-            Explore
-          </h3>
-          <nav class="space-y-3">
-            <template v-for="item in footerPrimaryItems" :key="item.id">
-              <router-link
-                v-if="item.itemType === 'page'"
-                :to="item.href"
-                class="block text-sm text-stone-700 transition-colors hover:text-primary-700"
-              >
-                {{ item.label }}
-              </router-link>
-              <a
-                v-else
-                :href="item.href"
-                :target="item.openInNewTab ? '_blank' : undefined"
-                :rel="item.openInNewTab ? 'noreferrer noopener' : undefined"
-                class="block text-sm text-stone-700 transition-colors hover:text-primary-700"
-              >
-                {{ item.label }}
-              </a>
-            </template>
-          </nav>
-        </div>
+      <div class="grid gap-10 pt-8 md:grid-cols-2 xl:grid-cols-[1fr_0.95fr_1.1fr]">
+        <section class="space-y-8">
+          <div class="grid gap-8 sm:grid-cols-2">
+            <div class="space-y-4">
+              <h3 class="text-[11px] font-semibold uppercase tracking-[0.28em] text-dark-500">
+                Explore
+              </h3>
+              <nav class="space-y-3">
+                <template v-for="item in footerPrimaryItems" :key="item.id">
+                  <router-link
+                    v-if="item.itemType === 'page'"
+                    :to="item.href"
+                    class="block text-[15px] text-dark-700 transition-colors hover:text-primary-500"
+                  >
+                    {{ item.label }}
+                  </router-link>
+                  <a
+                    v-else
+                    :href="item.href"
+                    :target="item.openInNewTab ? '_blank' : undefined"
+                    :rel="item.openInNewTab ? 'noreferrer noopener' : undefined"
+                    class="block text-[15px] text-dark-700 transition-colors hover:text-primary-500"
+                  >
+                    {{ item.label }}
+                  </a>
+                </template>
+              </nav>
+            </div>
 
-        <div class="space-y-4">
-          <h3 class="text-xs font-semibold uppercase tracking-[0.3em] text-stone-500">
-            Information
-          </h3>
-          <nav class="space-y-3">
-            <template v-for="item in footerSecondaryItems" :key="item.id">
-              <router-link
-                v-if="item.itemType === 'page'"
-                :to="item.href"
-                class="block text-sm text-stone-700 transition-colors hover:text-primary-700"
-              >
-                {{ item.label }}
-              </router-link>
-              <a
-                v-else
-                :href="item.href"
-                :target="item.openInNewTab ? '_blank' : undefined"
-                :rel="item.openInNewTab ? 'noreferrer noopener' : undefined"
-                class="block text-sm text-stone-700 transition-colors hover:text-primary-700"
-              >
-                {{ item.label }}
-              </a>
-            </template>
-          </nav>
+            <div class="space-y-4">
+              <h3 class="text-[11px] font-semibold uppercase tracking-[0.28em] text-dark-500">
+                Information
+              </h3>
+              <nav class="space-y-3">
+                <template v-for="item in footerSecondaryItems" :key="item.id">
+                  <router-link
+                    v-if="item.itemType === 'page'"
+                    :to="item.href"
+                    class="block text-[15px] text-dark-700 transition-colors hover:text-primary-500"
+                  >
+                    {{ item.label }}
+                  </router-link>
+                  <a
+                    v-else
+                    :href="item.href"
+                    :target="item.openInNewTab ? '_blank' : undefined"
+                    :rel="item.openInNewTab ? 'noreferrer noopener' : undefined"
+                    class="block text-[15px] text-dark-700 transition-colors hover:text-primary-500"
+                  >
+                    {{ item.label }}
+                  </a>
+                </template>
+              </nav>
+            </div>
+          </div>
 
-          <div class="pt-3 text-sm text-stone-500">
+          <div class="text-[13px] text-dark-500">
             <p>{{ copyrightText }}</p>
           </div>
-        </div>
+        </section>
 
-        <div class="space-y-5">
+        <section class="border-t border-dark-200 pt-8 md:border-t-0 md:border-l md:border-dark-200 md:pl-10 md:pt-0">
+          <h3 class="text-[11px] font-semibold uppercase tracking-[0.28em] text-dark-500">
+            Opening Times
+          </h3>
+          <div class="mt-4 space-y-2.5">
+            <div
+              v-for="entry in openingTimes"
+              :key="entry.day"
+              class="flex items-baseline justify-between gap-4 text-[14px]"
+            >
+              <span class="font-medium text-dark-800">{{ entry.day }}</span>
+              <span class="text-right text-dark-600">{{ entry.hours }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="border-t border-dark-200 pt-8 md:border-t-0 md:border-l md:border-dark-200 md:pl-10 md:pt-0">
           <div>
-            <h3 class="text-xs font-semibold uppercase tracking-[0.3em] text-stone-500">
-              Visit
+            <h3 class="text-[11px] font-semibold uppercase tracking-[0.28em] text-dark-500">
+              Come And Find Us
             </h3>
-            <div class="mt-4 space-y-1 text-sm leading-7 text-stone-700">
-              <p class="font-medium text-stone-900">{{ contactVenue }}</p>
+            <div class="mt-4 space-y-1 text-[14px] leading-7 text-dark-700">
+              <p class="font-medium text-dark-900">{{ contactVenue }}</p>
               <p v-for="line in addressLines" :key="line">{{ line }}</p>
             </div>
           </div>
 
-          <div class="space-y-2">
-            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-stone-500">
+          <div class="mt-7 space-y-2">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-dark-500">
               Contact
             </p>
             <a
               :href="`mailto:${contactEmail}`"
-              class="inline-flex items-center text-sm text-primary-700 transition-colors hover:text-primary-800"
+              class="inline-flex items-center text-[15px] text-primary-500 transition-colors hover:text-primary-600"
             >
               <font-awesome-icon icon="envelope" class="mr-2 h-3.5 w-3.5" />
               {{ contactEmail }}
             </a>
           </div>
 
-          <div v-if="socialItems.length" class="space-y-3">
-            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-stone-500">
+          <div v-if="socialItems.length" class="mt-7 space-y-3">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-dark-500">
               Follow
             </p>
             <div class="flex flex-wrap gap-2">
@@ -115,14 +133,14 @@
                 :href="item.href"
                 target="_blank"
                 rel="noreferrer noopener"
-                class="inline-flex items-center rounded-full border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 transition-colors hover:border-primary-400 hover:text-primary-700"
+                class="inline-flex items-center rounded-full border border-dark-300 bg-white px-3 py-1.5 text-[12px] font-medium text-dark-700 transition-colors hover:border-primary-500 hover:text-primary-500"
               >
                 {{ item.label }}
                 <font-awesome-icon icon="external-link-alt" class="ml-2 h-3 w-3" />
               </a>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   </footer>
@@ -156,6 +174,16 @@ const fallbackAddressLines = [
   'Newbury RG14 1DT'
 ]
 
+const fallbackOpeningTimes = [
+  { day: 'Mon', hours: 'Closed' },
+  { day: 'Tues', hours: '9am - 5pm' },
+  { day: 'Wed', hours: '9am - 6pm' },
+  { day: 'Thurs', hours: '9am - 6pm' },
+  { day: 'Fri', hours: '9am - 5pm' },
+  { day: 'Sat', hours: '9.30am - 3pm' },
+  { day: 'Sun', hours: '9.30am - 1pm' }
+]
+
 const siteName = ref('Lola As One')
 const siteTagline = ref('Where creativity meets community.')
 const footerPrimaryItems = ref([...fallbackFooterPrimaryItems])
@@ -164,6 +192,7 @@ const footerIntro = ref('Creative classes, workshops, art boxes and warm communi
 const contactVenue = ref('LoLA Lots of Lovely Art Creative Space')
 const contactEmail = ref('hello@lotsoflovelyart.com')
 const addressLines = ref([...fallbackAddressLines])
+const openingTimes = ref([...fallbackOpeningTimes])
 const socialLinks = ref({ ...fallbackSocialLinks })
 const copyrightText = ref(`Copyright ${new Date().getFullYear()} All rights reserved`)
 

@@ -38,7 +38,18 @@
         </router-link>
       </nav>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <WorkshopContentSingleSeries
+        v-if="isSingleSeriesLayout"
+        :workshop="workshop"
+        :age-group="ageGroup"
+        :formatted-description="formattedDescription"
+        :session-events="seriesSessions"
+        :session-quantities="seriesSessionQuantities"
+        @increment-session="incrementSeriesSession"
+        @decrement-session="decrementSeriesSession"
+      />
+
+      <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div class="lg:col-span-2">
           <component
             :is="contentTemplateComponent"
@@ -289,7 +300,13 @@ import { useToastStore } from '../stores/toast'
 import JoinEventWaitlistModal from '../components/JoinEventWaitlistModal.vue'
 import WorkshopContentAdult from '../components/workshops/WorkshopContentAdult.vue'
 import WorkshopContentDefault from '../components/workshops/WorkshopContentDefault.vue'
-import { getWorkshopAgeLabel, isAdultWorkshopLayout, isEnquiryOnlyWorkshop as usesEnquiryOnlyLayout } from '../utils/workshopDisplay'
+import WorkshopContentSingleSeries from '../components/workshops/WorkshopContentSingleSeries.vue'
+import {
+  getWorkshopAgeLabel,
+  isAdultWorkshopLayout,
+  isEnquiryOnlyWorkshop as usesEnquiryOnlyLayout,
+  isSingleSeriesWorkshopLayout
+} from '../utils/workshopDisplay'
 
 const route = useRoute()
 const router = useRouter()
@@ -300,6 +317,7 @@ const toastStore = useToastStore()
 const workshop = ref(null)
 const capacity = ref(null)
 const relatedWorkshops = ref([])
+const seriesSessions = ref([])
 const loading = ref(true)
 const error = ref(null)
 const submitting = ref(false)
@@ -321,6 +339,9 @@ const fetchWorkshop = async () => {
   try {
     loading.value = true
     error.value = null
+    capacity.value = null
+    relatedWorkshops.value = []
+    seriesSessions.value = []
 
     // Fetch workshop by slug (join with offering)
     const { data, error: fetchError } = await supabase
@@ -354,11 +375,15 @@ const fetchWorkshop = async () => {
 
     workshop.value = data
 
-    // Fetch capacity
-    await fetchCapacity()
+    if (isSingleSeriesWorkshopLayout(data)) {
+      await fetchSingleSeriesSessions()
+    } else {
+      // Fetch capacity
+      await fetchCapacity()
 
-    // Fetch related workshops
-    await fetchRelatedWorkshops()
+      // Fetch related workshops
+      await fetchRelatedWorkshops()
+    }
   } catch (err) {
     console.error('Error fetching workshop:', err)
     error.value = err.message || 'Failed to load workshop details. Please try again.'
@@ -397,6 +422,68 @@ const fetchCapacity = async () => {
     }
   } catch (err) {
     console.error('Error fetching capacity:', err)
+  }
+}
+
+const fetchSingleSeriesSessions = async () => {
+  if (!workshop.value) return
+
+  try {
+    const today = new Date().toISOString().split('T')[0]
+
+    let query = supabase
+      .from('offering_events')
+      .select(`
+        *,
+        offering:offerings!inner(*),
+        capacity:event_capacity(*),
+        category:event_categories(
+          id,
+          name,
+          slug,
+          description,
+          age_range,
+          color_hex,
+          icon,
+          parent_id,
+          featured_image_url,
+          layout_key
+        )
+      `)
+      .eq('offering.status', 'published')
+      .gte('event_date', today)
+      .order('event_date', { ascending: true })
+      .order('event_start_time', { ascending: true })
+
+    if (workshop.value.category_id) {
+      query = query.eq('category_id', workshop.value.category_id)
+    }
+
+    const { data, error: fetchError } = await query
+
+    if (fetchError) throw fetchError
+
+    const sameSeriesSessions = (data || []).filter((session) => {
+      if (workshop.value.category_id && session.category_id !== workshop.value.category_id) {
+        return false
+      }
+
+      if (!workshop.value.category_id && session.offering?.title !== workshop.value.offering?.title) {
+        return false
+      }
+
+      return isSingleSeriesWorkshopLayout(session)
+    })
+
+    if (sameSeriesSessions.length > 0) {
+      seriesSessions.value = sameSeriesSessions
+      return
+    }
+
+    seriesSessions.value = [workshop.value]
+  } catch (err) {
+    console.error('Error fetching single-series sessions:', err)
+    seriesSessions.value = [workshop.value]
   }
 }
 
@@ -451,6 +538,11 @@ const ageGroup = computed(() => {
   return getWorkshopAgeLabel(workshop.value)
 })
 
+const isSingleSeriesLayout = computed(() => {
+  if (!workshop.value) return false
+  return isSingleSeriesWorkshopLayout(workshop.value)
+})
+
 const contentTemplateComponent = computed(() => {
   if (!workshop.value) return WorkshopContentDefault
   return isAdultWorkshopLayout(workshop.value) ? WorkshopContentAdult : WorkshopContentDefault
@@ -469,6 +561,18 @@ const backRoute = computed(() => {
 const backLabel = computed(() => {
   if (!workshop.value) return 'Back to Workshops'
   return isAdultWorkshopLayout(workshop.value) ? 'Back to Adult Workshops' : 'Back to Workshops'
+})
+
+const seriesSessionQuantities = computed(() => {
+  return cartStore.items.reduce((quantities, item) => {
+    const key = item.event_id || item.id || item.productId
+
+    if (key) {
+      quantities[key] = item.quantity
+    }
+
+    return quantities
+  }, {})
 })
 
 const duration = computed(() => {
@@ -646,6 +750,66 @@ const goToWorkshop = (relatedWorkshop) => {
   router.push(`/workshops/${relatedWorkshop.offering.slug}`)
 }
 
+const getSessionSpacesAvailable = (session) => {
+  const capacityRecord = Array.isArray(session.capacity)
+    ? session.capacity[0] || null
+    : session.capacity || null
+
+  if (capacityRecord && typeof capacityRecord.spaces_available === 'number') {
+    return capacityRecord.spaces_available
+  }
+
+  if (
+    typeof session.max_capacity === 'number' &&
+    typeof session.current_bookings === 'number'
+  ) {
+    return Math.max(session.max_capacity - session.current_bookings, 0)
+  }
+
+  return null
+}
+
+const getSessionQuantity = (session) => {
+  return seriesSessionQuantities.value[session.id] || 0
+}
+
+const incrementSeriesSession = (session) => {
+  const currentQuantity = getSessionQuantity(session)
+  const spacesAvailable = getSessionSpacesAvailable(session)
+
+  if (spacesAvailable !== null && currentQuantity >= spacesAvailable) {
+    return
+  }
+
+  if (currentQuantity > 0) {
+    cartStore.updateQuantity(session.id, currentQuantity + 1)
+    return
+  }
+
+  cartStore.addItem({
+    id: session.offering.id,
+    offering_id: session.offering.id,
+    event_id: session.id,
+    type: 'event',
+    title: session.offering.title,
+    price: session.price_gbp,
+    image: session.offering.featured_image_url || session.category?.featured_image_url || null,
+    slug: session.offering.slug,
+    eventDate: session.event_date,
+    eventTime: session.event_start_time
+  })
+}
+
+const decrementSeriesSession = (session) => {
+  const currentQuantity = getSessionQuantity(session)
+
+  if (currentQuantity <= 0) {
+    return
+  }
+
+  cartStore.updateQuantity(session.id, currentQuantity - 1)
+}
+
 // Handle booking submission
 const handleBooking = async () => {
   try {
@@ -654,6 +818,8 @@ const handleBooking = async () => {
     // Add workshop to cart with attendee details
     cartStore.addItem({
       id: workshop.value.offering.id,
+      offering_id: workshop.value.offering.id,
+      event_id: workshop.value.id,
       type: 'event',
       title: workshop.value.offering.title,
       price: workshop.value.price_gbp,
