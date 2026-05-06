@@ -59,7 +59,7 @@ netlify deploy --prod --dir=dist
 
 ## Testing After Deployment
 
-1. Visit: https://lola-workshops.netlify.app/order/success
+1. Visit: https://lola-as-one.netlify.app/order/success
 2. You should see the success page (even without a session_id)
 3. Try a test checkout to verify the full flow
 
@@ -72,7 +72,7 @@ netlify deploy --prod --dir=dist
 ## What Happens After Stripe Checkout
 
 1. User completes payment on Stripe
-2. Stripe redirects to: `https://lola-workshops.netlify.app/order/success?session_id=xxx`
+2. Stripe redirects to: `https://lola-as-one.netlify.app/order/success?session_id=xxx`
 3. Order success page loads and clears cart
 4. Webhook creates order and sends confirmation emails
 
@@ -89,4 +89,3 @@ netlify deploy --prod --dir=dist
 ### If the page loads but looks broken:
 - Check browser console for errors
 - Vuetify components might not be loading correctly
-

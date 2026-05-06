@@ -7,6 +7,31 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const DEFAULT_CHECKOUT_APP_URL = 'https://lola-as-one.netlify.app'
+const LEGACY_CHECKOUT_HOSTS = new Set(['lola-workshops.netlify.app'])
+
+function getCheckoutAppUrl(): string {
+  const configuredUrl = Deno.env.get('CHECKOUT_APP_URL') || Deno.env.get('APP_URL')
+  const trimmedUrl = configuredUrl?.trim().replace(/\/+$/, '')
+
+  if (!trimmedUrl) {
+    return DEFAULT_CHECKOUT_APP_URL
+  }
+
+  try {
+    const url = new URL(trimmedUrl)
+
+    if (LEGACY_CHECKOUT_HOSTS.has(url.hostname)) {
+      return DEFAULT_CHECKOUT_APP_URL
+    }
+
+    return trimmedUrl
+  } catch {
+    console.warn('Invalid checkout app URL configured, falling back to default:', configuredUrl)
+    return DEFAULT_CHECKOUT_APP_URL
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -93,7 +118,7 @@ serve(async (req) => {
       })
     }
 
-    const appUrl = Deno.env.get('APP_URL') || 'http://localhost:5173'
+    const appUrl = getCheckoutAppUrl()
 
     // Create Stripe Checkout Session in subscription mode
     const session = await stripe.checkout.sessions.create({
@@ -141,4 +166,3 @@ serve(async (req) => {
     )
   }
 })
-

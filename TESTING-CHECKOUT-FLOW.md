@@ -16,7 +16,7 @@
 ### Test 1: Successful Booking
 
 **Steps:**
-1. Go to https://lola-workshops.netlify.app
+1. Go to https://lola-as-one.netlify.app
 2. Browse workshops and find one with available spaces
 3. Click "+" to add to cart
 4. Go to checkout
@@ -228,7 +228,7 @@ https://resend.com/emails
 supabase secrets list --project-ref hubbjhtjyubzczxengyo | grep APP_URL
 
 # If not set or wrong:
-supabase secrets set APP_URL=https://lola-workshops.netlify.app --project-ref hubbjhtjyubzczxengyo
+supabase secrets set APP_URL=https://lola-as-one.netlify.app --project-ref hubbjhtjyubzczxengyo
 
 # Redeploy
 supabase functions deploy create-checkout-session --no-verify-jwt --project-ref hubbjhtjyubzczxengyo
@@ -271,4 +271,3 @@ All of these should be true:
 - [ ] Clear error messages shown to users
 - [ ] Database constraints prevent negative bookings
 - [ ] No errors in Supabase function logs
-

@@ -59,7 +59,7 @@ $SUPABASE_CMD secrets set SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI
 
 echo ""
 echo "Setting APP_URL..."
-$SUPABASE_CMD secrets set APP_URL="http://localhost:5173"
+$SUPABASE_CMD secrets set APP_URL="https://lola-as-one.netlify.app"
 
 echo ""
 echo "Setting RESEND_API_KEY..."
@@ -73,4 +73,3 @@ echo "1. Redeploy the Edge Function:"
 echo "   $SUPABASE_CMD functions deploy create-checkout-session --no-verify-jwt"
 echo ""
 echo "2. Test the checkout flow"
-

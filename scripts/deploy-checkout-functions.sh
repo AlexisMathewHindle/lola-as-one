@@ -77,7 +77,7 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "  supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_your_secret_here"
     echo "  supabase secrets set SUPABASE_URL=https://hubbjhtjyubzczxengyo.supabase.co"
     echo "  supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your_service_role_key"
-    echo "  supabase secrets set APP_URL=http://localhost:5173"
+    echo "  supabase secrets set APP_URL=https://lola-as-one.netlify.app"
     echo "  supabase secrets set RESEND_API_KEY=re_your_key_here"
     echo ""
     echo "Or in Supabase Dashboard:"
@@ -149,4 +149,3 @@ echo ""
 echo "2. Test the checkout flow in your app"
 echo ""
 echo "✨ Deployment complete!"
-

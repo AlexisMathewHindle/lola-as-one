@@ -3,6 +3,22 @@ import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getNextCycleKey } from '../_shared/cycle-helpers.ts'
 
+function isMissingOrderCouponColumnError(error: any): boolean {
+  const message = String(error?.message || error?.details || '')
+  const referencesCouponColumn = (
+    message.includes('coupon_id') ||
+    message.includes('coupon_code') ||
+    message.includes('discount_gbp')
+  )
+
+  return referencesCouponColumn && (
+    error?.code === 'PGRST204' ||
+    error?.code === '42703' ||
+    message.includes('schema cache') ||
+    message.includes('does not exist')
+  )
+}
+
 serve(async (req) => {
   try {
     console.log('🔔 Webhook request received - v2')
@@ -145,8 +161,60 @@ serve(async (req) => {
           break
         }
 
+        const subtotalAmount = parseFloat(metadata.subtotal || '0')
+        const shippingAmount = parseFloat(metadata.shipping_cost || '0')
+        const stripeDiscountAmount = (session.total_details?.amount_discount || 0) / 100
+        const discountAmount = stripeDiscountAmount > 0
+          ? stripeDiscountAmount
+          : parseFloat(metadata.discount_amount || '0')
+        const totalAmount = typeof session.amount_total === 'number'
+          ? session.amount_total / 100
+          : parseFloat(metadata.total || '0')
+        const vatAmount = totalAmount * 0.20 / 1.20
+        const couponId = metadata.coupon_id || null
+        const couponCode = metadata.discount_code || ''
+        const discountLabel = couponCode
+          ? `Discount (${couponCode})`
+          : 'Discount'
+        const emailOrderItems = items.map((item: any) => ({
+          name: item.title,
+          quantity: item.quantity,
+          price: item.price * item.quantity,
+          type: item.type,
+        }))
+
+        if (discountAmount > 0) {
+          emailOrderItems.push({
+            name: discountLabel,
+            quantity: 1,
+            price: -discountAmount,
+            type: 'discount',
+          })
+        }
+
         console.log('✅ Metadata validation passed - proceeding to create order')
         console.log('📦 Items in order:', JSON.stringify(items, null, 2))
+
+        const { data: existingOrder, error: existingOrderError } = await supabase
+          .from('orders')
+          .select('id, order_number')
+          .eq('stripe_checkout_session_id', session.id)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle()
+
+        if (existingOrderError) {
+          console.error('Error checking for existing order:', existingOrderError)
+          throw existingOrderError
+        }
+
+        if (existingOrder) {
+          console.log('⚠️ Order already exists for checkout session, skipping duplicate processing:', {
+            sessionId: session.id,
+            orderNumber: existingOrder.order_number,
+          })
+          break
+        }
 
         // Create customer record if doesn't exist
         console.log('🔍 Looking for existing customer:', metadata.customer_email)
@@ -187,29 +255,47 @@ serve(async (req) => {
           console.log('✅ Found existing customer:', customerId)
         }
 
-        // Create order
-        const { data: order, error: orderError } = await supabase
+        const orderPayload = {
+          customer_id: customerId,
+          customer_email: metadata.customer_email,
+          order_type: 'one_time',
+          stripe_checkout_session_id: session.id,
+          stripe_payment_intent_id: session.payment_intent as string,
+          subtotal_gbp: subtotalAmount,
+          shipping_gbp: shippingAmount,
+          tax_gbp: vatAmount,
+          total_gbp: totalAmount,
+          shipping_name: metadata.shipping_name || null,
+          shipping_address_line1: metadata.shipping_line1 || null,
+          shipping_address_line2: metadata.shipping_line2 || null,
+          shipping_city: metadata.shipping_city || null,
+          shipping_postcode: metadata.shipping_postal_code || null,
+          shipping_country: metadata.shipping_country || 'GB',
+          status: 'paid',
+        }
+
+        let { data: order, error: orderError } = await supabase
           .from('orders')
           .insert({
-            customer_id: customerId,
-            customer_email: metadata.customer_email,
-            order_type: 'one_time',
-            stripe_checkout_session_id: session.id,
-            stripe_payment_intent_id: session.payment_intent as string,
-            subtotal_gbp: parseFloat(metadata.subtotal),
-            shipping_gbp: parseFloat(metadata.shipping_cost),
-            tax_gbp: parseFloat(metadata.vat),
-            total_gbp: parseFloat(metadata.total),
-            shipping_name: metadata.shipping_name || null,
-            shipping_address_line1: metadata.shipping_line1 || null,
-            shipping_address_line2: metadata.shipping_line2 || null,
-            shipping_city: metadata.shipping_city || null,
-            shipping_postcode: metadata.shipping_postal_code || null,
-            shipping_country: metadata.shipping_country || 'GB',
-            status: 'paid',
+            ...orderPayload,
+            coupon_id: couponId,
+            coupon_code: couponCode || null,
+            discount_gbp: discountAmount,
           })
           .select('id, order_number')
           .single()
+
+        if (orderError && isMissingOrderCouponColumnError(orderError)) {
+          console.warn('⚠️ Orders coupon columns are not available; retrying order insert without coupon summary fields')
+          const retryResult = await supabase
+            .from('orders')
+            .insert(orderPayload)
+            .select('id, order_number')
+            .single()
+
+          order = retryResult.data
+          orderError = retryResult.error
+        }
 
         if (orderError) {
           console.error('Error creating order:', orderError)
@@ -225,7 +311,7 @@ serve(async (req) => {
             .from('order_items')
             .insert({
               order_id: order.id,
-              offering_id: item.id,
+              offering_id: item.offering_id || item.id,
               item_type: item.type,
               title: item.title,
               quantity: item.quantity,
@@ -279,7 +365,7 @@ serve(async (req) => {
               const result = await supabase
                 .from('offering_events')
                 .select('id')
-                .eq('offering_id', item.id)
+                .eq('offering_id', item.offering_id || item.id)
                 .single()
 
               offeringEvent = result.data
@@ -363,6 +449,58 @@ serve(async (req) => {
           }
         }
 
+        if (discountAmount > 0) {
+          const { error: discountItemError } = await supabase
+            .from('order_items')
+            .insert({
+              order_id: order.id,
+              offering_id: null,
+              item_type: 'discount',
+              title: discountLabel,
+              quantity: 1,
+              unit_price_gbp: -discountAmount,
+              total_price_gbp: -discountAmount,
+              event_date: null,
+              event_start_time: null,
+            })
+
+          if (discountItemError) {
+            console.error('❌ Error creating discount order item:', discountItemError)
+          } else {
+            console.log('✅ Created discount order item')
+          }
+        }
+
+        if (couponId && discountAmount > 0) {
+          const { error: redemptionError } = await supabase
+            .from('coupon_redemptions')
+            .insert({
+              coupon_id: couponId,
+              order_id: order.id,
+              customer_id: customerId,
+              customer_email: String(metadata.customer_email).toLowerCase(),
+              coupon_code: couponCode,
+              discount_amount: discountAmount,
+              currency: 'gbp',
+              stripe_checkout_session_id: session.id,
+              stripe_coupon_id: metadata.stripe_coupon_id || null,
+            })
+
+          if (redemptionError) {
+            console.error('❌ Error recording coupon redemption:', redemptionError)
+          } else {
+            const { error: usageError } = await supabase.rpc('increment_coupon_usage', {
+              p_coupon_id: couponId,
+            })
+
+            if (usageError) {
+              console.error('❌ Error incrementing coupon usage:', usageError)
+            } else {
+              console.log('✅ Recorded coupon redemption')
+            }
+          }
+        }
+
         console.log('Order processing complete:', order.order_number)
 
         // Determine what types of items are in the order
@@ -382,16 +520,11 @@ serve(async (req) => {
               data: {
                 orderNumber: order.order_number,
                 customerName: `${metadata.customer_first_name} ${metadata.customer_last_name}`,
-                orderItems: items.map((item: any) => ({
-                  name: item.title,
-                  quantity: item.quantity,
-                  price: item.price * item.quantity,
-                  type: item.type,
-                })),
-                subtotal: parseFloat(metadata.subtotal),
-                shipping: parseFloat(metadata.shipping_cost),
-                vat: parseFloat(metadata.vat),
-                total: parseFloat(metadata.total),
+                orderItems: emailOrderItems,
+                subtotal: subtotalAmount,
+                shipping: shippingAmount,
+                vat: vatAmount,
+                total: totalAmount,
                 shippingAddress: metadata.shipping_line1 ? {
                   line1: metadata.shipping_line1,
                   line2: metadata.shipping_line2 || undefined,
@@ -458,6 +591,15 @@ serve(async (req) => {
             return baseItem
           }))
 
+          if (discountAmount > 0) {
+            enrichedItems.push({
+              name: discountLabel,
+              quantity: 1,
+              price: -discountAmount,
+              type: 'discount',
+            })
+          }
+
           // Send admin email to both admin addresses
           const adminEmails = ['alexishindle@gmail.com', 'hello@lotsoflovelyart.com']
 
@@ -470,7 +612,7 @@ serve(async (req) => {
                 orderNumber: order.order_number,
                 customerName: `${metadata.customer_first_name} ${metadata.customer_last_name}`,
                 customerEmail: metadata.customer_email,
-                orderTotal: parseFloat(metadata.total),
+                orderTotal: totalAmount,
                 orderItems: enrichedItems,
                 shippingAddress: metadata.shipping_line1 ? {
                   line1: metadata.shipping_line1,

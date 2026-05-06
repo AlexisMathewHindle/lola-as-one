@@ -11,7 +11,7 @@
 **Problem:** Users redirected to `localhost:5173` after Stripe payment  
 **Cause:** `APP_URL` environment variable not set  
 **Fix:** 
-- Set `APP_URL=https://lola-workshops.netlify.app`
+- Set `APP_URL=https://lola-as-one.netlify.app`
 - Redeployed checkout functions
 - Created order success page in legacy app
 
@@ -44,7 +44,7 @@ supabase functions deploy send-email --no-verify-jwt --project-ref hubbjhtjyubzc
 ## Environment Variables Set
 
 ```bash
-APP_URL=https://lola-workshops.netlify.app
+APP_URL=https://lola-as-one.netlify.app
 ```
 
 ## Files Created/Modified
@@ -86,7 +86,7 @@ git push origin main
 
 ### 2. Test the Full Flow
 
-1. Go to https://lola-workshops.netlify.app
+1. Go to https://lola-as-one.netlify.app
 2. Add a workshop to cart
 3. Go through checkout
 4. Complete payment with test card: `4242 4242 4242 4242`
@@ -155,4 +155,3 @@ Currently using Resend's test domain (`onboarding@resend.dev`). For production:
    from: 'Lola Workshops <hello@lotsoflovelyart.com>',
    ```
 4. Redeploy send-email function
-

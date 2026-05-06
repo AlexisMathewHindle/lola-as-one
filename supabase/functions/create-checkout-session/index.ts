@@ -7,6 +7,53 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const DEFAULT_CHECKOUT_APP_URL = 'https://lola-as-one.netlify.app'
+const LEGACY_CHECKOUT_HOSTS = new Set(['lola-workshops.netlify.app'])
+const GBP_CURRENCY = 'gbp'
+
+type CouponRecord = {
+  id: string
+  code: string
+  name?: string | null
+  discount_type: 'percentage' | 'fixed'
+  discount_value: number | string
+  is_active: boolean
+  valid_from?: string | null
+  valid_until?: string | null
+  usage_limit?: number | null
+  usage_count?: number | null
+  per_customer_limit?: number | null
+  applies_to?: string | null
+}
+
+type AppliedCoupon = {
+  coupon: CouponRecord
+  discountPence: number
+  eligibleSubtotalPence: number
+}
+
+function getCheckoutAppUrl(): string {
+  const configuredUrl = Deno.env.get('CHECKOUT_APP_URL') || Deno.env.get('APP_URL')
+  const trimmedUrl = configuredUrl?.trim().replace(/\/+$/, '')
+
+  if (!trimmedUrl) {
+    return DEFAULT_CHECKOUT_APP_URL
+  }
+
+  try {
+    const url = new URL(trimmedUrl)
+
+    if (LEGACY_CHECKOUT_HOSTS.has(url.hostname)) {
+      return DEFAULT_CHECKOUT_APP_URL
+    }
+
+    return trimmedUrl
+  } catch {
+    console.warn('Invalid checkout app URL configured, falling back to default:', configuredUrl)
+    return DEFAULT_CHECKOUT_APP_URL
+  }
+}
+
 function sanitizeMetadataTitle(title: unknown, fallbackTitle?: unknown): string {
   const normalizedTitle = String(title || fallbackTitle || 'Item')
     .replace(/\s+/g, ' ')
@@ -19,6 +66,7 @@ function sanitizeMetadataTitle(title: unknown, fallbackTitle?: unknown): string 
 function buildItemMetadata(item: any) {
   return {
     id: item.id || item.offering_id,
+    offering_id: item.offering_id || item.id || null,
     event_id: item.event_id || null,
     title: sanitizeMetadataTitle(item.event_title, item.title),
     price: item.price,
@@ -26,6 +74,133 @@ function buildItemMetadata(item: any) {
     type: item.type,
     eventDate: item.eventDate || null,
     eventTime: item.eventTime || null,
+  }
+}
+
+function normalizeDiscountCode(code: unknown): string {
+  return typeof code === 'string'
+    ? code.trim().toUpperCase()
+    : ''
+}
+
+function toPence(value: unknown): number {
+  const numericValue = Number(value || 0)
+  return Number.isFinite(numericValue) ? Math.round(numericValue * 100) : 0
+}
+
+function getItemLinePence(item: any): number {
+  const quantity = Number(item.quantity || 0)
+  return Math.max(0, toPence(item.price) * quantity)
+}
+
+function isItemEligibleForCoupon(item: any, appliesTo?: string | null): boolean {
+  const target = appliesTo || 'all'
+  const itemType = item.type || 'product_physical'
+
+  if (target === 'all') return true
+  if (target === 'events') return itemType === 'event'
+  if (target === 'products') return itemType === 'product_physical' || itemType === 'product_digital'
+  if (target === 'subscriptions') return itemType === 'subscription'
+
+  return false
+}
+
+function calculateEligibleSubtotalPence(items: any[], appliesTo?: string | null): number {
+  return items.reduce((sum, item) => {
+    if (!isItemEligibleForCoupon(item, appliesTo)) {
+      return sum
+    }
+
+    return sum + getItemLinePence(item)
+  }, 0)
+}
+
+async function validateCouponForCheckout(
+  supabase: any,
+  items: any[],
+  customerEmail: string,
+  discountCode: string,
+): Promise<AppliedCoupon | null> {
+  if (!discountCode) {
+    return null
+  }
+
+  const { data: coupon, error: couponError } = await supabase
+    .from('coupons')
+    .select('id, code, name, discount_type, discount_value, is_active, valid_from, valid_until, usage_limit, usage_count, per_customer_limit, applies_to')
+    .eq('code', discountCode)
+    .maybeSingle()
+
+  if (couponError) {
+    console.error('Error loading coupon:', couponError)
+    throw new Error('Unable to validate discount code. Please try again.')
+  }
+
+  if (!coupon) {
+    throw new Error(`Discount code "${discountCode}" is not valid.`)
+  }
+
+  if (!coupon.is_active) {
+    throw new Error(`Discount code "${discountCode}" is not active.`)
+  }
+
+  const now = Date.now()
+  if (coupon.valid_from && new Date(coupon.valid_from).getTime() > now) {
+    throw new Error(`Discount code "${discountCode}" is not active yet.`)
+  }
+
+  if (coupon.valid_until && new Date(coupon.valid_until).getTime() < now) {
+    throw new Error(`Discount code "${discountCode}" has expired.`)
+  }
+
+  if (
+    typeof coupon.usage_limit === 'number' &&
+    coupon.usage_limit > 0 &&
+    Number(coupon.usage_count || 0) >= coupon.usage_limit
+  ) {
+    throw new Error(`Discount code "${discountCode}" has reached its usage limit.`)
+  }
+
+  if (typeof coupon.per_customer_limit === 'number' && coupon.per_customer_limit > 0) {
+    const { count, error: redemptionError } = await supabase
+      .from('coupon_redemptions')
+      .select('id', { count: 'exact', head: true })
+      .eq('coupon_id', coupon.id)
+      .eq('customer_email', customerEmail.trim().toLowerCase())
+
+    if (redemptionError) {
+      console.error('Error checking coupon redemption history:', redemptionError)
+      throw new Error('Unable to validate discount code. Please try again.')
+    }
+
+    if ((count || 0) >= coupon.per_customer_limit) {
+      throw new Error(`Discount code "${discountCode}" has already been used for this customer.`)
+    }
+  }
+
+  const eligibleSubtotalPence = calculateEligibleSubtotalPence(items, coupon.applies_to)
+
+  if (eligibleSubtotalPence <= 0) {
+    throw new Error(`Discount code "${discountCode}" does not apply to the items in your cart.`)
+  }
+
+  const discountValue = Number(coupon.discount_value || 0)
+  let discountPence = 0
+
+  if (coupon.discount_type === 'percentage') {
+    discountPence = Math.round(eligibleSubtotalPence * Math.min(discountValue, 100) / 100)
+  } else if (coupon.discount_type === 'fixed') {
+    discountPence = Math.min(toPence(discountValue), eligibleSubtotalPence)
+  }
+
+  if (discountPence <= 0) {
+    throw new Error(`Discount code "${discountCode}" does not apply a discount to this order.`)
+  }
+
+  return {
+    coupon,
+    discountPence,
+    eligibleSubtotalPence,
   }
 }
 
@@ -63,12 +238,14 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Parse request body
-    const { items, customer, shipping } = await req.json()
+    const { items, customer, shipping, discountCode } = await req.json()
+    const normalizedDiscountCode = normalizeDiscountCode(discountCode)
 
     console.log('📦 Request data:', {
       itemCount: items?.length,
       customerEmail: customer?.email,
       hasShipping: !!shipping,
+      discountCode: normalizedDiscountCode || null,
     })
     console.log('📦 Items:', JSON.stringify(items, null, 2))
 
@@ -84,8 +261,26 @@ serve(async (req) => {
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     const hasPhysicalItems = items.some(item => item.type === 'product_physical')
     const shippingCost = hasPhysicalItems ? 5.00 : 0.00
-    const total = subtotal + shippingCost
+    const totalBeforeDiscount = subtotal + shippingCost
+    const appliedCoupon = await validateCouponForCheckout(
+      supabase,
+      items,
+      customer.email,
+      normalizedDiscountCode,
+    )
+    const discountAmount = appliedCoupon ? appliedCoupon.discountPence / 100 : 0
+    const total = Math.max(0, totalBeforeDiscount - discountAmount)
     const vat = total * 0.20 / 1.20 // VAT is included in prices
+
+    console.log('🏷️ Coupon validation result:', appliedCoupon
+      ? {
+          code: appliedCoupon.coupon.code,
+          couponId: appliedCoupon.coupon.id,
+          appliesTo: appliedCoupon.coupon.applies_to || 'all',
+          discountPence: appliedCoupon.discountPence,
+          eligibleSubtotalPence: appliedCoupon.eligibleSubtotalPence,
+        }
+      : null)
 
     // Validate inventory and capacity
     for (const item of items) {
@@ -201,7 +396,7 @@ serve(async (req) => {
     // Create line items for Stripe
     const lineItems = items.map(item => ({
       price_data: {
-        currency: 'gbp',
+        currency: GBP_CURRENCY,
         product_data: {
           name: sanitizeMetadataTitle(item.event_title, item.title),
           description: item.type === 'event' 
@@ -217,7 +412,7 @@ serve(async (req) => {
     if (shippingCost > 0) {
       lineItems.push({
         price_data: {
-          currency: 'gbp',
+          currency: GBP_CURRENCY,
           product_data: {
             name: 'Shipping',
           },
@@ -254,18 +449,44 @@ serve(async (req) => {
     })
     console.log('📦 Attendees data keys:', Object.keys(attendeesData))
 
+    const checkoutAppUrl = getCheckoutAppUrl()
+    let stripeCouponId = ''
+
+    if (appliedCoupon) {
+      const stripeCoupon = await stripe.coupons.create({
+        duration: 'once',
+        amount_off: appliedCoupon.discountPence,
+        currency: GBP_CURRENCY,
+        name: `Discount ${appliedCoupon.coupon.code}`,
+        metadata: {
+          app_coupon_id: appliedCoupon.coupon.id,
+          app_coupon_code: appliedCoupon.coupon.code,
+        },
+      })
+
+      stripeCouponId = stripeCoupon.id
+    }
+
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomer.id,
       line_items: lineItems,
       mode: 'payment',
-      success_url: `${Deno.env.get('APP_URL') || 'http://localhost:5173'}/order/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${Deno.env.get('APP_URL') || 'http://localhost:5173'}/checkout`,
+      success_url: `${checkoutAppUrl}/order/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${checkoutAppUrl}/checkout`,
+      ...(stripeCouponId ? { discounts: [{ coupon: stripeCouponId }] } : {}),
       metadata: {
         customer_email: customer.email,
         customer_first_name: customer.firstName,
         customer_last_name: customer.lastName,
         customer_phone: customer.phone || '',
+        discount_code: appliedCoupon?.coupon.code || normalizedDiscountCode,
+        coupon_id: appliedCoupon?.coupon.id || '',
+        coupon_applies_to: appliedCoupon?.coupon.applies_to || '',
+        discount_type: appliedCoupon?.coupon.discount_type || '',
+        discount_value: appliedCoupon ? String(appliedCoupon.coupon.discount_value) : '',
+        discount_amount: discountAmount.toFixed(2),
+        stripe_coupon_id: stripeCouponId,
         shipping_name: shipping?.name || '',
         shipping_line1: shipping?.address?.line1 || '',
         shipping_line2: shipping?.address?.line2 || '',
@@ -275,6 +496,7 @@ serve(async (req) => {
         subtotal: subtotal.toFixed(2),
         shipping_cost: shippingCost.toFixed(2),
         vat: vat.toFixed(2),
+        pre_discount_total: totalBeforeDiscount.toFixed(2),
         total: total.toFixed(2),
         ...itemMetadataFields,
         ...attendeesData, // Spread attendees data as separate metadata fields

@@ -10,12 +10,12 @@ echo ""
 echo "This will configure where users are redirected after Stripe checkout."
 echo ""
 echo "Current domains:"
-echo "  - Netlify (current): https://lola-workshops.netlify.app"
+echo "  - Netlify (current): https://lola-as-one.netlify.app"
 echo "  - Custom domain (future): https://www.lotsoflovelyart.com"
 echo ""
 
 # Prompt for production URL
-read -p "Enter your production URL (e.g., https://lola-workshops.netlify.app): " PRODUCTION_URL
+read -p "Enter your production URL (e.g., https://lola-as-one.netlify.app): " PRODUCTION_URL
 
 # Validate URL format
 if [[ ! $PRODUCTION_URL =~ ^https?:// ]]; then
@@ -70,4 +70,3 @@ else
   echo "❌ Failed to set APP_URL secret"
   exit 1
 fi
-
