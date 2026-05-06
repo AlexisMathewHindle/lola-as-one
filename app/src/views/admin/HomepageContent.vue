@@ -1097,6 +1097,7 @@ const saving = ref(false)
 const error = ref(null)
 const homePageId = ref(null)
 const pageOptions = ref([])
+const originalSectionConfigs = ref(new Map())
 
 const heroSection = reactive(createHeroSection())
 const scheduleSection = reactive(createScheduleSection())
@@ -1140,20 +1141,83 @@ const bannerIconOptions = [
 ]
 
 function cloneValue(value) {
+  if (value === undefined) return undefined
   return JSON.parse(JSON.stringify(value))
+}
+
+function isPlainObject(value) {
+  return Object.prototype.toString.call(value) === '[object Object]'
+}
+
+function valuesEqual(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
+function diffJsonValue(originalValue, nextValue) {
+  if (valuesEqual(originalValue, nextValue)) return undefined
+
+  if (Array.isArray(originalValue) && Array.isArray(nextValue)) {
+    const canPatchByIndex = originalValue.length === nextValue.length &&
+      nextValue.every(isPlainObject) &&
+      originalValue.every(isPlainObject)
+
+    if (!canPatchByIndex) return cloneValue(nextValue)
+
+    return nextValue.map((item, index) => {
+      const itemPatch = diffJsonValue(originalValue[index], item)
+
+      if (itemPatch === undefined) {
+        return item.id ? { id: item.id } : {}
+      }
+
+      if (isPlainObject(itemPatch) && item.id && itemPatch.id === undefined) {
+        return { id: item.id, ...itemPatch }
+      }
+
+      return itemPatch
+    })
+  }
+
+  if (isPlainObject(originalValue) && isPlainObject(nextValue)) {
+    const patch = {}
+
+    Object.entries(nextValue).forEach(([key, value]) => {
+      const fieldPatch = diffJsonValue(originalValue[key], value)
+      if (fieldPatch !== undefined) {
+        patch[key] = fieldPatch
+      }
+    })
+
+    return Object.keys(patch).length ? patch : undefined
+  }
+
+  return cloneValue(nextValue)
+}
+
+function configPatchForSection(section, nextConfig) {
+  if (!section.id || !originalSectionConfigs.value.has(section.section_key)) {
+    return nextConfig
+  }
+
+  return diffJsonValue(originalSectionConfigs.value.get(section.section_key), nextConfig) || {}
 }
 
 function createDefaultCta(link = {}) {
   return {
+    id: link.id || undefined,
     label: link.label || '',
     page_key: link.page_key || '',
     href: link.href || '',
-    open_in_new_tab: Boolean(link.open_in_new_tab)
+    open_in_new_tab: Boolean(link.open_in_new_tab),
+    editor_link_type: link.page_key
+      ? 'page'
+      : (link.href ? 'custom' : 'page')
   }
 }
 
 function createDefaultHeroSlide(slide = {}) {
   return {
+    id: slide.id || undefined,
     eyebrow: slide.eyebrow || '',
     headline: slide.headline || '',
     subheading: slide.subheading || '',
@@ -1214,6 +1278,7 @@ function createScheduleSection(section = {}) {
 
 function createGalleryItem(item = {}) {
   return {
+    id: item.id || undefined,
     image_url: item.image_url || '',
     alt: item.alt || '',
     background: item.background || 'linear-gradient(135deg, #ead9bf, #d7a774)'
@@ -1222,6 +1287,7 @@ function createGalleryItem(item = {}) {
 
 function createFeatureColumnItem(item = {}) {
   return {
+    id: item.id || undefined,
     icon: item.icon || 'book-open',
     title: item.title || '',
     body: item.body || ''
@@ -1266,6 +1332,7 @@ function createFeatureColumnsSection(section = {}) {
 function createBannerIcon(icon = {}) {
   if (typeof icon === 'string') {
     return {
+      id: undefined,
       type: 'icon',
       name: icon,
       image_url: '',
@@ -1275,6 +1342,7 @@ function createBannerIcon(icon = {}) {
   }
 
   return {
+    id: icon.id || undefined,
     type: icon.image_url ? 'image' : 'icon',
     name: icon.name || 'heart',
     image_url: icon.image_url || '',
@@ -1289,6 +1357,7 @@ function createBannerItem(item = {}) {
     : (typeof item.body === 'string' && item.body ? [item.body] : [])
 
   return {
+    id: item.id || undefined,
     image_url: item.image_url || '',
     image_alt: item.image_alt || '',
     image_side: item.image_side || 'left',
@@ -1390,6 +1459,7 @@ function createGallerySection(section = {}) {
 
 function createTestimonialItem(item = {}) {
   return {
+    id: item.id || undefined,
     quote: item.quote || '',
     name: item.name || '',
     role: item.role || '',
@@ -1439,14 +1509,34 @@ function createTestimonialSection(section = {}) {
 }
 
 function applySection(target, source) {
-  Object.assign(target, cloneValue(source))
+  const cloned = cloneValue(source)
+  const nextConfig = cloned.config_json || {}
+
+  target.id = cloned.id ?? null
+  target.page_id = cloned.page_id ?? null
+  target.section_key = cloned.section_key || target.section_key
+  target.section_type = cloned.section_type || target.section_type
+  target.sort_order = cloned.sort_order ?? target.sort_order
+  target.is_enabled = cloned.is_enabled ?? target.is_enabled
+
+  Object.keys(target.config_json || {}).forEach(key => {
+    delete target.config_json[key]
+  })
+
+  Object.assign(target.config_json, nextConfig)
 }
 
 function ctaLinkType(cta) {
+  if (cta?.editor_link_type === 'custom' || cta?.editor_link_type === 'page') {
+    return cta.editor_link_type
+  }
+
   return cta?.href ? 'custom' : 'page'
 }
 
 function setCtaLinkType(cta, type) {
+  cta.editor_link_type = type
+
   if (type === 'custom') {
     cta.page_key = ''
     cta.href = cta.href || ''
@@ -1562,17 +1652,24 @@ function moveGalleryItem(index, delta) {
 
 function normalizeCta(cta) {
   const normalized = {
-    label: cta?.label?.trim() || ''
+    id: cta?.id || undefined,
+    label: cta?.label?.trim() || '',
+    href: null,
+    page_key: null,
+    open_in_new_tab: false
   }
 
   if (cta?.href?.trim()) {
     normalized.href = cta.href.trim()
+    normalized.page_key = null
     if (cta.open_in_new_tab) normalized.open_in_new_tab = true
     return normalized
   }
 
   if (cta?.page_key?.trim()) {
     normalized.page_key = cta.page_key.trim()
+    normalized.href = null
+    normalized.open_in_new_tab = false
     return normalized
   }
 
@@ -1584,6 +1681,133 @@ function normalizeParagraphs(value) {
     .split(/\n\s*\n/)
     .map(paragraph => paragraph.trim())
     .filter(Boolean)
+}
+
+function buildHeroConfigForSave() {
+  return {
+    autoplay_ms: Math.max(2500, Number(heroConfig.autoplay_ms) || 5000),
+    slides: heroSlides.value.map(slide => ({
+      id: slide.id || undefined,
+      eyebrow: slide.eyebrow?.trim() || '',
+      headline: slide.headline?.trim() || '',
+      subheading: slide.subheading?.trim() || '',
+      image_url: slide.image_url?.trim() || '',
+      background: slide.background?.trim() || undefined,
+      preview_background: slide.preview_background?.trim() || undefined,
+      primary_cta: normalizeCta(slide.primary_cta),
+      secondary_cta: normalizeCta(slide.secondary_cta)
+    }))
+  }
+}
+
+function buildScheduleConfigForSave() {
+  return {
+    eyebrow: scheduleConfig.eyebrow?.trim() || '',
+    title: scheduleConfig.title?.trim() || '',
+    intro: scheduleConfig.intro?.trim() || '',
+    show_view_toggle: Boolean(scheduleConfig.show_view_toggle),
+    primary_cta: normalizeCta(scheduleConfig.primary_cta)
+  }
+}
+
+function buildFeatureColumnsConfigForSave() {
+  return {
+    layout_style: 'columns',
+    items: featureColumnItems.value
+      .map(item => ({
+        id: item.id || undefined,
+        icon: item.icon || 'book-open',
+        title: item.title?.trim() || '',
+        body: item.body?.trim() || ''
+      }))
+      .filter(item => item.title || item.body)
+  }
+}
+
+function buildBannerConfigForSave() {
+  return {
+    layout_style: 'banners',
+    items: bannerItems.value
+      .map(item => ({
+        id: item.id || undefined,
+        image_url: item.image_url?.trim() || '',
+        image_alt: item.image_alt?.trim() || '',
+        image_side: item.image_side || 'left',
+        eyebrow: item.eyebrow?.trim() || '',
+        title: item.title?.trim() || '',
+        body: normalizeParagraphs(item.body_text),
+        ctas: (item.ctas || [])
+          .map(normalizeCta)
+          .filter(Boolean),
+        icons: (item.icons || [])
+          .map(icon => {
+            if (icon.type === 'image' && icon.image_url?.trim()) {
+              return {
+                id: icon.id || undefined,
+                image_url: icon.image_url.trim(),
+                alt: icon.alt?.trim() || '',
+                name: null,
+                color: ''
+              }
+            }
+
+            return {
+              id: icon.id || undefined,
+              name: icon.name || 'heart',
+              image_url: null,
+              alt: null,
+              color: icon.color?.trim() || ''
+            }
+          })
+          .filter(icon => icon.name || icon.image_url)
+      }))
+      .filter(item => item.title || item.image_url || item.body.length)
+  }
+}
+
+function buildGalleryConfigForSave() {
+  return {
+    eyebrow: galleryConfig.eyebrow?.trim() || '',
+    title: galleryConfig.title?.trim() || '',
+    intro: galleryConfig.intro?.trim() || '',
+    items: galleryItems.value
+      .map(item => ({
+        id: item.id || undefined,
+        image_url: item.image_url?.trim() || '',
+        alt: item.alt?.trim() || '',
+        background: item.background?.trim() || ''
+      }))
+      .filter(item => item.image_url || item.alt || item.background)
+  }
+}
+
+function buildTestimonialConfigForSave() {
+  return {
+    eyebrow: testimonialConfig.eyebrow?.trim() || '',
+    title: testimonialConfig.title?.trim() || '',
+    intro: testimonialConfig.intro?.trim() || '',
+    autoplay_ms: Math.max(2500, Number(testimonialConfig.autoplay_ms) || 6000),
+    items: testimonialItems.value
+      .map(item => ({
+        id: item.id || undefined,
+        quote: item.quote?.trim() || '',
+        name: item.name?.trim() || '',
+        role: item.role?.trim() || '',
+        stars: Math.min(5, Math.max(1, Number(item.stars) || 5))
+      }))
+      .filter(item => item.quote || item.name)
+  }
+}
+
+function rememberOriginalSectionConfigs() {
+  originalSectionConfigs.value = new Map([
+    [heroSection.section_key, cloneValue(buildHeroConfigForSave())],
+    [scheduleSection.section_key, cloneValue(buildScheduleConfigForSave())],
+    [featureColumnsSection.section_key, cloneValue(buildFeatureColumnsConfigForSave())],
+    [bannerSection.section_key, cloneValue(buildBannerConfigForSave())],
+    [gallerySection.section_key, cloneValue(buildGalleryConfigForSave())],
+    [testimonialSection.section_key, cloneValue(buildTestimonialConfigForSave())]
+  ])
 }
 
 function buildSectionPayload(section, config) {
@@ -1619,6 +1843,7 @@ async function loadHomepageContent() {
     applySection(bannerSection, createBannerSection(sectionsByKey.get('home_banners')))
     applySection(gallerySection, createGallerySection(sectionsByKey.get('home_creative_slider')))
     applySection(testimonialSection, createTestimonialSection(sectionsByKey.get('home_testimonials')))
+    rememberOriginalSectionConfigs()
   } catch (err) {
     error.value = err.message || 'Failed to load homepage content'
     console.error('Error loading homepage content:', err)
@@ -1636,95 +1861,20 @@ async function handleSave() {
     if (!user) throw new Error('You must be logged in to update homepage content')
     if (!homePageId.value) throw new Error('Homepage record not loaded')
 
-    const payload = [
-      buildSectionPayload(heroSection, {
-        autoplay_ms: Math.max(2500, Number(heroConfig.autoplay_ms) || 5000),
-        slides: heroSlides.value.map(slide => ({
-          eyebrow: slide.eyebrow?.trim() || '',
-          headline: slide.headline?.trim() || '',
-          subheading: slide.subheading?.trim() || '',
-          image_url: slide.image_url?.trim() || '',
-          background: slide.background?.trim() || undefined,
-          preview_background: slide.preview_background?.trim() || undefined,
-          primary_cta: normalizeCta(slide.primary_cta),
-          secondary_cta: normalizeCta(slide.secondary_cta)
-        }))
-      }),
-      buildSectionPayload(scheduleSection, {
-        eyebrow: scheduleConfig.eyebrow?.trim() || '',
-        title: scheduleConfig.title?.trim() || '',
-        intro: scheduleConfig.intro?.trim() || '',
-        show_view_toggle: Boolean(scheduleConfig.show_view_toggle),
-        primary_cta: normalizeCta(scheduleConfig.primary_cta)
-      }),
-      buildSectionPayload(featureColumnsSection, {
-        layout_style: 'columns',
-        items: featureColumnItems.value
-          .map(item => ({
-            icon: item.icon || 'book-open',
-            title: item.title?.trim() || '',
-            body: item.body?.trim() || ''
-          }))
-          .filter(item => item.title || item.body)
-      }),
-      buildSectionPayload(bannerSection, {
-        layout_style: 'banners',
-        items: bannerItems.value
-          .map(item => ({
-            image_url: item.image_url?.trim() || '',
-            image_alt: item.image_alt?.trim() || '',
-            image_side: item.image_side || 'left',
-            eyebrow: item.eyebrow?.trim() || '',
-            title: item.title?.trim() || '',
-            body: normalizeParagraphs(item.body_text),
-            ctas: (item.ctas || [])
-              .map(normalizeCta)
-              .filter(Boolean),
-            icons: (item.icons || [])
-              .map(icon => {
-                if (icon.type === 'image' && icon.image_url?.trim()) {
-                  return {
-                    image_url: icon.image_url.trim(),
-                    alt: icon.alt?.trim() || '',
-                    color: ''
-                  }
-                }
+    const nextHeroConfig = buildHeroConfigForSave()
+    const nextScheduleConfig = buildScheduleConfigForSave()
+    const nextFeatureColumnsConfig = buildFeatureColumnsConfigForSave()
+    const nextBannerConfig = buildBannerConfigForSave()
+    const nextGalleryConfig = buildGalleryConfigForSave()
+    const nextTestimonialConfig = buildTestimonialConfigForSave()
 
-                return {
-                  name: icon.name || 'heart',
-                  color: icon.color?.trim() || ''
-                }
-              })
-              .filter(icon => icon.name || icon.image_url)
-          }))
-          .filter(item => item.title || item.image_url || item.body.length)
-      }),
-      buildSectionPayload(gallerySection, {
-        eyebrow: galleryConfig.eyebrow?.trim() || '',
-        title: galleryConfig.title?.trim() || '',
-        intro: galleryConfig.intro?.trim() || '',
-        items: galleryItems.value
-          .map(item => ({
-            image_url: item.image_url?.trim() || '',
-            alt: item.alt?.trim() || '',
-            background: item.background?.trim() || undefined
-          }))
-          .filter(item => item.image_url || item.alt || item.background)
-      }),
-      buildSectionPayload(testimonialSection, {
-        eyebrow: testimonialConfig.eyebrow?.trim() || '',
-        title: testimonialConfig.title?.trim() || '',
-        intro: testimonialConfig.intro?.trim() || '',
-        autoplay_ms: Math.max(2500, Number(testimonialConfig.autoplay_ms) || 6000),
-        items: testimonialItems.value
-          .map(item => ({
-            quote: item.quote?.trim() || '',
-            name: item.name?.trim() || '',
-            role: item.role?.trim() || '',
-            stars: Math.min(5, Math.max(1, Number(item.stars) || 5))
-          }))
-          .filter(item => item.quote || item.name)
-      })
+    const payload = [
+      buildSectionPayload(heroSection, configPatchForSection(heroSection, nextHeroConfig)),
+      buildSectionPayload(scheduleSection, configPatchForSection(scheduleSection, nextScheduleConfig)),
+      buildSectionPayload(featureColumnsSection, configPatchForSection(featureColumnsSection, nextFeatureColumnsConfig)),
+      buildSectionPayload(bannerSection, configPatchForSection(bannerSection, nextBannerConfig)),
+      buildSectionPayload(gallerySection, configPatchForSection(gallerySection, nextGalleryConfig)),
+      buildSectionPayload(testimonialSection, configPatchForSection(testimonialSection, nextTestimonialConfig))
     ].map(section => ({
       ...section,
       created_by: user.id,

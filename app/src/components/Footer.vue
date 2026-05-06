@@ -184,6 +184,17 @@ const fallbackOpeningTimes = [
   { day: 'Sun', hours: '9.30am - 1pm' }
 ]
 
+const normalizeOpeningTimes = (entries) => {
+  if (!Array.isArray(entries)) return []
+
+  return entries
+    .map(entry => ({
+      day: String(entry?.day || '').trim(),
+      hours: String(entry?.hours || '').trim()
+    }))
+    .filter(entry => entry.day && entry.hours)
+}
+
 const siteName = ref('Lola As One')
 const siteTagline = ref('Where creativity meets community.')
 const footerPrimaryItems = ref([...fallbackFooterPrimaryItems])
@@ -257,6 +268,11 @@ const loadFooterSettings = async () => {
 
     if (settings.copyright_text?.value) {
       copyrightText.value = settings.copyright_text.value
+    }
+
+    const savedOpeningTimes = normalizeOpeningTimes(settings.opening_times?.value)
+    if (savedOpeningTimes.length) {
+      openingTimes.value = savedOpeningTimes
     }
 
     if (settings.social_links) {

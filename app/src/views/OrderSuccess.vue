@@ -1,10 +1,26 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <!-- Loading State -->
       <div v-if="loading" class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
         <font-awesome-icon icon="spinner" class="w-12 h-12 text-primary-600 animate-spin mb-4" />
-        <p class="text-gray-600">Loading your order details...</p>
+        <p class="text-gray-600">{{ loadingMessage }}</p>
+      </div>
+
+      <!-- Pending State -->
+      <div v-else-if="pending" class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 sm:p-12 text-center">
+        <div class="w-24 h-24 mx-auto mb-6 bg-blue-100 rounded-full flex items-center justify-center">
+          <font-awesome-icon icon="spinner" class="w-12 h-12 text-blue-600 animate-spin" />
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-display font-bold text-gray-900 mb-3">
+          Finalising Your Order
+        </h1>
+        <p class="text-gray-600 mb-2">
+          Stripe has confirmed your payment. We are waiting for the booking record to finish processing.
+        </p>
+        <p class="text-sm text-gray-500">
+          This page will refresh automatically.
+        </p>
       </div>
 
       <!-- Error State -->
@@ -30,7 +46,7 @@
       <!-- Success State -->
       <div v-else class="space-y-6">
         <!-- Success Message -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 border-t-4 border-t-primary-500 p-6 sm:p-8">
           <div class="text-center">
             <!-- Success Icon -->
             <div class="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 bg-success-100 rounded-full flex items-center justify-center">
@@ -39,16 +55,25 @@
 
             <!-- Success Heading -->
             <h1 class="text-2xl sm:text-3xl font-display font-bold text-gray-900 mb-3">
-              Thank You for Your Order!
+              Your booking is confirmed
             </h1>
             <p class="text-base sm:text-lg text-gray-600 mb-6">
-              Your order has been successfully placed and confirmed.
+              We have received your payment and saved your order details.
             </p>
 
-            <!-- Order Number -->
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-              <span class="text-sm text-gray-600">Order Number:</span>
-              <span class="text-base font-bold text-gray-900">{{ orderNumber }}</span>
+            <div class="grid grid-cols-1 overflow-hidden rounded-lg border border-gray-200 text-left sm:grid-cols-3 sm:divide-x sm:divide-gray-200">
+              <div class="p-4">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Order number</p>
+                <p class="mt-1 text-base font-bold text-gray-900">{{ orderNumber }}</p>
+              </div>
+              <div class="p-4">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Total paid</p>
+                <p class="mt-1 text-base font-bold text-gray-900">£{{ total.toFixed(2) }}</p>
+              </div>
+              <div class="p-4">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Placed on</p>
+                <p class="mt-1 text-base font-bold text-gray-900">{{ formatDateTime(createdAt) }}</p>
+              </div>
             </div>
 
             <!-- Email Confirmation Notice -->
@@ -79,7 +104,7 @@
             <div
               v-for="item in displayOrderItems"
               :key="item.id"
-              class="flex gap-4 pb-4 border-b border-gray-200 last:border-0 last:pb-0"
+              class="flex flex-col gap-4 pb-5 border-b border-gray-200 last:border-0 last:pb-0 sm:flex-row"
             >
               <!-- Item Icon/Image -->
               <div class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
@@ -110,6 +135,21 @@
                     <font-awesome-icon icon="clock" class="w-3 h-3" />
                     {{ formatTime(item.event_start_time) }}
                   </span>
+                </div>
+
+                <div v-if="item.attendees && item.attendees.length" class="mt-3">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Attendees
+                  </p>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <span
+                      v-for="(attendee, attendeeIndex) in item.attendees"
+                      :key="attendee.id || `${item.id}-attendee-${attendeeIndex}`"
+                      class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800"
+                    >
+                      {{ attendeeFullName(attendee, attendeeIndex) }}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -156,6 +196,78 @@
           </div>
         </div>
 
+        <!-- Booking Details -->
+        <div v-if="eventBookings.length" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+          <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 class="text-xl font-display font-bold text-gray-900">
+                Workshop Details
+              </h2>
+              <p class="mt-1 text-sm text-gray-600">
+                {{ totalBookedAttendees }} {{ totalBookedAttendees === 1 ? 'place' : 'places' }} booked across {{ eventBookings.length }} {{ eventBookings.length === 1 ? 'workshop' : 'workshops' }}.
+              </p>
+            </div>
+          </div>
+
+          <div class="divide-y divide-gray-200">
+            <div
+              v-for="booking in eventBookings"
+              :key="booking.id"
+              class="py-5 first:pt-0 last:pb-0"
+            >
+              <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 class="text-base font-semibold text-gray-900">
+                    {{ booking.title }}
+                  </h3>
+                  <div class="mt-2 flex flex-wrap gap-3 text-sm text-gray-600">
+                    <span v-if="booking.eventDate" class="inline-flex items-center gap-1">
+                      <font-awesome-icon icon="calendar" class="h-3 w-3" />
+                      {{ formatDate(booking.eventDate) }}
+                    </span>
+                    <span v-if="booking.eventStartTime" class="inline-flex items-center gap-1">
+                      <font-awesome-icon icon="clock" class="h-3 w-3" />
+                      {{ formatTime(booking.eventStartTime) }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="rounded-full bg-success-100 px-3 py-1 text-xs font-semibold text-success-800">
+                    {{ formatStatusLabel(booking.status || 'confirmed') }}
+                  </span>
+                  <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                    {{ booking.numberOfAttendees }} {{ booking.numberOfAttendees === 1 ? 'attendee' : 'attendees' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Attendee names
+                </p>
+                <div v-if="booking.attendees && booking.attendees.length" class="mt-2 grid gap-2 sm:grid-cols-2">
+                  <div
+                    v-for="(attendee, attendeeIndex) in booking.attendees"
+                    :key="attendee.id || `${booking.id}-attendee-${attendeeIndex}`"
+                    class="rounded-lg border border-gray-200 px-3 py-2"
+                  >
+                    <p class="text-sm font-semibold text-gray-900">
+                      {{ attendeeFullName(attendee, attendeeIndex) }}
+                    </p>
+                    <p v-if="attendee.email" class="mt-0.5 text-xs text-gray-500">
+                      {{ attendee.email }}
+                    </p>
+                  </div>
+                </div>
+                <p v-else class="mt-2 text-sm text-gray-600">
+                  Attendee names were not captured for this booking.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Shipping Information (only if physical items) -->
         <div v-if="hasPhysicalItems" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
           <h2 class="text-xl font-display font-bold text-gray-900 mb-4">
@@ -182,35 +294,23 @@
             What's Next?
           </h2>
 
-          <!-- Digital Products -->
-          <div v-if="hasDigitalProducts" class="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-            <div class="flex items-start gap-3">
-              <font-awesome-icon icon="download" class="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <p class="font-semibold text-purple-900 mb-1">Digital Downloads</p>
-                <p class="text-sm text-purple-700">Your digital products are ready! Check your email for download links.</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Events -->
-          <div v-if="hasEvents" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div class="flex items-start gap-3">
-              <font-awesome-icon icon="calendar" class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <p class="font-semibold text-blue-900 mb-1">Workshop Confirmation</p>
-                <p class="text-sm text-blue-700">Your workshop booking is confirmed! We'll send you a reminder email before the event.</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Physical Items -->
-          <div v-if="hasPhysicalItems" class="p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div class="flex items-start gap-3">
-              <font-awesome-icon icon="box" class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <p class="font-semibold text-green-900 mb-1">Shipping Updates</p>
-                <p class="text-sm text-green-700">We'll send you tracking information once your order ships.</p>
+          <div class="grid gap-4">
+            <div
+              v-for="step in nextStepCards"
+              :key="step.title"
+              class="rounded-lg border p-4"
+              :class="getStepCardClass(step.tone)"
+            >
+              <div class="flex items-start gap-3">
+                <font-awesome-icon
+                  :icon="step.icon"
+                  class="mt-0.5 h-5 w-5 flex-shrink-0"
+                  :class="getStepIconClass(step.tone)"
+                />
+                <div>
+                  <p class="font-semibold text-gray-900 mb-1">{{ step.title }}</p>
+                  <p class="text-sm text-gray-700">{{ step.description }}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -239,20 +339,22 @@
 
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
 import { useCartStore } from '../stores/cart'
 
 const route = useRoute()
-const router = useRouter()
 const cartStore = useCartStore()
 
 // State
 const loading = ref(true)
+const pending = ref(false)
 const error = ref(null)
 const orderNumber = ref('')
 const customerEmail = ref('')
+const createdAt = ref('')
 const orderItems = ref([])
+const bookings = ref([])
 const subtotal = ref(0)
 const shipping = ref(0)
 const vat = ref(0)
@@ -263,10 +365,45 @@ const shippingAddressLine2 = ref('')
 const shippingCity = ref('')
 const shippingPostcode = ref('')
 const shippingCountry = ref('')
+const retryAttempts = ref(0)
+const retryTimer = ref(null)
+const MAX_ORDER_FETCH_ATTEMPTS = 12
+const ORDER_RETRY_DELAY_MS = 3000
 
 // Computed properties
+const loadingMessage = computed(() => {
+  return pending.value
+    ? 'Finalising your order details...'
+    : 'Loading your order details...'
+})
+
 const displayOrderItems = computed(() => {
   return orderItems.value.filter(item => item.item_type !== 'discount')
+})
+
+const eventBookings = computed(() => {
+  if (bookings.value.length > 0) {
+    return bookings.value
+  }
+
+  return displayOrderItems.value
+    .filter(item => item.item_type === 'event')
+    .map(item => ({
+      id: item.booking?.id || item.id,
+      orderItemId: item.id,
+      title: item.title,
+      eventDate: item.event_date,
+      eventStartTime: item.event_start_time,
+      status: item.booking?.status || 'confirmed',
+      numberOfAttendees: item.booking?.numberOfAttendees || item.quantity,
+      attendees: item.attendees || []
+    }))
+})
+
+const totalBookedAttendees = computed(() => {
+  return eventBookings.value.reduce((sum, booking) => {
+    return sum + Number(booking.numberOfAttendees || 0)
+  }, 0)
 })
 
 const discountAmount = computed(() => {
@@ -286,7 +423,64 @@ const hasDigitalProducts = computed(() => {
 })
 
 const hasEvents = computed(() => {
-  return displayOrderItems.value.some(item => item.item_type === 'event')
+  return eventBookings.value.length > 0
+})
+
+const hasSubscription = computed(() => {
+  return displayOrderItems.value.some(item =>
+    item.item_type === 'subscription' ||
+    item.item_type === 'subscription_box' ||
+    item.item_type === 'subscription_initial'
+  )
+})
+
+const nextStepCards = computed(() => {
+  const cards = []
+
+  if (hasEvents.value) {
+    cards.push({
+      tone: 'blue',
+      icon: 'calendar-check',
+      title: 'Workshop confirmation',
+      description: 'Your workshop place is confirmed. We will email any practical details and reminders before the session.'
+    })
+  }
+
+  if (hasDigitalProducts.value) {
+    cards.push({
+      tone: 'purple',
+      icon: 'download',
+      title: 'Digital downloads',
+      description: 'Download links and access details will be sent to your confirmation email address.'
+    })
+  }
+
+  if (hasPhysicalItems.value) {
+    cards.push({
+      tone: 'green',
+      icon: 'box',
+      title: 'Shipping updates',
+      description: 'We will send tracking information once your physical items have been packed and shipped.'
+    })
+  }
+
+  if (hasSubscription.value) {
+    cards.push({
+      tone: 'amber',
+      icon: 'sync',
+      title: 'Subscription setup',
+      description: 'Your subscription is being set up. You will receive subscription and billing details by email.'
+    })
+  }
+
+  cards.push({
+    tone: 'gray',
+    icon: 'envelope',
+    title: 'Keep your confirmation email',
+    description: `A receipt and order summary has been sent to ${customerEmail.value || 'your email address'}.`
+  })
+
+  return cards
 })
 
 const estimatedDelivery = computed(() => {
@@ -306,6 +500,9 @@ const getItemIcon = (itemType) => {
     case 'event': return 'calendar'
     case 'product_digital': return 'download'
     case 'product_physical': return 'box'
+    case 'subscription':
+    case 'subscription_box':
+      return 'sync'
     default: return 'box'
   }
 }
@@ -315,6 +512,9 @@ const getItemTypeBadgeClass = (itemType) => {
     case 'event': return 'bg-purple-100 text-purple-800'
     case 'product_digital': return 'bg-blue-100 text-blue-800'
     case 'product_physical': return 'bg-orange-100 text-orange-800'
+    case 'subscription':
+    case 'subscription_box':
+      return 'bg-success-100 text-success-800'
     default: return 'bg-gray-100 text-gray-800'
   }
 }
@@ -324,7 +524,47 @@ const getItemTypeLabel = (itemType) => {
     case 'event': return 'Workshop'
     case 'product_digital': return 'Digital Product'
     case 'product_physical': return 'Physical Product'
+    case 'subscription':
+    case 'subscription_box':
+      return 'Subscription'
     default: return 'Product'
+  }
+}
+
+const attendeeFullName = (attendee, attendeeIndex) => {
+  const fullName = [attendee?.firstName, attendee?.lastName]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+
+  return fullName || `Attendee ${attendeeIndex + 1}`
+}
+
+const formatStatusLabel = (status) => {
+  if (!status) return ''
+  return status
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+const getStepCardClass = (tone) => {
+  switch (tone) {
+    case 'blue': return 'border-blue-200 bg-blue-50'
+    case 'purple': return 'border-purple-200 bg-purple-50'
+    case 'green': return 'border-green-200 bg-green-50'
+    case 'amber': return 'border-warning-200 bg-warning-50'
+    default: return 'border-gray-200 bg-gray-50'
+  }
+}
+
+const getStepIconClass = (tone) => {
+  switch (tone) {
+    case 'blue': return 'text-blue-600'
+    case 'purple': return 'text-purple-600'
+    case 'green': return 'text-green-600'
+    case 'amber': return 'text-warning-700'
+    default: return 'text-gray-600'
   }
 }
 
@@ -344,16 +584,59 @@ const formatTime = (timeString) => {
   return timeString.substring(0, 5) // HH:MM format
 }
 
+const formatDateTime = (dateString) => {
+  if (!dateString) return 'Today'
+  const date = new Date(dateString)
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Today'
+  }
+
+  return date.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+const clearRetryTimer = () => {
+  if (retryTimer.value) {
+    clearTimeout(retryTimer.value)
+    retryTimer.value = null
+  }
+}
+
+const scheduleOrderRetry = () => {
+  retryAttempts.value += 1
+
+  if (retryAttempts.value > MAX_ORDER_FETCH_ATTEMPTS) {
+    pending.value = false
+    error.value = 'We could not load your order details yet. Please check your email for confirmation, or contact us if it does not arrive shortly.'
+    return
+  }
+
+  pending.value = true
+  error.value = null
+  clearRetryTimer()
+  retryTimer.value = setTimeout(() => {
+    fetchOrderDetails()
+  }, ORDER_RETRY_DELAY_MS)
+}
+
 // Fetch order details
 const fetchOrderDetails = async () => {
+  const showLoadingState = !pending.value
+
   try {
-    loading.value = true
+    loading.value = showLoadingState
     error.value = null
 
     // Get session_id from URL query params
     const sessionId = route.query.session_id
 
     if (!sessionId) {
+      pending.value = false
       error.value = 'No order session found. Please check your email for order confirmation.'
       return
     }
@@ -376,14 +659,25 @@ const fetchOrderDetails = async () => {
 
     const data = await response.json()
 
+    if (data?.pending) {
+      scheduleOrderRetry()
+      return
+    }
+
     if (!data) {
       throw new Error('Order not found')
     }
 
+    pending.value = false
+    retryAttempts.value = 0
+    clearRetryTimer()
+
     // Set order data
     orderNumber.value = data.orderNumber
     customerEmail.value = data.customerEmail
-    orderItems.value = data.orderItems
+    createdAt.value = data.createdAt || ''
+    orderItems.value = Array.isArray(data.orderItems) ? data.orderItems : []
+    bookings.value = Array.isArray(data.bookings) ? data.bookings : []
     subtotal.value = data.subtotal
     shipping.value = data.shipping
     vat.value = data.vat
@@ -404,14 +698,9 @@ const fetchOrderDetails = async () => {
 
     // More detailed error message
     if (err.message && err.message.includes('not found')) {
-      error.value = 'Order is being processed. This page will automatically refresh in a few seconds...'
-
-      // Auto-retry after 3 seconds (webhook might still be processing)
-      setTimeout(() => {
-        console.log('Retrying order fetch...')
-        fetchOrderDetails()
-      }, 3000)
+      scheduleOrderRetry()
     } else {
+      pending.value = false
       error.value = 'Failed to load order details. Please check your email for confirmation.'
     }
   } finally {
@@ -423,5 +712,8 @@ const fetchOrderDetails = async () => {
 onMounted(() => {
   fetchOrderDetails()
 })
-</script>
 
+onBeforeUnmount(() => {
+  clearRetryTimer()
+})
+</script>

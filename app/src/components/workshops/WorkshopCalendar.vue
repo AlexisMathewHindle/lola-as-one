@@ -107,9 +107,11 @@
             <div
               v-for="time in timeSlots"
               :key="time"
-              class="h-14 border-b border-[#ebe4d7] px-3 py-1 text-right text-sm text-stone-500 lg:px-4"
+              class="border-b px-3 py-1 text-right text-sm text-stone-500 lg:px-4"
+              :class="isHourMark(time) ? 'border-[#ebe4d7]' : 'border-transparent'"
+              :style="weekSlotStyle"
             >
-              {{ time }}
+              {{ isHourMark(time) ? time : '' }}
             </div>
           </div>
 
@@ -117,19 +119,22 @@
             v-for="day in weekDays"
             :key="day.date"
             class="relative min-w-[120px] border-l border-[#e5ded0]"
+            :style="weekGridColumnStyle"
           >
             <div
               v-for="time in timeSlots"
               :key="time"
-              class="h-14 border-b border-[#ebe4d7]"
+              class="border-b"
+              :class="isHourMark(time) ? 'border-[#ebe4d7]' : 'border-transparent'"
+              :style="weekSlotStyle"
             ></div>
 
             <div
               v-for="workshop in getWorkshopsForDay(day.date)"
               :key="workshop.id"
-              :style="getWorkshopStyle(workshop)"
+              :style="getWeekWorkshopStyle(day.date, workshop)"
               @click="goToWorkshop(workshop)"
-              class="absolute left-1 right-1 overflow-hidden rounded-md p-2 transition-shadow touch-manipulation"
+              class="absolute left-1 right-1 overflow-hidden rounded-md px-2 py-1 transition-shadow touch-manipulation lg:px-2.5 lg:py-1.5"
               :class="[
                 isPastEvent(workshop)
                   ? 'cursor-not-allowed bg-gray-300 opacity-60'
@@ -137,22 +142,22 @@
               ]"
             >
               <div
-                class="mb-1 text-xs font-semibold"
+                class="mb-0.5 text-xs font-semibold leading-tight"
                 :class="getWorkshopPrimaryTextClass(workshop, 'text-gray-600')"
                 :style="getWorkshopPrimaryTextStyle(workshop)"
               >
                 {{ formatTimeRange(workshop.event_start_time, workshop.event_end_time) }}
               </div>
               <div
-                class="line-clamp-2 text-xs font-medium lg:text-sm"
+                class="line-clamp-2 text-[13px] font-medium leading-tight lg:text-sm"
                 :class="getWorkshopPrimaryTextClass(workshop, 'text-gray-700')"
                 :style="getWorkshopPrimaryTextStyle(workshop)"
               >
-                {{ workshop.offering.title }}
+                {{ getWorkshopCalendarName(workshop) }}
               </div>
               <div
-                v-if="workshop.age_group"
-                class="mt-1 hidden text-xs lg:block"
+                v-if="workshop.age_group && shouldShowWorkshopAgeInGrid(workshop)"
+                class="mt-0.5 hidden text-xs leading-tight lg:block"
                 :class="getWorkshopSecondaryTextClass(workshop, 'text-gray-600')"
                 :style="getWorkshopSecondaryTextStyle(workshop)"
               >
@@ -172,27 +177,31 @@
         </div>
 
         <div class="grid grid-cols-[70px_1fr] sm:grid-cols-2">
-          <div class="border-r border-[#e5ded0]">
+          <div class="border-r border-[#e5ded0]" :style="dayGridColumnStyle">
             <div
               v-for="time in timeSlots"
               :key="time"
-              class="h-14 border-b border-[#ebe4d7] px-2 py-2 text-right text-xs text-stone-500 sm:h-16 sm:px-4 sm:text-sm"
+              class="border-b px-2 py-2 text-right text-xs text-stone-500 sm:px-4 sm:text-sm"
+              :class="isHourMark(time) ? 'border-[#ebe4d7]' : 'border-transparent'"
+              :style="daySlotStyle"
             >
-              {{ time }}
+              {{ isHourMark(time) ? time : '' }}
             </div>
           </div>
 
-          <div class="relative">
+          <div class="relative" :style="dayGridColumnStyle">
             <div
               v-for="time in timeSlots"
               :key="time"
-              class="h-14 border-b border-[#ebe4d7] sm:h-16"
+              class="border-b"
+              :class="isHourMark(time) ? 'border-[#ebe4d7]' : 'border-transparent'"
+              :style="daySlotStyle"
             ></div>
 
             <div
               v-for="workshop in getWorkshopsForDay(currentDateString)"
               :key="workshop.id"
-              :style="getWorkshopStyleDayMobile(workshop)"
+              :style="getDayWorkshopStyle(workshop)"
               @click="goToWorkshop(workshop)"
               class="absolute left-2 right-2 rounded-lg p-2 transition-shadow touch-manipulation sm:p-3"
               :class="[
@@ -213,7 +222,7 @@
                 :class="getWorkshopPrimaryTextClass(workshop, 'text-gray-700')"
                 :style="getWorkshopPrimaryTextStyle(workshop)"
               >
-                {{ workshop.offering.title }}
+                {{ getWorkshopCalendarName(workshop) }}
               </div>
               <div
                 v-if="workshop.age_group"
@@ -272,7 +281,7 @@
 
                 <div class="min-w-0 flex-1">
                   <h3 class="mb-1 text-sm font-semibold" :class="isPastEvent(workshop) ? 'text-gray-600' : 'text-gray-900'">
-                    {{ workshop.offering.title }}
+                    {{ getWorkshopCalendarName(workshop) }}
                   </h3>
                   <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                     <span v-if="workshop.event_end_time">
@@ -347,12 +356,31 @@ const isInitialLoading = computed(() => loading.value && !hasLoadedOnce.value)
 const showRefreshOverlay = computed(() => loading.value && hasLoadedOnce.value)
 const showFullError = computed(() => Boolean(error.value) && !hasLoadedOnce.value)
 const HEX_COLOR_REGEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i
+const WEEK_SLOT_HEIGHT = 24
+const DAY_SLOT_HEIGHT_MOBILE = 26
+const DAY_SLOT_HEIGHT_DESKTOP = 28
+const MIN_CALENDAR_EVENT_HEIGHT = 72
+const MIN_EVENT_STACK_GAP = 4
+
+const weekSlotStyle = {
+  height: `${WEEK_SLOT_HEIGHT}px`
+}
+
+const daySlotStyle = computed(() => ({
+  height: `${isMobileView.value ? DAY_SLOT_HEIGHT_MOBILE : DAY_SLOT_HEIGHT_DESKTOP}px`
+}))
 
 const timeSlots = [
   '9am', '9:30am', '10am', '10:30am', '11am', '11:30am',
   '12pm', '12:30pm', '1pm', '1:30pm', '2pm', '2:30pm',
   '3pm', '3:30pm', '4pm', '4:30pm', '5pm', '5:30pm', '6pm'
 ]
+
+const baseWeekGridHeight = timeSlots.length * WEEK_SLOT_HEIGHT
+const daySlotHeight = computed(() => (isMobileView.value ? DAY_SLOT_HEIGHT_MOBILE : DAY_SLOT_HEIGHT_DESKTOP))
+const baseDayGridHeight = computed(() => timeSlots.length * daySlotHeight.value)
+const weekPixelsPerMinute = WEEK_SLOT_HEIGHT / 30
+const dayPixelsPerMinute = computed(() => daySlotHeight.value / 30)
 
 const handleResize = () => {
   windowWidth.value = window.innerWidth
@@ -477,6 +505,8 @@ const fetchWorkshops = async () => {
 
 const getWorkshopsForDay = (dateString) => workshops.value.filter(workshop => workshop.event_date === dateString)
 
+const getWorkshopCalendarName = (workshop) => workshop.category?.name || workshop.offering?.title || 'Workshop'
+
 const normalizeHexColor = (value) => {
   if (typeof value !== 'string') return null
 
@@ -599,30 +629,98 @@ const timeToMinutes = (timeString) => {
   return hours * 60 + minutes
 }
 
-const getWorkshopStyle = (workshop) => {
+const isHourMark = (timeLabel) => !timeLabel.includes(':30')
+
+const getWorkshopDurationMinutes = (workshop) => {
+  const startMinutes = timeToMinutes(workshop.event_start_time)
+  const endMinutes = timeToMinutes(workshop.event_end_time || workshop.event_start_time)
+  return Math.max(endMinutes - startMinutes, 0)
+}
+
+const shouldShowWorkshopAgeInGrid = (workshop) => getWorkshopDurationMinutes(workshop) >= 90
+
+const getWorkshopTimeRange = (workshop) => {
   const startMinutes = timeToMinutes(workshop.event_start_time) - (9 * 60)
   const endMinutes = timeToMinutes(workshop.event_end_time || workshop.event_start_time) - (9 * 60)
-  const pixelsPerMinute = 64 / 30
-  const duration = endMinutes - startMinutes
 
   return {
-    ...getWorkshopAccentStyle(workshop),
-    top: `${startMinutes * pixelsPerMinute}px`,
-    height: `${Math.max(duration * pixelsPerMinute, 40)}px`
+    startMinutes,
+    durationMinutes: Math.max(endMinutes - startMinutes, 0)
   }
 }
 
-const getWorkshopStyleDayMobile = (workshop) => {
-  const startMinutes = timeToMinutes(workshop.event_start_time) - (9 * 60)
-  const endMinutes = timeToMinutes(workshop.event_end_time || workshop.event_start_time) - (9 * 60)
-  const pixelsPerMinute = isMobileView.value ? (64 / 30) : (80 / 30)
-  const duration = endMinutes - startMinutes
-  const minHeight = isMobileView.value ? 48 : 60
+const buildDayWorkshopLayout = (dayWorkshops, pixelsPerMinute) => {
+  const positions = {}
+  let previousBottom = null
+  let maxBottom = 0
+
+  for (const workshop of dayWorkshops) {
+    const { startMinutes, durationMinutes } = getWorkshopTimeRange(workshop)
+    const desiredTop = startMinutes * pixelsPerMinute
+    const height = Math.max(durationMinutes * pixelsPerMinute, MIN_CALENDAR_EVENT_HEIGHT)
+    const top = previousBottom === null
+      ? desiredTop
+      : Math.max(desiredTop, previousBottom + MIN_EVENT_STACK_GAP)
+
+    positions[workshop.id] = { top, height }
+    previousBottom = top + height
+    maxBottom = Math.max(maxBottom, previousBottom)
+  }
+
+  return {
+    positions,
+    maxBottom
+  }
+}
+
+const weekWorkshopLayout = computed(() => {
+  const positionsByDay = {}
+  let gridHeight = baseWeekGridHeight
+
+  for (const day of weekDays.value) {
+    const layout = buildDayWorkshopLayout(getWorkshopsForDay(day.date), weekPixelsPerMinute)
+    positionsByDay[day.date] = layout.positions
+    gridHeight = Math.max(gridHeight, layout.maxBottom)
+  }
+
+  return {
+    positionsByDay,
+    gridHeight
+  }
+})
+
+const currentDayWorkshopLayout = computed(() => buildDayWorkshopLayout(
+  getWorkshopsForDay(currentDateString.value),
+  dayPixelsPerMinute.value
+))
+
+const weekGridColumnStyle = computed(() => ({
+  height: `${weekWorkshopLayout.value.gridHeight}px`
+}))
+
+const dayGridColumnStyle = computed(() => ({
+  height: `${Math.max(baseDayGridHeight.value, currentDayWorkshopLayout.value.maxBottom)}px`
+}))
+
+const getWeekWorkshopStyle = (dateString, workshop) => {
+  const position = weekWorkshopLayout.value.positionsByDay[dateString]?.[workshop.id]
+  if (!position) return getWorkshopAccentStyle(workshop)
 
   return {
     ...getWorkshopAccentStyle(workshop),
-    top: `${startMinutes * pixelsPerMinute}px`,
-    height: `${Math.max(duration * pixelsPerMinute, minHeight)}px`
+    top: `${position.top}px`,
+    height: `${position.height}px`
+  }
+}
+
+const getDayWorkshopStyle = (workshop) => {
+  const position = currentDayWorkshopLayout.value.positions[workshop.id]
+  if (!position) return getWorkshopAccentStyle(workshop)
+
+  return {
+    ...getWorkshopAccentStyle(workshop),
+    top: `${position.top}px`,
+    height: `${position.height}px`
   }
 }
 

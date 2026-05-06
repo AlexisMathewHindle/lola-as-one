@@ -3,6 +3,60 @@ import { supabase } from './supabase'
 const PUBLIC_PAGE_FIELDS = 'id, page_key, title, slug, path, page_kind, template_key, route_name, status, show_in_navigation, seo_title, seo_description, published_at'
 const ADMIN_PAGE_FIELDS = 'id, page_key, title, slug, path, page_kind, template_key, route_name, status, show_in_navigation, seo_title, seo_description, published_at'
 const ADMIN_SECTION_FIELDS = 'id, page_id, section_key, section_type, sort_order, is_enabled, config_json, created_by, updated_by, created_at, updated_at'
+const ADMIN_SETTING_FIELDS = 'id, setting_key, setting_group, label, value_json, is_public, sort_order, description, created_by, updated_by, created_at, updated_at'
+
+const isPlainObject = (value) =>
+  Object.prototype.toString.call(value) === '[object Object]'
+
+const cloneValue = (value) => {
+  if (value === undefined) return undefined
+  return JSON.parse(JSON.stringify(value))
+}
+
+const mergeByObjectIdOrIndex = (existingItems, nextItems) => {
+  const existingById = new Map(
+    existingItems
+      .filter(item => isPlainObject(item) && item.id)
+      .map(item => [item.id, item])
+  )
+
+  return nextItems.map((item, index) => {
+    if (!isPlainObject(item)) return cloneValue(item)
+
+    const existingItem = item.id
+      ? existingById.get(item.id)
+      : existingItems[index]
+
+    return mergeJsonPreservingExisting(existingItem, item)
+  })
+}
+
+const mergeJsonPreservingExisting = (existingValue, nextValue) => {
+  if (nextValue === undefined) return cloneValue(existingValue)
+
+  if (Array.isArray(nextValue)) {
+    if (!Array.isArray(existingValue)) return cloneValue(nextValue)
+    return mergeByObjectIdOrIndex(existingValue, nextValue)
+  }
+
+  if (isPlainObject(nextValue)) {
+    const merged = isPlainObject(existingValue) ? cloneValue(existingValue) : {}
+
+    Object.entries(nextValue).forEach(([key, value]) => {
+      if (value === undefined) return
+      merged[key] = mergeJsonPreservingExisting(merged[key], value)
+    })
+
+    return merged
+  }
+
+  return cloneValue(nextValue)
+}
+
+const stripUndefinedFields = (record) =>
+  Object.fromEntries(
+    Object.entries(record).filter(([, value]) => value !== undefined)
+  )
 
 /**
  * Fetch a published page by its stable page key.
@@ -92,9 +146,44 @@ export async function getAdminPageWithSectionsByKey(pageKey) {
  * Create or update page sections using the unique page_id + section_key constraint.
  */
 export async function upsertPageSections(sections) {
+  if (!sections.length) return []
+
+  const pageIds = [...new Set(sections.map(section => section.page_id).filter(Boolean))]
+  const sectionKeys = [...new Set(sections.map(section => section.section_key).filter(Boolean))]
+  let existingSectionsByKey = new Map()
+
+  if (pageIds.length > 0 && sectionKeys.length > 0) {
+    const { data: existingSections, error: existingError } = await supabase
+      .from('page_sections')
+      .select(ADMIN_SECTION_FIELDS)
+      .in('page_id', pageIds)
+      .in('section_key', sectionKeys)
+
+    if (existingError) throw existingError
+
+    existingSectionsByKey = new Map(
+      (existingSections || []).map(section => [`${section.page_id}:${section.section_key}`, section])
+    )
+  }
+
+  const mergedSections = sections.map(section => {
+    const existingSection = existingSectionsByKey.get(`${section.page_id}:${section.section_key}`)
+
+    if (!existingSection) {
+      return stripUndefinedFields(section)
+    }
+
+    return stripUndefinedFields({
+      ...section,
+      id: existingSection.id,
+      config_json: mergeJsonPreservingExisting(existingSection.config_json || {}, section.config_json || {}),
+      created_by: existingSection.created_by || section.created_by
+    })
+  })
+
   const { data, error } = await supabase
     .from('page_sections')
-    .upsert(sections, { onConflict: 'page_id,section_key' })
+    .upsert(mergedSections, { onConflict: 'page_id,section_key' })
     .select(ADMIN_SECTION_FIELDS)
 
   if (error) throw error
@@ -134,7 +223,7 @@ export async function getPublicSettingsMap() {
 export async function getAllSiteSettings() {
   const { data, error } = await supabase
     .from('site_settings')
-    .select('id, setting_key, setting_group, label, value_json, is_public, sort_order, description')
+    .select(ADMIN_SETTING_FIELDS)
     .order('setting_group', { ascending: true })
     .order('sort_order', { ascending: true })
 
@@ -146,10 +235,43 @@ export async function getAllSiteSettings() {
  * Upsert a batch of site settings by setting_key.
  */
 export async function upsertSiteSettings(settings) {
+  if (!settings.length) return []
+
+  const settingKeys = [...new Set(settings.map(setting => setting.setting_key).filter(Boolean))]
+  let existingSettingsByKey = new Map()
+
+  if (settingKeys.length > 0) {
+    const { data: existingSettings, error: existingError } = await supabase
+      .from('site_settings')
+      .select(ADMIN_SETTING_FIELDS)
+      .in('setting_key', settingKeys)
+
+    if (existingError) throw existingError
+
+    existingSettingsByKey = new Map(
+      (existingSettings || []).map(setting => [setting.setting_key, setting])
+    )
+  }
+
+  const mergedSettings = settings.map(setting => {
+    const existingSetting = existingSettingsByKey.get(setting.setting_key)
+
+    if (!existingSetting) {
+      return stripUndefinedFields(setting)
+    }
+
+    return stripUndefinedFields({
+      ...setting,
+      id: existingSetting.id,
+      value_json: mergeJsonPreservingExisting(existingSetting.value_json || {}, setting.value_json || {}),
+      created_by: existingSetting.created_by || setting.created_by
+    })
+  })
+
   const { data, error } = await supabase
     .from('site_settings')
-    .upsert(settings, { onConflict: 'setting_key' })
-    .select('id, setting_key, setting_group, label, value_json, is_public, sort_order, description')
+    .upsert(mergedSettings, { onConflict: 'setting_key' })
+    .select(ADMIN_SETTING_FIELDS)
 
   if (error) throw error
   return data || []
@@ -235,10 +357,12 @@ export async function getAdminMenuByKey(menuKey) {
  */
 export async function saveMenuItem(item) {
   if (item.id) {
+    const { id, ...updates } = stripUndefinedFields(item)
+
     const { data, error } = await supabase
       .from('site_menu_items')
-      .update(item)
-      .eq('id', item.id)
+      .update(updates)
+      .eq('id', id)
       .select()
       .single()
 
@@ -248,7 +372,7 @@ export async function saveMenuItem(item) {
 
   const { data, error } = await supabase
     .from('site_menu_items')
-    .insert(item)
+    .insert(stripUndefinedFields(item))
     .select()
     .single()
 

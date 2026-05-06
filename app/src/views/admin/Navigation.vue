@@ -270,6 +270,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   deleteMenuItem,
   getAdminMenuByKey,
@@ -280,9 +281,15 @@ import {
 import { useToastStore } from '../../stores/toast'
 
 const toastStore = useToastStore()
+const route = useRoute()
+
+const requestedMenuKey = () => {
+  const menuKey = route.query.menu
+  return typeof menuKey === 'string' ? menuKey : ''
+}
 
 const menus = ref([])
-const selectedMenuKey = ref('header_primary')
+const selectedMenuKey = ref(requestedMenuKey() || 'header_primary')
 const currentMenu = ref(null)
 const menuItems = ref([])
 const pageOptions = ref([])
@@ -478,6 +485,15 @@ const handleDeleteItem = async (item) => {
 
 watch(selectedMenuKey, () => {
   loadMenu()
+})
+
+watch(() => route.query.menu, () => {
+  const menuKey = requestedMenuKey()
+
+  if (!menuKey || menuKey === selectedMenuKey.value) return
+  if (!menus.value.some(menu => menu.menu_key === menuKey)) return
+
+  selectedMenuKey.value = menuKey
 })
 
 watch(() => form.itemType, (newType) => {

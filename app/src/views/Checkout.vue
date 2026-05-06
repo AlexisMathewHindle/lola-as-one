@@ -165,19 +165,45 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label
-                          :for="`attendee-${booking.itemKey}-${attendeeIndex}-firstName`"
-                          class="block text-sm font-medium text-gray-700 mb-2"
-                        >
-                          First Name <span class="text-red-500">*</span>
-                        </label>
+                        <div class="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <label
+                            :for="`attendee-${booking.itemKey}-${attendeeIndex}-firstName`"
+                            class="block text-sm font-medium text-gray-700"
+                          >
+                            First Name <span class="text-red-500">*</span>
+                          </label>
+                          <label
+                            v-if="canAddAttendeeToOtherEvents(booking, attendeeIndex) && !isSyncedAttendeeField(booking, attendeeIndex)"
+                            :for="`copy-attendee-${booking.itemKey}-${attendeeIndex}`"
+                            class="inline-flex items-center gap-2 text-xs font-medium text-gray-700"
+                          >
+                            <input
+                              :id="`copy-attendee-${booking.itemKey}-${attendeeIndex}`"
+                              type="checkbox"
+                              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                              :checked="isAttendeeSyncSource(booking, attendeeIndex)"
+                              @change="handleAttendeeSyncToggle(booking, attendeeIndex, $event.target.checked)"
+                            />
+                            <span>Add attendee to other events</span>
+                          </label>
+                          <span
+                            v-else-if="isSyncedAttendeeField(booking, attendeeIndex)"
+                            class="text-xs font-medium text-gray-500"
+                          >
+                            Added from another event
+                          </span>
+                        </div>
                         <input
                           :id="`attendee-${booking.itemKey}-${attendeeIndex}-firstName`"
                           v-model="attendee.firstName"
                           type="text"
                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                          :class="{ 'border-red-500': errors[`attendee-${booking.itemKey}-${attendeeIndex}-firstName`] }"
-                          @input="persistEventAttendees(booking)"
+                          :class="{
+                            'border-red-500': errors[`attendee-${booking.itemKey}-${attendeeIndex}-firstName`],
+                            'bg-gray-100 text-gray-500 cursor-not-allowed': isSyncedAttendeeField(booking, attendeeIndex)
+                          }"
+                          :disabled="isSyncedAttendeeField(booking, attendeeIndex)"
+                          @input="handleAttendeeInput(booking, attendeeIndex)"
                         />
                         <p
                           v-if="errors[`attendee-${booking.itemKey}-${attendeeIndex}-firstName`]"
@@ -199,8 +225,12 @@
                           v-model="attendee.lastName"
                           type="text"
                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                          :class="{ 'border-red-500': errors[`attendee-${booking.itemKey}-${attendeeIndex}-lastName`] }"
-                          @input="persistEventAttendees(booking)"
+                          :class="{
+                            'border-red-500': errors[`attendee-${booking.itemKey}-${attendeeIndex}-lastName`],
+                            'bg-gray-100 text-gray-500 cursor-not-allowed': isSyncedAttendeeField(booking, attendeeIndex)
+                          }"
+                          :disabled="isSyncedAttendeeField(booking, attendeeIndex)"
+                          @input="handleAttendeeInput(booking, attendeeIndex)"
                         />
                         <p
                           v-if="errors[`attendee-${booking.itemKey}-${attendeeIndex}-lastName`]"
@@ -353,9 +383,6 @@
                   <p v-if="item.eventDate" class="text-xs text-gray-500">
                     {{ formatDate(item.eventDate) }}
                   </p>
-                  <p v-if="item.type === 'event'" class="text-xs text-primary-700 mt-1">
-                    Attendee names are collected below for this event.
-                  </p>
                 </div>
 
                 <!-- Item Price -->
@@ -464,6 +491,7 @@ const errors = ref({})
 // Processing state
 const processing = ref(false)
 const attendeeDrafts = ref({})
+const attendeeEventSyncSources = ref({})
 
 const getItemKey = (item) => {
   const id = item.id || item.productId
@@ -529,6 +557,116 @@ const eventBookings = computed(() => {
     })
 })
 
+const hasMultipleEventBookings = computed(() => eventBookings.value.length > 1)
+
+const getAttendeeSyncKey = (attendeeIndex) => String(attendeeIndex)
+
+const getAttendeeSyncSourceItemKey = (attendeeIndex) => {
+  return attendeeEventSyncSources.value[getAttendeeSyncKey(attendeeIndex)]
+}
+
+const getAttendeeSyncSourceBooking = (attendeeIndex) => {
+  const sourceItemKey = getAttendeeSyncSourceItemKey(attendeeIndex)
+  return eventBookings.value.find(booking => booking.itemKey === sourceItemKey) || null
+}
+
+const canAddAttendeeToOtherEvents = (booking, attendeeIndex) => {
+  return hasMultipleEventBookings.value && eventBookings.value.some((otherBooking) => {
+    return otherBooking.itemKey !== booking.itemKey && Boolean(otherBooking.attendees[attendeeIndex])
+  })
+}
+
+const isAttendeeSyncSource = (booking, attendeeIndex) => {
+  return getAttendeeSyncSourceItemKey(attendeeIndex) === booking.itemKey
+}
+
+const isSyncedAttendeeField = (booking, attendeeIndex) => {
+  const sourceBooking = getAttendeeSyncSourceBooking(attendeeIndex)
+  return Boolean(sourceBooking && sourceBooking.itemKey !== booking.itemKey)
+}
+
+const clearSyncedAttendeeErrors = (attendeeIndex) => {
+  const nextErrors = { ...errors.value }
+
+  eventBookings.value.forEach((booking) => {
+    if (!isSyncedAttendeeField(booking, attendeeIndex)) {
+      return
+    }
+
+    delete nextErrors[`attendee-${booking.itemKey}-${attendeeIndex}-firstName`]
+    delete nextErrors[`attendee-${booking.itemKey}-${attendeeIndex}-lastName`]
+  })
+
+  errors.value = nextErrors
+}
+
+const applyAttendeeToOtherEvents = (sourceBooking, attendeeIndex) => {
+  const sourceAttendee = sourceBooking?.attendees?.[attendeeIndex]
+
+  if (!sourceAttendee) {
+    return
+  }
+
+  eventBookings.value.forEach((booking) => {
+    const attendee = booking.attendees[attendeeIndex]
+
+    if (attendee && booking.itemKey !== sourceBooking.itemKey) {
+      attendee.firstName = sourceAttendee.firstName
+      attendee.lastName = sourceAttendee.lastName
+    }
+
+    persistEventAttendees(booking)
+  })
+}
+
+const applyActiveAttendeeSyncs = () => {
+  Object.entries(attendeeEventSyncSources.value).forEach(([attendeeIndexKey, sourceItemKey]) => {
+    const attendeeIndex = Number(attendeeIndexKey)
+    const sourceBooking = eventBookings.value.find(booking => booking.itemKey === sourceItemKey)
+
+    if (sourceBooking) {
+      applyAttendeeToOtherEvents(sourceBooking, attendeeIndex)
+    }
+  })
+}
+
+const handleAttendeeSyncToggle = (booking, attendeeIndex, checked) => {
+  const syncKey = getAttendeeSyncKey(attendeeIndex)
+
+  if (!checked) {
+    if (isAttendeeSyncSource(booking, attendeeIndex)) {
+      const nextSources = { ...attendeeEventSyncSources.value }
+      delete nextSources[syncKey]
+      attendeeEventSyncSources.value = nextSources
+    }
+
+    return
+  }
+
+  attendeeEventSyncSources.value = {
+    ...attendeeEventSyncSources.value,
+    [syncKey]: booking.itemKey
+  }
+
+  applyAttendeeToOtherEvents(booking, attendeeIndex)
+  clearSyncedAttendeeErrors(attendeeIndex)
+}
+
+const handleAttendeeInput = (booking, attendeeIndex) => {
+  if (isAttendeeSyncSource(booking, attendeeIndex)) {
+    applyAttendeeToOtherEvents(booking, attendeeIndex)
+    return
+  }
+
+  persistEventAttendees(booking)
+}
+
+watch(hasMultipleEventBookings, (canApply) => {
+  if (!canApply) {
+    attendeeEventSyncSources.value = {}
+  }
+})
+
 // Check if cart has physical items
 const hasPhysicalItems = computed(() => {
   return cartStore.items.some(item =>
@@ -569,6 +707,8 @@ const formatDate = (dateString) => {
 const validateForm = () => {
   errors.value = {}
 
+  applyActiveAttendeeSyncs()
+
   // Validate customer info
   if (!form.value.firstName.trim()) {
     errors.value.firstName = 'First name is required'
@@ -585,6 +725,10 @@ const validateForm = () => {
   // Validate attendee names for event bookings
   eventBookings.value.forEach((booking) => {
     booking.attendees.forEach((attendee, attendeeIndex) => {
+      if (isSyncedAttendeeField(booking, attendeeIndex)) {
+        return
+      }
+
       const firstNameKey = `attendee-${booking.itemKey}-${attendeeIndex}-firstName`
       const lastNameKey = `attendee-${booking.itemKey}-${attendeeIndex}-lastName`
 
@@ -623,6 +767,8 @@ const persistEventAttendees = (booking) => {
 }
 
 const buildCheckoutItems = () => {
+  applyActiveAttendeeSyncs()
+
   return cartStore.items.map((item) => {
     if (item.type !== 'event') {
       return item

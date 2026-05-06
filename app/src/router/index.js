@@ -18,6 +18,28 @@ const routes = [
     component: () => import('../views/AdultWorkshops.vue')
   },
   {
+    path: '/half-term',
+    alias: ['/holiday-programs/half-term', '/holiday-workshops'],
+    name: 'HalfTerm',
+    component: () => import('../views/HolidayProgramPage.vue'),
+    props: {
+      categorySlug: 'half-term',
+      fallbackTitle: 'Half Term',
+      fallbackDescription: 'Find upcoming half term art classes and book the sessions that work for your family.'
+    }
+  },
+  {
+    path: '/summer-holiday',
+    alias: ['/holiday-programs/summer-holiday', '/summer-workshops'],
+    name: 'SummerHoliday',
+    component: () => import('../views/HolidayProgramPage.vue'),
+    props: {
+      categorySlug: 'summer-holiday',
+      fallbackTitle: 'Summer Holiday',
+      fallbackDescription: 'Browse summer holiday art workshops and open studio sessions for children and families.'
+    }
+  },
+  {
     path: '/workshops/:slug',
     name: 'WorkshopDetail',
     component: () => import('../views/WorkshopDetail.vue')
@@ -193,6 +215,11 @@ const routes = [
         path: 'orders',
         name: 'AdminOrders',
         component: () => import('../views/admin/OrdersList.vue')
+      },
+      {
+        path: 'coupons',
+        name: 'AdminCoupons',
+        component: () => import('../views/admin/CouponsList.vue')
       },
       {
         path: 'orders/:id',

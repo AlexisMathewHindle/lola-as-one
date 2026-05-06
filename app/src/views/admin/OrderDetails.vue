@@ -104,7 +104,9 @@
                 <span class="text-gray-900">£{{ order.shipping_gbp.toFixed(2) }}</span>
               </div>
               <div v-if="discountAmount > 0" class="flex justify-between text-sm">
-                <span class="text-gray-600">Discount</span>
+                <span class="text-gray-600">
+                  Discount<span v-if="order.coupon_code"> ({{ order.coupon_code }})</span>
+                </span>
                 <span class="text-green-700">-£{{ discountAmount.toFixed(2) }}</span>
               </div>
               <div class="flex justify-between text-sm">

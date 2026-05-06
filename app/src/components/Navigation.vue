@@ -187,6 +187,8 @@ const siteName = ref('Lola As One')
 
 const fallbackNavigationItems = [
   { id: 'workshops', label: 'Workshops', itemType: 'page', href: '/workshops', pageKey: 'workshops' },
+  { id: 'half-term', label: 'Half Term', itemType: 'page', href: '/half-term', pageKey: 'half-term' },
+  { id: 'summer-holiday', label: 'Summer Holiday', itemType: 'page', href: '/summer-holiday', pageKey: 'summer-holiday' },
   { id: 'adult-workshops', label: 'Adult Workshops', itemType: 'page', href: '/adult-workshops', pageKey: 'adult-workshops' },
   { id: 'boxes', label: 'Boxes', itemType: 'page', href: '/boxes', pageKey: 'boxes' },
   { id: 'blog', label: 'Blog', itemType: 'page', href: '/blog', pageKey: 'blog' },

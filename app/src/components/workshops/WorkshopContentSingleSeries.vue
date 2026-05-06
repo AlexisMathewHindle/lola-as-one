@@ -60,7 +60,7 @@
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="rounded-[1.5rem] border border-stone-200 bg-white px-5 py-4">
                 <div class="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Price</div>
-                <div class="mt-2 text-3xl font-semibold text-stone-900">£{{ formattedPrice }}</div>
+                <div class="mt-2 text-3xl font-semibold text-stone-900">{{ priceDisplay }}</div>
                 <div class="mt-1 text-sm text-stone-500">per session</div>
               </div>
 
@@ -202,9 +202,17 @@ watch(galleryImages, (images) => {
   activeImage.value = images[0] || null
 }, { immediate: true })
 
-const formattedPrice = computed(() => {
-  const price = Number(props.workshop.price_gbp || 0)
-  return price.toFixed(2)
+const priceDisplay = computed(() => {
+  if (
+    props.workshop.price_gbp === null ||
+    props.workshop.price_gbp === undefined ||
+    props.workshop.price_gbp === ''
+  ) {
+    return 'TBC'
+  }
+
+  const price = Number(props.workshop.price_gbp)
+  return Number.isFinite(price) ? `£${price.toFixed(2)}` : 'TBC'
 })
 
 const displayTitle = computed(() => {
