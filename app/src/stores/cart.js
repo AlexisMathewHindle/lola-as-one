@@ -8,9 +8,9 @@ export const useCartStore = defineStore('cart', () => {
   const toastStore = useToastStore()
 
   const itemCount = computed(() => items.value.reduce((total, item) => total + item.quantity, 0))
-  const subtotal = computed(() => items.value.reduce((total, item) => total + (item.price * item.quantity), 0))
+  const subtotal = computed(() => items.value.reduce((total, item) => total + (Number(item.price || 0) * item.quantity), 0))
 
-  function addItem(product, quantity = 1, variantId = null, attendees = null) {
+  function addItem(product, quantity = 1, variantId = null, attendees = null, options = {}) {
     // Handle both old and new product structures
     const productType = product.type || product.productType
     const eventId = product.event_id || null
@@ -19,6 +19,7 @@ export const useCartStore = defineStore('cart', () => {
     const productName = product.title || product.name
     const productPrice = product.price || product.price_gbp
     const productImage = product.image || product.image_url || product.featured_image_url
+    const showToast = options.showToast !== false
 
     const existingItem = items.value.find(item =>
       (item.id || item.productId) === productId && item.variantId === variantId
@@ -26,12 +27,17 @@ export const useCartStore = defineStore('cart', () => {
 
     if (existingItem) {
       existingItem.quantity += quantity
+      if (Array.isArray(product.items)) {
+        existingItem.items = product.items
+      }
       // If attendees are provided, update them
       if (attendees && productType === 'event') {
         existingItem.attendees = attendees
       }
       // Show toast for updated quantity
-      toastStore.success(`Updated ${productName} quantity to ${existingItem.quantity}`)
+      if (showToast) {
+        toastStore.success(`Updated ${productName} quantity to ${existingItem.quantity}`)
+      }
     } else {
       items.value.push({
         id: productId,
@@ -48,14 +54,21 @@ export const useCartStore = defineStore('cart', () => {
         event_id: eventId,
         eventDate: product.eventDate,
         eventTime: product.eventTime,
+        termLabel: product.termLabel || null,
+        term_group_key: product.term_group_key || product.termGroupKey || null,
+        termGroupKey: product.termGroupKey || product.term_group_key || null,
+        isTermBundle: Boolean(product.isTermBundle),
+        items: Array.isArray(product.items) ? product.items : null,
         // Optional: subscription configuration for subscription items
         subscriptionConfig: product.subscriptionConfig || null,
         // Store attendee details for events
         attendees: attendees || null
       })
       // Show toast for new item
-      const quantityText = quantity > 1 ? `${quantity} x ` : ''
-      toastStore.success(`${quantityText}${productName} added to cart!`)
+      if (showToast) {
+        const quantityText = quantity > 1 ? `${quantity} x ` : ''
+        toastStore.success(`${quantityText}${productName} added to cart!`)
+      }
     }
 
     saveToLocalStorage()

@@ -14,13 +14,13 @@ interface WaitlistEventData {
 
 export default function waitlistEventAvailable(data: WaitlistEventData) {
   const html = baseLayout(`
-    <h2>Great News - A Spot is Available! 🎉</h2>
+    <h2>A spot is available</h2>
     
     <p>Hi ${data.customerName},</p>
     
     <p>Exciting news! A space has become available for <strong>${data.eventName}</strong> that you were waiting for!</p>
     
-    <div class="info-box" style="border-left-color: #28a745;">
+    <div class="info-box success-box">
       <strong>Workshop:</strong> ${data.eventName}<br>
       <strong>Date:</strong> ${data.eventDate}<br>
       <strong>Time:</strong> ${data.eventTime}<br>
@@ -29,9 +29,9 @@ export default function waitlistEventAvailable(data: WaitlistEventData) {
       <strong>Price:</strong> £${data.price.toFixed(2)}
     </div>
     
-    <div style="margin: 30px 0; padding: 20px; background-color: #fff3cd; border-left: 4px solid #ffc107; text-align: center;">
-      <strong style="font-size: 18px;">⏰ You have 24 hours to book!</strong><br>
-      <span style="color: #856404;">This offer expires on ${data.expiryTime}</span>
+    <div class="info-box warning-box" style="text-align: center;">
+      <strong style="font-size: 18px;">You have 24 hours to book</strong><br>
+      <span class="muted">This offer expires on ${data.expiryTime}</span>
     </div>
     
     <div style="text-align: center;">
@@ -62,7 +62,7 @@ Location: ${data.location}
 Spaces Available: ${data.spacesAvailable}
 Price: £${data.price.toFixed(2)}
 
-⏰ YOU HAVE 24 HOURS TO BOOK!
+YOU HAVE 24 HOURS TO BOOK
 This offer expires on ${data.expiryTime}
 
 BOOK YOUR SPOT NOW:
@@ -84,4 +84,3 @@ The Lola As One Team
     text,
   }
 }
-

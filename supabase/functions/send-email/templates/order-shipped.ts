@@ -15,7 +15,7 @@ interface OrderShippedData {
 
 export default function orderShipped(data: OrderShippedData) {
   const html = baseLayout(`
-    <h2>Your Order Has Shipped! 📦</h2>
+    <h2>Your order has shipped</h2>
     
     <p>Hi ${data.customerName},</p>
     
@@ -88,4 +88,3 @@ The Lola As One Team
     text,
   }
 }
-

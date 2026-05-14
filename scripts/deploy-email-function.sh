@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Deploy Email Function to Supabase
-# This script deploys the send-email Edge Function and runs the email_logs migration
+# Deploy Email Functions to Supabase
+# This script deploys the email Edge Functions and runs the email_logs migration
 
 set -e
 
@@ -56,6 +56,19 @@ fi
 
 echo ""
 
+# Deploy the scheduled event email function
+echo "📦 Deploying send-event-emails Edge Function..."
+supabase functions deploy send-event-emails
+
+if [ $? -eq 0 ]; then
+    echo "✅ send-event-emails function deployed successfully"
+else
+    echo "❌ Failed to deploy send-event-emails function"
+    exit 1
+fi
+
+echo ""
+
 # Run database migration
 echo "🗄️  Running email_logs migration..."
 read -p "Do you want to run the email_logs migration? (y/n) " -n 1 -r
@@ -81,12 +94,12 @@ echo ""
 echo "📋 Next Steps:"
 echo "  1. Test the email function with a test order"
 echo "  2. Set up custom domain in Resend (optional)"
-echo "  3. Monitor email logs in the database"
-echo "  4. Check Resend dashboard for delivery stats"
+echo "  3. Schedule send-event-emails to run daily for reminders and feedback requests"
+echo "  4. Monitor email logs in the database"
+echo "  5. Check Resend dashboard for delivery stats"
 echo ""
 echo "📚 Documentation:"
 echo "  - Setup Guide: docs/RESEND-SETUP-GUIDE.md"
 echo "  - Implementation Status: docs/EMAIL-IMPLEMENTATION-STATUS.md"
 echo "  - Function README: supabase/functions/send-email/README.md"
 echo ""
-

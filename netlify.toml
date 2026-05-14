@@ -40,6 +40,36 @@
 
 # Redirects for SPA (Vue Router)
 [[redirects]]
+  from = "/adult-art-workshops"
+  to = "/adult-workshops"
+  status = 301
+
+[[redirects]]
+  from = "/summer-workshops"
+  to = "/summer-holiday"
+  status = 301
+
+[[redirects]]
+  from = "/holiday-workshops"
+  to = "/half-term"
+  status = 301
+
+[[redirects]]
+  from = "/behaviour-policy"
+  to = "/terms-and-conditions"
+  status = 301
+
+[[redirects]]
+  from = "/basket"
+  to = "/cart"
+  status = 301
+
+[[redirects]]
+  from = "/registration"
+  to = "/workshops"
+  status = 301
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
@@ -58,4 +88,3 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
-

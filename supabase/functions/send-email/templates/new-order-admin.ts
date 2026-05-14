@@ -1,5 +1,12 @@
 import { baseLayout, plainTextLayout } from './base-layout.ts'
 
+type AdminAttendee = {
+  firstName?: string
+  lastName?: string
+  email?: string
+  allergies?: string
+}
+
 interface NewOrderAdminData {
   orderNumber: string
   customerName: string
@@ -10,7 +17,7 @@ interface NewOrderAdminData {
     quantity: number
     price: number
     type: string
-    attendees?: number
+    attendees?: number | AdminAttendee[]
     eventDate?: string
     eventTime?: string
   }>
@@ -25,11 +32,48 @@ interface NewOrderAdminData {
   hasPhysicalProducts: boolean
 }
 
+function attendeeCount(attendees: number | AdminAttendee[] | undefined, fallbackQuantity: number): number {
+  return Array.isArray(attendees) ? attendees.length : attendees || fallbackQuantity
+}
+
+function attendeeName(attendee: AdminAttendee, index: number): string {
+  const name = `${attendee.firstName || ''} ${attendee.lastName || ''}`.trim()
+  return name || `Attendee ${index + 1}`
+}
+
+function attendeeHtml(attendees: number | AdminAttendee[] | undefined): string {
+  if (!Array.isArray(attendees) || attendees.length === 0) {
+    return ''
+  }
+
+  return `
+    <div style="margin-top: 8px;">
+      ${attendees.map((attendee, index) => `
+        <div>
+          ${attendeeName(attendee, index)}
+          ${attendee.allergies ? `<br><span class="muted">Allergies: ${attendee.allergies}</span>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `
+}
+
+function attendeeText(attendees: number | AdminAttendee[] | undefined): string {
+  if (!Array.isArray(attendees) || attendees.length === 0) {
+    return ''
+  }
+
+  return attendees.map((attendee, index) => {
+    const allergies = attendee.allergies ? ` - Allergies: ${attendee.allergies}` : ''
+    return `    ${attendeeName(attendee, index)}${allergies}`
+  }).join('\n')
+}
+
 export default function newOrderAdmin(data: NewOrderAdminData) {
   const html = baseLayout(`
-    <h2>New Order Received! 🎉</h2>
+    <h2>New order received</h2>
     
-    <div class="info-box" style="border-left-color: #28a745;">
+    <div class="info-box success-box">
       <strong>Order Number:</strong> ${data.orderNumber}<br>
       <strong>Total:</strong> £${data.orderTotal.toFixed(2)}
     </div>
@@ -60,12 +104,13 @@ export default function newOrderAdmin(data: NewOrderAdminData) {
         ${data.orderItems.map(item => `
           <tr>
             <td>${item.name}</td>
-            <td>${item.type === 'event' ? '🎨 Event' : item.type === 'product_physical' ? '📦 Product' : '💾 Digital'}</td>
+            <td>${item.type === 'event' ? 'Event' : item.type === 'product_physical' ? 'Product' : item.type === 'discount' ? 'Discount' : 'Digital'}</td>
             <td>
               ${item.type === 'event' && item.attendees ? `
-                <strong>${item.attendees} attendee${item.attendees > 1 ? 's' : ''}</strong><br>
-                ${item.eventDate ? `📅 ${item.eventDate}` : ''}
+                <strong>${attendeeCount(item.attendees, item.quantity)} attendee${attendeeCount(item.attendees, item.quantity) > 1 ? 's' : ''}</strong><br>
+                ${item.eventDate ? `${item.eventDate}` : ''}
                 ${item.eventTime ? ` at ${item.eventTime}` : ''}
+                ${attendeeHtml(item.attendees)}
               ` : `Qty: ${item.quantity}`}
             </td>
             <td>£${item.price.toFixed(2)}</td>
@@ -93,16 +138,16 @@ export default function newOrderAdmin(data: NewOrderAdminData) {
     
     <h3>Action Required</h3>
     <ul>
-      ${data.hasPhysicalProducts ? '<li>📦 <strong>Fulfill physical products</strong> - Pack and ship items</li>' : ''}
-      ${data.hasEvents ? '<li>🎨 <strong>Event bookings confirmed</strong> - Attendees have been notified</li>' : ''}
-      <li>📧 Customer has been sent confirmation email</li>
+      ${data.hasPhysicalProducts ? '<li><strong>Fulfill physical products</strong> - pack and ship items</li>' : ''}
+      ${data.hasEvents ? '<li><strong>Event bookings recorded</strong> - check attendees and capacity</li>' : ''}
+      <li>Customer order confirmation email has been sent</li>
     </ul>
     
     <div style="text-align: center; margin: 30px 0;">
       <a href="https://hubbjhtjyubzczxengyo.supabase.co/project/hubbjhtjyubzczxengyo" class="button">View in Admin Panel</a>
     </div>
     
-    <p style="font-size: 14px; color: #6c757d; margin-top: 30px;">
+    <p class="muted" style="margin-top: 30px;">
       This is an automated notification from your Lola As One e-commerce system.
     </p>
   `)
@@ -119,11 +164,11 @@ Email: ${data.customerEmail}
 
 ORDER ITEMS
 ${data.orderItems.map(item => {
-  const typeIcon = item.type === 'event' ? '🎨' : item.type === 'product_physical' ? '📦' : '💾'
+  const typeLabel = item.type === 'event' ? 'Event' : item.type === 'product_physical' ? 'Product' : item.type === 'discount' ? 'Discount' : 'Digital'
   const details = item.type === 'event' && item.attendees
-    ? `${item.attendees} attendee${item.attendees > 1 ? 's' : ''}${item.eventDate ? ` - ${item.eventDate}` : ''}${item.eventTime ? ` at ${item.eventTime}` : ''}`
+    ? `${attendeeCount(item.attendees, item.quantity)} attendee${attendeeCount(item.attendees, item.quantity) > 1 ? 's' : ''}${item.eventDate ? ` - ${item.eventDate}` : ''}${item.eventTime ? ` at ${item.eventTime}` : ''}${attendeeText(item.attendees) ? `\n${attendeeText(item.attendees)}` : ''}`
     : `x${item.quantity}`
-  return `${typeIcon} ${item.name} ${details} - £${item.price.toFixed(2)}`
+  return `${typeLabel}: ${item.name} ${details} - £${item.price.toFixed(2)}`
 }).join('\n')}
 
 Total: £${data.orderTotal.toFixed(2)}
@@ -138,9 +183,9 @@ ${data.shippingAddress.country}
 ` : ''}
 
 ACTION REQUIRED
-${data.hasPhysicalProducts ? '📦 Fulfill physical products - Pack and ship items' : ''}
-${data.hasEvents ? '🎨 Event bookings confirmed - Attendees have been notified' : ''}
-📧 Customer has been sent confirmation email
+${data.hasPhysicalProducts ? 'Fulfill physical products - pack and ship items' : ''}
+${data.hasEvents ? 'Event bookings recorded - check attendees and capacity' : ''}
+Customer order confirmation email has been sent
 
 View in Admin Panel:
 https://hubbjhtjyubzczxengyo.supabase.co/project/hubbjhtjyubzczxengyo
@@ -154,4 +199,3 @@ This is an automated notification from your Lola As One e-commerce system.
     text,
   }
 }
-

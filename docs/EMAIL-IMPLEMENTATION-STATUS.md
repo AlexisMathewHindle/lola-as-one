@@ -14,9 +14,9 @@
 - [x] Email logs database table created
 - [x] Environment configuration documented
 
-### Email Templates Implemented (14/50+)
+### Email Templates Implemented (45/45 planned)
 
-#### 🔴 Critical Templates (8/8)
+#### 🔴 Critical Templates
 1. ✅ Order Confirmation
 2. ✅ Event Booking Confirmation
 3. ✅ Subscription Activated
@@ -27,63 +27,67 @@
 8. ✅ Contact Form Submission (Admin)
 9. ✅ Digital Download Ready
 
-#### 🟡 High Priority Templates (5/6)
+#### 🟡 High Priority Templates
 10. ✅ Order Shipped
 11. ✅ Event Reminder (7 days)
 12. ✅ Event Reminder (24 hours)
 13. ✅ Waitlist Event Available
 14. ✅ Waitlist Product Available
-15. ⏳ Subscription Paused/Resumed/Cancelled
-16. ⏳ New Order Notification (Admin)
-17. ⏳ Low Stock Alert (Admin)
+15. ✅ New Order Notification (Admin)
+16. ✅ Subscription Paused
+17. ✅ Subscription Resumed
+18. ✅ Subscription Cancelled
+19. ✅ Low Stock Alert (Admin)
+
+#### 🟢 Medium Priority Templates
+20. ✅ Request Event Feedback
+21. ✅ Request Product Review
+22. ✅ Subscription Ending Soon
+23. ✅ Subscription Box Shipped
+24. ✅ Order Delivered
+25. ✅ Order Cancelled
+26. ✅ Refund Processed
+27. ✅ Event Cancelled by Admin
+28. ✅ Booking Cancelled by Customer
+29. ✅ Waitlist Spot Expired
+30. ✅ Download Link Expiring Soon
+31. ✅ Gift Card Purchased
+32. ✅ Gift Card Received
+33. ✅ Welcome Email (New Account)
+34. ✅ Password Changed Confirmation
+35. ✅ Email Address Changed
+36. ✅ Newsletter Subscription Confirmed
+37. ✅ Newsletter Unsubscribed
+38. ✅ Event Capacity Full (Admin)
+39. ✅ Subscription Payment Failed (Admin Alert)
+40. ✅ New Waitlist Entry (Admin)
+41. ✅ Abandoned Cart Reminder
+42. ✅ New Workshop Announcement
+43. ✅ New Product Launch
+44. ✅ Seasonal/Holiday Promotion
+45. ✅ Birthday/Anniversary Email
 
 ### Integrations
 - [x] Stripe webhook sends order confirmation emails
 - [x] Stripe webhook sends event booking confirmation emails
+- [x] Stripe webhook sends new order/admin notification emails
+- [x] Event lifecycle function can send reminders and feedback requests when scheduled
 
 ---
 
 ## 🔄 In Progress
 
-### Templates To Implement
-- [ ] Subscription Paused
-- [ ] Subscription Resumed
-- [ ] Subscription Cancelled
-- [ ] Subscription Ending Soon
-- [ ] Subscription Box Shipped
-- [ ] Order Delivered
-- [ ] Order Cancelled
-- [ ] Refund Processed
-- [ ] Event Cancelled by Admin
-- [ ] Booking Cancelled by Customer
-- [ ] Waitlist Spot Expired
-- [ ] Download Link Expiring Soon
-- [ ] Gift Card Purchased
-- [ ] Gift Card Received
-- [ ] Welcome Email (New Account)
-- [ ] Password Changed Confirmation
-- [ ] Email Address Changed
-- [ ] Newsletter Subscription Confirmed
-- [ ] Newsletter Unsubscribed
-- [ ] Low Stock Alert (Admin)
-- [ ] New Order Notification (Admin)
-- [ ] Event Capacity Full (Admin)
-- [ ] Subscription Payment Failed (Admin Alert)
-- [ ] New Waitlist Entry (Admin)
-- [ ] Request Product Review
-- [ ] Request Event Feedback
-- [ ] Abandoned Cart Reminder
-- [ ] New Workshop Announcement
-- [ ] New Product Launch
-- [ ] Seasonal/Holiday Promotion
-- [ ] Birthday/Anniversary Email
-
 ### Triggers To Implement
+
 - [ ] Database triggers for subscription events
-- [ ] Scheduled jobs for event reminders
+- [ ] Schedule `send-event-emails` daily for event reminders
+- [ ] Schedule `send-event-emails` daily for event feedback requests
 - [ ] Scheduled jobs for review requests
 - [ ] Waitlist notification triggers
 - [ ] Low stock alert triggers
+- [ ] Fulfilment/order status triggers for shipped, delivered, cancelled, and refund emails
+- [ ] Account/security triggers for welcome, password changed, and email changed emails
+- [ ] Newsletter and marketing campaign triggers
 
 ---
 
@@ -176,4 +180,3 @@ curl -i --location --request POST 'https://YOUR_PROJECT.supabase.co/functions/v1
 ---
 
 **Status:** Ready for deployment and testing! 🚀
-

@@ -12,7 +12,7 @@ interface WaitlistProductData {
 
 export default function waitlistProductAvailable(data: WaitlistProductData) {
   const html = baseLayout(`
-    <h2>Back in Stock! 🎉</h2>
+    <h2>Back in stock</h2>
     
     <p>Hi ${data.customerName},</p>
     
@@ -20,19 +20,19 @@ export default function waitlistProductAvailable(data: WaitlistProductData) {
     
     ${data.productImage ? `
       <div style="text-align: center; margin: 30px 0;">
-        <img src="${data.productImage}" alt="${data.productName}" style="max-width: 100%; height: auto; border-radius: 8px;">
+        <img src="${data.productImage}" alt="${data.productName}" style="max-width: 100%; height: auto; border-radius: 4px;">
       </div>
     ` : ''}
     
-    <div class="info-box" style="border-left-color: #28a745;">
+    <div class="info-box success-box">
       <strong>Product:</strong> ${data.productName}<br>
       <strong>Price:</strong> £${data.price.toFixed(2)}<br>
       ${data.stockQuantity ? `<strong>Stock:</strong> Limited quantity available` : ''}
     </div>
     
-    <div style="margin: 30px 0; padding: 20px; background-color: #fff3cd; border-left: 4px solid #ffc107; text-align: center;">
-      <strong style="font-size: 18px;">⏰ You have 48 hours to purchase!</strong><br>
-      <span style="color: #856404;">This offer expires on ${data.expiryTime}</span>
+    <div class="info-box warning-box" style="text-align: center;">
+      <strong style="font-size: 18px;">You have 48 hours to purchase</strong><br>
+      <span class="muted">This offer expires on ${data.expiryTime}</span>
     </div>
     
     <div style="text-align: center;">
@@ -60,7 +60,7 @@ Product: ${data.productName}
 Price: £${data.price.toFixed(2)}
 ${data.stockQuantity ? 'Stock: Limited quantity available' : ''}
 
-⏰ YOU HAVE 48 HOURS TO PURCHASE!
+YOU HAVE 48 HOURS TO PURCHASE
 This offer expires on ${data.expiryTime}
 
 SHOP NOW:
@@ -82,4 +82,3 @@ The Lola As One Team
     text,
   }
 }
-

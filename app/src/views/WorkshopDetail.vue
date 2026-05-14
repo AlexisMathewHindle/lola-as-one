@@ -45,8 +45,8 @@
         :formatted-description="formattedDescription"
         :session-events="seriesSessions"
         :session-quantities="seriesSessionQuantities"
-        @increment-session="incrementSeriesSession"
-        @decrement-session="decrementSeriesSession"
+        @increment-term="incrementTermGroup"
+        @decrement-term="decrementTermGroup"
       />
 
       <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -307,6 +307,8 @@ import {
   isEnquiryOnlyWorkshop as usesEnquiryOnlyLayout,
   isSingleSeriesWorkshopLayout
 } from '../utils/workshopDisplay'
+import { getTermData } from '../utils/termFormatters'
+import { getTermCourseKey } from '../utils/termGroups'
 
 const route = useRoute()
 const router = useRouter()
@@ -463,16 +465,33 @@ const fetchSingleSeriesSessions = async () => {
 
     if (fetchError) throw fetchError
 
+    const selectedTermData = getTermData(workshop.value.offering || {})
+    const selectedCourseKey = getTermCourseKey(workshop.value)
+    const hasLegacyCourseIdentifier = Boolean(workshop.value.offering?.metadata?.event_id)
+
     const sameSeriesSessions = (data || []).filter((session) => {
       if (workshop.value.category_id && session.category_id !== workshop.value.category_id) {
         return false
       }
 
-      if (!workshop.value.category_id && session.offering?.title !== workshop.value.offering?.title) {
+      if (!isSingleSeriesWorkshopLayout(session)) {
         return false
       }
 
-      return isSingleSeriesWorkshopLayout(session)
+      if (getTermCourseKey(session) === selectedCourseKey) {
+        return true
+      }
+
+      if (hasLegacyCourseIdentifier) {
+        return false
+      }
+
+      const sessionTermData = getTermData(session.offering || {})
+      return (
+        sessionTermData.season === selectedTermData.season &&
+        sessionTermData.half === selectedTermData.half &&
+        String(sessionTermData.year || '') === String(selectedTermData.year || '')
+      )
     })
 
     if (sameSeriesSessions.length > 0) {
@@ -565,10 +584,20 @@ const backLabel = computed(() => {
 
 const seriesSessionQuantities = computed(() => {
   return cartStore.items.reduce((quantities, item) => {
+    if (Array.isArray(item.items) && item.items.length > 0) {
+      item.items.forEach((session) => {
+        const sessionKey = session.event_id || session.id || session.offering_event_id
+
+        if (sessionKey) {
+          quantities[sessionKey] = (quantities[sessionKey] || 0) + item.quantity
+        }
+      })
+    }
+
     const key = item.event_id || item.id || item.productId
 
     if (key) {
-      quantities[key] = item.quantity
+      quantities[key] = (quantities[key] || 0) + item.quantity
     }
 
     return quantities
@@ -773,6 +802,82 @@ const getSessionQuantity = (session) => {
   return seriesSessionQuantities.value[session.id] || 0
 }
 
+const getTermGroupCartItem = (termGroup) => {
+  return cartStore.items.find((item) =>
+    item.term_group_key === termGroup.key ||
+    item.termGroupKey === termGroup.key ||
+    item.id === termGroup.key ||
+    item.productId === termGroup.key
+  ) || null
+}
+
+const getTermGroupQuantity = (termGroup) => {
+  const cartItem = getTermGroupCartItem(termGroup)
+
+  if (cartItem) {
+    return cartItem.quantity
+  }
+
+  if (!termGroup.sessions.length) {
+    return 0
+  }
+
+  return Math.min(...termGroup.sessions.map(getSessionQuantity))
+}
+
+const getTermGroupSpacesAvailable = (termGroup) => {
+  const availableCounts = termGroup.sessions
+    .map(getSessionSpacesAvailable)
+    .filter((spacesAvailable) => spacesAvailable !== null)
+
+  if (availableCounts.length === 0) {
+    return null
+  }
+
+  return Math.min(...availableCounts)
+}
+
+const toPriceNumber = (value) => {
+  const price = Number(value || 0)
+  return Number.isFinite(price) ? price : 0
+}
+
+const getSessionImage = (session) => {
+  return session.offering?.featured_image_url || session.category?.featured_image_url || null
+}
+
+const buildTermCartItem = (termGroup) => {
+  const firstSession = termGroup.sessions[0]
+
+  return {
+    id: termGroup.key,
+    productId: termGroup.key,
+    offering_id: firstSession?.offering?.id || firstSession?.offering_id || null,
+    event_id: termGroup.key,
+    type: 'event',
+    title: `${termGroup.title} - ${termGroup.label}`,
+    price: toPriceNumber(termGroup.unitPrice),
+    image: getSessionImage(firstSession),
+    slug: firstSession?.offering?.slug,
+    termLabel: termGroup.label,
+    term_group_key: termGroup.key,
+    isTermBundle: true,
+    items: termGroup.sessions.map((session) => ({
+      id: session.id,
+      event_id: session.id,
+      offering_event_id: session.id,
+      offering_id: session.offering?.id || session.offering_id || null,
+      title: session.offering?.title || termGroup.title,
+      price: toPriceNumber(session.price_gbp),
+      image: getSessionImage(session),
+      slug: session.offering?.slug,
+      eventDate: session.event_date,
+      eventTime: session.event_start_time,
+      eventEndTime: session.event_end_time
+    }))
+  }
+}
+
 const incrementSeriesSession = (session) => {
   const currentQuantity = getSessionQuantity(session)
   const spacesAvailable = getSessionSpacesAvailable(session)
@@ -808,6 +913,46 @@ const decrementSeriesSession = (session) => {
   }
 
   cartStore.updateQuantity(session.id, currentQuantity - 1)
+}
+
+const incrementTermGroup = (termGroup) => {
+  const currentQuantity = getTermGroupQuantity(termGroup)
+  const spacesAvailable = getTermGroupSpacesAvailable(termGroup)
+
+  if (spacesAvailable !== null && currentQuantity >= spacesAvailable) {
+    return
+  }
+
+  const cartItem = getTermGroupCartItem(termGroup)
+
+  if (cartItem) {
+    cartStore.updateQuantity(cartItem.productId || cartItem.id, cartItem.quantity + 1, cartItem.variantId)
+    return
+  }
+
+  if (currentQuantity > 0) {
+    termGroup.sessions.forEach(incrementSeriesSession)
+    return
+  }
+
+  cartStore.addItem(buildTermCartItem(termGroup))
+}
+
+const decrementTermGroup = (termGroup) => {
+  const currentQuantity = getTermGroupQuantity(termGroup)
+
+  if (currentQuantity <= 0) {
+    return
+  }
+
+  const cartItem = getTermGroupCartItem(termGroup)
+
+  if (cartItem) {
+    cartStore.updateQuantity(cartItem.productId || cartItem.id, cartItem.quantity - 1, cartItem.variantId)
+    return
+  }
+
+  termGroup.sessions.forEach(decrementSeriesSession)
 }
 
 // Handle booking submission

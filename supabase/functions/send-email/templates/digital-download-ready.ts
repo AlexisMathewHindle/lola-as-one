@@ -15,7 +15,7 @@ interface DigitalDownloadData {
 
 export default function digitalDownloadReady(data: DigitalDownloadData) {
   const html = baseLayout(`
-    <h2>Your Download is Ready! 📥</h2>
+    <h2>Your download is ready</h2>
     
     <p>Hi ${data.customerName},</p>
     
@@ -27,15 +27,15 @@ export default function digitalDownloadReady(data: DigitalDownloadData) {
     
     <h3>Download Your Files</h3>
     ${data.downloadLinks.map(link => `
-      <div style="margin: 20px 0; padding: 20px; background-color: #f8f9fa; border-radius: 6px;">
+      <div class="file-card">
         <strong>${link.name}</strong><br>
-        <span style="color: #6c757d; font-size: 14px;">${link.format} • ${link.size}</span><br>
+        <span class="muted">${link.format} - ${link.size}</span><br>
         <a href="${link.url}" class="button" style="margin-top: 10px;">Download ${link.name}</a>
       </div>
     `).join('')}
     
-    <div style="margin: 30px 0; padding: 20px; background-color: #fff3cd; border-left: 4px solid #ffc107;">
-      <strong>⏰ Important</strong><br>
+    <div class="info-box warning-box">
+      <strong>Important</strong><br>
       These download links will expire on <strong>${data.expiryDate}</strong>. Please download your files before then.
     </div>
     
@@ -64,11 +64,11 @@ Order Number: ${data.orderNumber}
 
 DOWNLOAD YOUR FILES
 ${data.downloadLinks.map(link => `
-${link.name} (${link.format} • ${link.size})
+${link.name} (${link.format} - ${link.size})
 ${link.url}
 `).join('\n')}
 
-⏰ IMPORTANT
+IMPORTANT
 These download links will expire on ${data.expiryDate}. Please download your files before then.
 
 DOWNLOAD INSTRUCTIONS
@@ -90,4 +90,3 @@ The Lola As One Team
     text,
   }
 }
-

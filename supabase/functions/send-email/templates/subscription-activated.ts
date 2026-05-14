@@ -13,7 +13,7 @@ export default function subscriptionActivated(data: SubscriptionActivatedData) {
   const intervalText = data.billingInterval === 'month' ? 'monthly' : 'yearly'
   
   const html = baseLayout(`
-    <h2>Welcome to your subscription! 📦</h2>
+    <h2>Welcome to your subscription</h2>
     
     <p>Hi ${data.customerName},</p>
     
@@ -99,4 +99,3 @@ The Lola As One Team
     text,
   }
 }
-

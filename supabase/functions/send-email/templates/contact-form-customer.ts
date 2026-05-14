@@ -11,7 +11,7 @@ interface ContactFormCustomerData {
 
 export default function contactFormCustomer(data: ContactFormCustomerData) {
   const html = baseLayout(`
-    <h2>We've Received Your Message 📧</h2>
+    <h2>We've received your message</h2>
     
     <p>Hi ${data.customerName},</p>
     
@@ -66,4 +66,3 @@ The Lola As One Team
     text,
   }
 }
-

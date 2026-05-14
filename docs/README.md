@@ -1,8 +1,75 @@
 # Lola As One — CMS Documentation
 
 **Project:** Simple CMS for selling boxes and booking events
-**Last Updated:** 2026-02-04
-**Status:** ✅ Epic 7 COMPLETE! (100% - All customer-facing e-commerce + Stripe integration complete!)
+**Last Updated:** 2026-05-14
+**Status:** Historical epic index plus current platform planning baseline.
+
+---
+
+## Current Planning Baseline
+
+### [Events Production Launch Epic](./events-production-launch-epic.md) ⭐
+**Status:** Current
+
+Use this as the immediate production execution epic. It scopes the events-first launch around public event discovery, event booking checkout, Stripe, webhook-created bookings, customer/admin emails, waitlists, reminders, admin operations, deployment, and go/no-go checks.
+
+### [Events Data And CMS Readiness](./events-data-cms-readiness.md) ⭐
+**Status:** Current
+
+Use this as the active first workstream for the events launch. It defines the Supabase event catalogue, CMS copy, images, category layout, capacity, RLS, audit queries, and evidence pack needed before paid booking validation starts.
+
+Current automated audit status: green on 2026-05-14 with 0 P0 blockers and 0 P1 blockers. Direct SQL policy/RPC verification is green, and automated admin UI edit proof is complete. Business/legal approval of seeded policy copy remains.
+
+Supporting current evidence:
+- [Events Data And CMS Readiness Evidence](./events-data-cms-readiness-evidence.md)
+- [Events Data And CMS Readiness Fix Log](./events-data-cms-readiness-fix-log.md)
+- [Events SQL/RPC Verification](./events-sql-rpc-verification.md)
+- [Admin UI Edit Proof](./admin-ui-edit-proof.md)
+
+### [Public Discovery And Event Detail Flow](./public-discovery-event-detail-flow.md) ⭐
+**Status:** Current
+
+Use this as the second events launch workstream. It verifies public discovery routes, event detail rendering, booking state presentation, responsive behavior, and legacy route handling before Event Cart And Checkout starts.
+
+Current status: green on 2026-05-14. 117/117 future published event detail slugs render successfully, core public category routes pass in-app browser spot checks, automated mobile/desktop screenshots pass, booking-state examples pass, and 14/14 legacy route browser checks pass.
+
+Supporting current evidence:
+- [Public Discovery And Event Detail Flow Evidence](./public-discovery-event-detail-flow-evidence.md)
+- [Public Discovery Responsive Screenshots](./public-discovery-responsive-screenshots.md)
+- [Public Discovery Booking State Evidence](./public-discovery-booking-state-evidence.md)
+- [Public Discovery Legacy Route Evidence](./public-discovery-legacy-route-evidence.md)
+
+### [Event Cart And Checkout Readiness](./event-cart-checkout-readiness.md) ⭐
+**Status:** Current
+
+Use this as the third events launch workstream. It verifies event add-to-cart surfaces, attendee and cart line correctness, checkout payload construction, capacity blocking before Stripe, webhook persistence paths, order success recovery, and production table reachability.
+
+Current status: non-live automated audit is green on 2026-05-14. 19/19 checks pass. A live Stripe payment remains required before the workstream is fully green.
+
+Supporting current evidence:
+- [Event Cart And Checkout Readiness Evidence](./event-cart-checkout-readiness-evidence.md)
+
+### [Stripe Payment And Webhook Proof](./stripe-payment-webhook-proof.md) ⭐
+**Status:** Current
+
+Use this as the fourth events launch workstream. It verifies Stripe session return URLs, webhook signature rejection, idempotency, order/item/booking/attendee persistence, capacity consistency, success-page recovery, and post-payment email side effects.
+
+Current status: sandbox proof is blocked on email proof only as of 2026-05-14. The completed `cs_test_...` proof created the expected order, order item, booking, attendee row, success-page recovery, and Stripe event log. Capacity double-counting was found, fixed, deployed, and the affected proof event row was repaired. The latest email proof created order-linked logs, but the required templates failed with `UNAUTHORIZED_INVALID_JWT_FORMAT`; a direct protected `send-email` probe passed, `FUNCTIONS_BASE_URL` is set, and `stripe-webhook` version 40 now uses the Supabase anon JWT for the protected Functions gateway call. The remaining blocker is a fresh sandbox proof with order-linked `order-confirmation`, `event-booking-confirmation`, and `new-order-admin` logs in `sent` status. Stripe remains in sandbox/test mode; live Stripe keys, live webhook endpoint signing secret, production app return URL, and live-mode proof are required before production launch.
+
+Supporting current evidence:
+- [Stripe Payment And Webhook Proof Evidence](./stripe-payment-webhook-proof-evidence.md)
+
+### [Production Roadmap](./production-roadmap.md) ⭐
+**Status:** Current
+
+Use this as the wider production delivery roadmap. It separates completed epics, backed by code paths and migrations, from launch epics ordered by dependency and risk.
+
+### [Platform Overview and Epic Foundation](./platform-overview-and-epic-foundation.md) ⭐
+**Status:** Current
+
+Use this as the source inventory behind the roadmap. It documents the legacy `lola-workshops/` app, the new `app/` storefront/admin app, Supabase, Stripe, email, migrations, deployment concerns, completed work, unresolved gaps, and suggested epic backlog.
+
+Documentation governance decision: all project docs should live under `docs/` and be marked `current` or `stale`. This index has not yet been fully normalized.
 
 ---
 
@@ -467,4 +534,3 @@ Defines:
 | Naming Conventions | ✅ Complete | 2026-01-31 |
 | Content Governance | ✅ Complete | 2026-01-31 |
 | Waitlist Implementation Guide | ✅ Complete | 2026-02-02 |
-

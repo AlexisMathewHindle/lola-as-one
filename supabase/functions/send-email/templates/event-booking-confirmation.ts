@@ -4,6 +4,7 @@ interface Attendee {
   firstName: string
   lastName: string
   email?: string
+  allergies?: string
 }
 
 interface EventBookingData {
@@ -24,7 +25,7 @@ interface EventBookingData {
 
 export default function eventBookingConfirmation(data: EventBookingData) {
   const html = baseLayout(`
-    <h2>Your workshop is confirmed! 🎨</h2>
+    <h2>Your workshop is confirmed</h2>
     
     <p>Hi ${data.customerName},</p>
     
@@ -69,7 +70,10 @@ export default function eventBookingConfirmation(data: EventBookingData) {
         ${data.attendees.map((attendee, index) => `
           <tr>
             <td><strong>Attendee ${index + 1}</strong></td>
-            <td>${attendee.firstName} ${attendee.lastName}${attendee.email ? ` (${attendee.email})` : ''}</td>
+            <td>
+              ${attendee.firstName} ${attendee.lastName}${attendee.email ? ` (${attendee.email})` : ''}
+              ${attendee.allergies ? `<br><span class="muted">Allergies: ${attendee.allergies}</span>` : ''}
+            </td>
           </tr>
         `).join('')}
       </table>
@@ -91,7 +95,7 @@ export default function eventBookingConfirmation(data: EventBookingData) {
     
     ${data.cancellationPolicy ? `
       <h3>Cancellation Policy</h3>
-      <p style="font-size: 14px; color: #6c757d;">${data.cancellationPolicy}</p>
+      <p class="muted">${data.cancellationPolicy}</p>
     ` : ''}
     
     <p>We'll send you a reminder email 7 days before the workshop, and another one 24 hours before.</p>
@@ -124,7 +128,7 @@ Price Paid: £${data.pricePaid.toFixed(2)}
 ${data.attendees && data.attendees.length > 0 ? `
 ATTENDEE DETAILS
 ${data.attendees.map((attendee, index) =>
-  `Attendee ${index + 1}: ${attendee.firstName} ${attendee.lastName}${attendee.email ? ` (${attendee.email})` : ''}`
+  `Attendee ${index + 1}: ${attendee.firstName} ${attendee.lastName}${attendee.email ? ` (${attendee.email})` : ''}${attendee.allergies ? ` - Allergies: ${attendee.allergies}` : ''}`
 ).join('\n')}
 ` : ''}
 
@@ -159,4 +163,3 @@ The Lola As One Team
     text,
   }
 }
-

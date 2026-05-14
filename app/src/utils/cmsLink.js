@@ -6,6 +6,10 @@ const PAGE_KEY_PATHS = {
   blog: '/blog',
   about: '/about',
   contact: '/contact',
+  faqs: '/workshop-faqs',
+  'workshop-faqs': '/workshop-faqs',
+  'privacy-policy': '/privacy-policy',
+  'terms-and-conditions': '/terms-and-conditions',
   shop: '/shop'
 }
 

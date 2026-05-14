@@ -78,7 +78,7 @@ export function isTermWorkshopLayout(workshop) {
 }
 
 export function isSingleSeriesWorkshopLayout(workshop) {
-  return getWorkshopLayoutKey(workshop) === 'standard'
+  return getWorkshopLayoutKey(workshop) === 'term_series'
 }
 
 export function isEnquiryOnlyWorkshop(workshop) {

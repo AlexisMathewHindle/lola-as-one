@@ -146,6 +146,13 @@
                         <font-awesome-icon icon="clock" class="w-4 h-4 mr-1" />
                         {{ booking.eventTime }}
                       </span>
+                      <span v-if="booking.termLabel" class="flex items-center">
+                        <font-awesome-icon icon="calendar" class="w-4 h-4 mr-1" />
+                        {{ booking.termLabel }}
+                      </span>
+                      <span v-if="booking.isTermBundle && booking.items?.length" class="flex items-center">
+                        {{ booking.items.length }} {{ booking.items.length === 1 ? 'session' : 'sessions' }}
+                      </span>
                     </div>
                   </div>
                   <div class="text-sm font-medium text-gray-700">
@@ -184,13 +191,13 @@
                               :checked="isAttendeeSyncSource(booking, attendeeIndex)"
                               @change="handleAttendeeSyncToggle(booking, attendeeIndex, $event.target.checked)"
                             />
-                            <span>Add attendee to other events</span>
+                            <span>Apply to all workshops</span>
                           </label>
                           <span
                             v-else-if="isSyncedAttendeeField(booking, attendeeIndex)"
                             class="text-xs font-medium text-gray-500"
                           >
-                            Added from another event
+                            Applied from another workshop
                           </span>
                         </div>
                         <input
@@ -240,9 +247,94 @@
                         </p>
                       </div>
                     </div>
+
+                    <div class="mt-4">
+                      <label
+                        :for="`attendee-${booking.itemKey}-${attendeeIndex}-allergies`"
+                        class="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        Any Allergies?
+                      </label>
+                      <textarea
+                        :id="`attendee-${booking.itemKey}-${attendeeIndex}-allergies`"
+                        v-model="attendee.allergies"
+                        rows="2"
+                        maxlength="240"
+                        placeholder="Tell us about allergies or write none"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-y"
+                        :class="{
+                          'bg-gray-100 text-gray-500 cursor-not-allowed': isSyncedAttendeeField(booking, attendeeIndex)
+                        }"
+                        :disabled="isSyncedAttendeeField(booking, attendeeIndex)"
+                        @input="handleAttendeeInput(booking, attendeeIndex)"
+                      ></textarea>
+                      <p class="text-xs text-gray-500 mt-1">
+                        Optional. Use "Apply to all workshops" above if this attendee is coming to multiple sessions.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Checkout Agreements -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-display font-bold text-gray-900 mb-6">
+              Agreements
+            </h2>
+
+            <div class="space-y-5">
+              <div v-if="eventBookings.length > 0">
+                <label class="flex items-start gap-3">
+                  <input
+                    id="healthSafetyAccepted"
+                    v-model="form.healthSafetyAccepted"
+                    type="checkbox"
+                    class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    :class="{ 'border-red-500': errors.healthSafetyAccepted }"
+                  />
+                  <span class="text-sm leading-6 text-gray-700">
+                    <span class="font-semibold text-gray-900">Health and Safety</span> - The children attend the art classes (although overseen by the art teacher) at their own risk. I hereby agree, that while the person/s in charge of the art class will oversee my child to the best of their ability, neither they nor any person connected with Lots of Lovely Art will accept any liability for any claims arising from any accident or injury happening to the child whilst in the session or which may arise as a result of the venue. Lots of Lovely Art undertakes that all reasonable precautions will be taken to ensure the safety and welfare of my child.
+                  </span>
+                </label>
+                <p v-if="errors.healthSafetyAccepted" class="text-red-500 text-sm mt-1 ml-7">
+                  {{ errors.healthSafetyAccepted }}
+                </p>
+              </div>
+
+              <div>
+                <label class="flex items-start gap-3">
+                  <input
+                    id="privacyPolicyAccepted"
+                    v-model="form.privacyPolicyAccepted"
+                    type="checkbox"
+                    class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    :class="{ 'border-red-500': errors.privacyPolicyAccepted }"
+                  />
+                  <span class="text-sm leading-6 text-gray-700">
+                    Agree to our
+                    <router-link class="font-semibold text-primary-600 hover:text-primary-700" to="/privacy-policy">
+                      Privacy Policy
+                    </router-link>
+                  </span>
+                </label>
+                <p v-if="errors.privacyPolicyAccepted" class="text-red-500 text-sm mt-1 ml-7">
+                  {{ errors.privacyPolicyAccepted }}
+                </p>
+              </div>
+
+              <label class="flex items-start gap-3">
+                <input
+                  id="newsletterOptIn"
+                  v-model="form.newsletterOptIn"
+                  type="checkbox"
+                  class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span class="text-sm leading-6 text-gray-700">
+                  Newsletters and updates
+                </span>
+              </label>
             </div>
           </div>
 
@@ -383,11 +475,17 @@
                   <p v-if="item.eventDate" class="text-xs text-gray-500">
                     {{ formatDate(item.eventDate) }}
                   </p>
+                  <p v-else-if="item.termLabel" class="text-xs text-gray-500">
+                    {{ item.termLabel }}
+                  </p>
+                  <p v-if="item.isTermBundle && item.items?.length" class="text-xs text-gray-500">
+                    {{ item.items.length }} {{ item.items.length === 1 ? 'session' : 'sessions' }}
+                  </p>
                 </div>
 
                 <!-- Item Price -->
                 <div class="text-sm font-semibold text-gray-900">
-                  £{{ (item.price * item.quantity).toFixed(2) }}
+                  £{{ (Number(item.price || 0) * item.quantity).toFixed(2) }}
                 </div>
               </div>
             </div>
@@ -450,6 +548,13 @@
               <span>{{ processing ? 'Processing...' : 'Proceed to Payment' }}</span>
             </button>
 
+            <p class="mt-3 text-center text-xs leading-5 text-gray-500">
+              Workshop questions are covered in
+              <router-link class="font-semibold text-primary-600 hover:text-primary-700" to="/workshop-faqs">
+                Workshop FAQs
+              </router-link>.
+            </p>
+
             <!-- Security Notice -->
             <p class="text-xs text-gray-500 text-center mt-4">
               <font-awesome-icon icon="lock" class="w-3 h-3 mr-1" />
@@ -478,6 +583,9 @@ const form = ref({
   email: '',
   phone: '',
   discountCode: '',
+  healthSafetyAccepted: false,
+  privacyPolicyAccepted: false,
+  newsletterOptIn: false,
   addressLine1: '',
   addressLine2: '',
   city: '',
@@ -503,6 +611,7 @@ const createEmptyAttendee = (attendee = {}) => ({
   lastName: attendee.lastName || '',
   email: attendee.email || '',
   phone: attendee.phone || '',
+  allergies: attendee.allergies || attendee.allergy || '',
   notes: attendee.notes || ''
 })
 
@@ -613,6 +722,7 @@ const applyAttendeeToOtherEvents = (sourceBooking, attendeeIndex) => {
     if (attendee && booking.itemKey !== sourceBooking.itemKey) {
       attendee.firstName = sourceAttendee.firstName
       attendee.lastName = sourceAttendee.lastName
+      attendee.allergies = sourceAttendee.allergies || ''
     }
 
     persistEventAttendees(booking)
@@ -742,6 +852,14 @@ const validateForm = () => {
     })
   })
 
+  if (eventBookings.value.length > 0 && !form.value.healthSafetyAccepted) {
+    errors.value.healthSafetyAccepted = 'Please accept the health and safety agreement'
+  }
+
+  if (!form.value.privacyPolicyAccepted) {
+    errors.value.privacyPolicyAccepted = 'Please agree to the Privacy Policy'
+  }
+
   // Validate shipping address if physical items
   if (hasPhysicalItems.value) {
     if (!form.value.addressLine1.trim()) {
@@ -766,10 +884,29 @@ const persistEventAttendees = (booking) => {
   )
 }
 
+const buildExpandedEventItems = (item, attendees) => {
+  return item.items.map((session) => ({
+    id: session.offering_id || session.id,
+    productId: session.event_id || session.offering_event_id || session.id,
+    offering_id: session.offering_id || item.offering_id || null,
+    event_id: session.event_id || session.offering_event_id || session.id,
+    type: 'event',
+    title: session.title || item.title,
+    event_title: item.title,
+    price: Number(session.price || 0),
+    quantity: item.quantity,
+    image: session.image || item.image,
+    slug: session.slug || item.slug,
+    eventDate: session.eventDate || session.event_date,
+    eventTime: session.eventTime || session.event_start_time,
+    attendees
+  }))
+}
+
 const buildCheckoutItems = () => {
   applyActiveAttendeeSyncs()
 
-  return cartStore.items.map((item) => {
+  return cartStore.items.flatMap((item) => {
     if (item.type !== 'event') {
       return item
     }
@@ -782,10 +919,15 @@ const buildCheckoutItems = () => {
         lastName: attendee.lastName.trim(),
         email: attendee.email?.trim() || '',
         phone: attendee.phone?.trim() || '',
+        allergies: attendee.allergies?.trim().slice(0, 240) || '',
         notes: attendee.notes?.trim() || ''
       }))
 
     cartStore.updateItemAttendees(item.productId || item.id, attendees, item.variantId)
+
+    if (Array.isArray(item.items) && item.items.length > 0) {
+      return buildExpandedEventItems(item, attendees)
+    }
 
     return {
       ...item,
@@ -822,6 +964,11 @@ const handleCheckout = async () => {
           firstName: form.value.firstName,
           lastName: form.value.lastName,
           phone: form.value.phone
+        },
+        consents: {
+          healthSafetyAccepted: Boolean(form.value.healthSafetyAccepted),
+          privacyPolicyAccepted: Boolean(form.value.privacyPolicyAccepted),
+          newsletterOptIn: Boolean(form.value.newsletterOptIn)
         },
         shipping: hasPhysicalItems.value ? {
           name: `${form.value.firstName} ${form.value.lastName}`,

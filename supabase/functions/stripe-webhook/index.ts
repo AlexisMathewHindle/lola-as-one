@@ -3,20 +3,289 @@ import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getNextCycleKey } from '../_shared/cycle-helpers.ts'
 
-function isMissingOrderCouponColumnError(error: any): boolean {
+function isMissingColumnError(error: any, columns: string[]): boolean {
   const message = String(error?.message || error?.details || '')
-  const referencesCouponColumn = (
-    message.includes('coupon_id') ||
-    message.includes('coupon_code') ||
-    message.includes('discount_gbp')
-  )
+  const referencesColumn = columns.some((column) => message.includes(column))
 
-  return referencesCouponColumn && (
+  return referencesColumn && (
     error?.code === 'PGRST204' ||
     error?.code === '42703' ||
     message.includes('schema cache') ||
     message.includes('does not exist')
   )
+}
+
+function isMissingOrderCouponColumnError(error: any): boolean {
+  return isMissingColumnError(error, ['coupon_id', 'coupon_code', 'discount_gbp'])
+}
+
+function isMissingOrderConsentColumnError(error: any): boolean {
+  return isMissingColumnError(error, [
+    'health_safety_accepted',
+    'health_safety_accepted_at',
+    'privacy_policy_accepted',
+    'privacy_policy_accepted_at',
+    'newsletter_opt_in',
+    'newsletter_opt_in_at',
+  ])
+}
+
+function isMissingAttendeeAllergiesColumnError(error: any): boolean {
+  return isMissingColumnError(error, ['allergies'])
+}
+
+function metadataBoolean(value: unknown): boolean {
+  return value === true || value === 'true' || value === '1'
+}
+
+function getMetadataValue(metadata: Record<string, string>, key: string): string {
+  const chunkCount = Number.parseInt(metadata[`${key}_chunk_count`] || '0', 10)
+
+  if (chunkCount > 0) {
+    return Array.from({ length: chunkCount })
+      .map((_, index) => metadata[`${key}_${index}`] || '')
+      .join('')
+  }
+
+  return metadata[key] || ''
+}
+
+function buildAttendeeNotes(attendee: any, includeAllergies = false): string | null {
+  const notes = String(attendee.notes || '').trim()
+  const allergies = String(attendee.allergies || '').trim()
+  const parts = [notes]
+
+  if (includeAllergies && allergies) {
+    parts.push(`Allergies: ${allergies}`)
+  }
+
+  const combined = parts.filter(Boolean).join('\n')
+  return combined || null
+}
+
+function getAdminEmails(): string[] {
+  const configuredEmails = Deno.env.get('ADMIN_EMAILS')
+  const emails = configuredEmails
+    ? configuredEmails.split(',').map((email) => email.trim()).filter(Boolean)
+    : ['alexishindle@gmail.com', 'hello@lotsoflovelyart.com']
+
+  return emails.length > 0 ? emails : ['hello@lotsoflovelyart.com']
+}
+
+function md5Hex(input: string): string {
+  const bytes = Array.from(new TextEncoder().encode(input))
+  const bitLength = bytes.length * 8
+  const bitLengthLow = bitLength >>> 0
+  const bitLengthHigh = Math.floor(bitLength / 0x100000000) >>> 0
+
+  bytes.push(0x80)
+  while (bytes.length % 64 !== 56) bytes.push(0)
+
+  for (let i = 0; i < 4; i += 1) bytes.push((bitLengthLow >>> (8 * i)) & 0xff)
+  for (let i = 0; i < 4; i += 1) bytes.push((bitLengthHigh >>> (8 * i)) & 0xff)
+
+  let a0 = 0x67452301
+  let b0 = 0xefcdab89
+  let c0 = 0x98badcfe
+  let d0 = 0x10325476
+
+  const shifts = [
+    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+    5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
+    4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+    6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
+  ]
+  const constants = Array.from({ length: 64 }, (_, index) =>
+    Math.floor(Math.abs(Math.sin(index + 1)) * 0x100000000) >>> 0
+  )
+  const leftRotate = (value: number, amount: number) =>
+    ((value << amount) | (value >>> (32 - amount))) >>> 0
+
+  for (let offset = 0; offset < bytes.length; offset += 64) {
+    const words = Array.from({ length: 16 }, (_, index) => {
+      const base = offset + index * 4
+      return (
+        bytes[base] |
+        (bytes[base + 1] << 8) |
+        (bytes[base + 2] << 16) |
+        (bytes[base + 3] << 24)
+      ) >>> 0
+    })
+
+    let a = a0
+    let b = b0
+    let c = c0
+    let d = d0
+
+    for (let i = 0; i < 64; i += 1) {
+      let f: number
+      let g: number
+
+      if (i < 16) {
+        f = (b & c) | (~b & d)
+        g = i
+      } else if (i < 32) {
+        f = (d & b) | (~d & c)
+        g = (5 * i + 1) % 16
+      } else if (i < 48) {
+        f = b ^ c ^ d
+        g = (3 * i + 5) % 16
+      } else {
+        f = c ^ (b | ~d)
+        g = (7 * i) % 16
+      }
+
+      const next = d
+      d = c
+      c = b
+      b = (b + leftRotate((a + f + constants[i] + words[g]) >>> 0, shifts[i])) >>> 0
+      a = next
+    }
+
+    a0 = (a0 + a) >>> 0
+    b0 = (b0 + b) >>> 0
+    c0 = (c0 + c) >>> 0
+    d0 = (d0 + d) >>> 0
+  }
+
+  const wordToHex = (word: number) =>
+    Array.from({ length: 4 }, (_, index) =>
+      ((word >>> (8 * index)) & 0xff).toString(16).padStart(2, '0')
+    ).join('')
+
+  return [a0, b0, c0, d0].map(wordToHex).join('')
+}
+
+function getFunctionsBaseUrl(supabaseUrl: string): string {
+  return (Deno.env.get('FUNCTIONS_BASE_URL') || supabaseUrl).replace(/\/$/, '')
+}
+
+async function logEmailFailure(supabase: any, body: Record<string, any>, error: any) {
+  try {
+    await supabase.from('email_logs').insert({
+      template: body.template || 'unknown',
+      recipient: body.to || 'unknown',
+      status: 'failed',
+      error_message: error?.message || String(error),
+      metadata: body.metadata || null,
+      sent_at: new Date().toISOString(),
+    })
+  } catch (logError) {
+    console.error('Failed to log webhook email failure:', logError)
+  }
+}
+
+async function invokeSendEmail(supabaseUrl: string, serviceRoleKey: string, body: Record<string, any>) {
+  const functionsBaseUrl = getFunctionsBaseUrl(supabaseUrl)
+  const authToken = (Deno.env.get('SUPABASE_ANON_KEY') || serviceRoleKey).trim()
+  const response = await fetch(`${functionsBaseUrl}/functions/v1/send-email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: authToken,
+      Authorization: `Bearer ${authToken}`,
+    },
+    body: JSON.stringify(body),
+  })
+
+  const text = await response.text().catch(() => '')
+  let data: any = null
+
+  try {
+    data = text ? JSON.parse(text) : null
+  } catch {
+    data = { raw: text }
+  }
+
+  if (!response.ok) {
+    return {
+      data,
+      error: {
+        message: data?.error || text || `send-email returned ${response.status}`,
+        status: response.status,
+      },
+    }
+  }
+
+  return { data, error: null }
+}
+
+async function markCustomerMarketingOptIn(supabase: any, customerId: string, acceptedAt: string | null) {
+  try {
+    const { error } = await supabase
+      .from('customers')
+      .update({
+        marketing_opt_in: true,
+        marketing_opt_in_at: acceptedAt || new Date().toISOString(),
+      })
+      .eq('id', customerId)
+
+    if (error && isMissingColumnError(error, ['marketing_opt_in_at'])) {
+      const fallback = await supabase
+        .from('customers')
+        .update({ marketing_opt_in: true })
+        .eq('id', customerId)
+
+      if (fallback.error) {
+        console.error('❌ Error updating customer marketing opt-in:', fallback.error)
+      }
+      return
+    }
+
+    if (error) {
+      console.error('❌ Error updating customer marketing opt-in:', error)
+    }
+  } catch (error) {
+    console.error('❌ Error updating customer marketing opt-in:', error)
+  }
+}
+
+async function subscribeToMailchimp(customer: {
+  email: string
+  firstName?: string
+  lastName?: string
+}) {
+  const apiKey = Deno.env.get('MAILCHIMP_API_KEY')?.trim()
+  const audienceId = (Deno.env.get('MAILCHIMP_AUDIENCE_ID') || Deno.env.get('MAILCHIMP_LIST_ID'))?.trim()
+  const configuredServerPrefix = Deno.env.get('MAILCHIMP_SERVER_PREFIX')?.trim()
+  const serverPrefix = configuredServerPrefix || apiKey?.split('-').pop()
+
+  if (!apiKey || !audienceId || !serverPrefix) {
+    console.warn('⚠️ Mailchimp opt-in requested but MAILCHIMP_API_KEY and MAILCHIMP_AUDIENCE_ID are not fully configured')
+    return
+  }
+
+  const email = customer.email.trim().toLowerCase()
+  const subscriberHash = md5Hex(email)
+  const doubleOptIn = metadataBoolean(Deno.env.get('MAILCHIMP_DOUBLE_OPT_IN'))
+  const status = doubleOptIn ? 'pending' : 'subscribed'
+  const response = await fetch(
+    `https://${serverPrefix}.api.mailchimp.com/3.0/lists/${audienceId}/members/${subscriberHash}`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Basic ${btoa(`anystring:${apiKey}`)}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email_address: email,
+        status_if_new: status,
+        status,
+        merge_fields: {
+          FNAME: customer.firstName || '',
+          LNAME: customer.lastName || '',
+        },
+        tags: ['Checkout opt-in'],
+      }),
+    },
+  )
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '')
+    throw new Error(`Mailchimp subscribe failed (${response.status}): ${body}`)
+  }
+
+  console.log('✅ Mailchimp subscriber updated:', email)
 }
 
 serve(async (req) => {
@@ -26,8 +295,8 @@ serve(async (req) => {
     console.log('Request URL:', req.url)
 
     // Initialize Stripe
-    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY') || ''
-    console.log('Stripe key present:', !!stripeKey)
+    const stripeKey = (Deno.env.get('STRIPE_SECRET_KEY') || '').trim()
+    console.log('Stripe key configured:', !!stripeKey)
 
     const stripe = new Stripe(stripeKey, {
       apiVersion: '2023-10-16',
@@ -35,23 +304,18 @@ serve(async (req) => {
     })
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-    console.log('Supabase URL:', supabaseUrl)
-    console.log('Supabase key present:', !!supabaseServiceKey)
+    const supabaseUrl = (Deno.env.get('SUPABASE_URL') || '').trim()
+    const supabaseServiceKey = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '').trim()
+    console.log('Supabase service key configured:', !!supabaseServiceKey)
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Verify webhook signature
     const signature = req.headers.get('stripe-signature')
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
+    const webhookSecret = (Deno.env.get('STRIPE_WEBHOOK_SECRET') || '').trim()
 
     console.log('Signature present:', !!signature)
     console.log('Webhook secret present:', !!webhookSecret)
-
-    if (webhookSecret) {
-      console.log('Webhook secret prefix:', webhookSecret.substring(0, 10))
-    }
 
     if (!signature || !webhookSecret) {
       console.error('❌ Missing signature or webhook secret')
@@ -72,9 +336,13 @@ serve(async (req) => {
       }
     } catch (verifyError) {
       console.error('Signature verification error:', verifyError)
-      // For development: skip signature verification (REMOVE IN PRODUCTION)
-      console.warn('⚠️ Skipping signature verification - parsing event directly')
-      event = JSON.parse(body)
+      return new Response(
+        JSON.stringify({ error: 'Invalid Stripe signature' }),
+        {
+          headers: { 'Content-Type': 'application/json' },
+          status: 400,
+        },
+      )
     }
 
     console.log('✅ Received Stripe event:', event.type)
@@ -116,8 +384,7 @@ serve(async (req) => {
         // Extract metadata
         const metadata = session.metadata || {}
         console.log('Metadata keys:', Object.keys(metadata))
-        console.log('Full metadata:', JSON.stringify(metadata, null, 2))
-        console.log('Customer email from metadata:', metadata.customer_email)
+        console.log('Customer email present in metadata:', !!metadata.customer_email)
 
         let items: any[] = []
         const lineItemCount = parseInt(metadata.line_item_count || '0', 10)
@@ -134,9 +401,10 @@ serve(async (req) => {
         // Reconstruct attendees from separate metadata fields
         items.forEach((item: any, index: number) => {
           const attendeesKey = `item_${index}_attendees`
-          if (metadata[attendeesKey]) {
+          const attendeesJson = getMetadataValue(metadata, attendeesKey)
+          if (attendeesJson) {
             try {
-              item.attendees = JSON.parse(metadata[attendeesKey])
+              item.attendees = JSON.parse(attendeesJson)
               console.log(`✅ Restored ${item.attendees.length} attendees for item ${index}`)
             } catch (e) {
               console.error(`❌ Error parsing attendees for item ${index}:`, e)
@@ -145,7 +413,7 @@ serve(async (req) => {
         })
 
         console.log('Number of items:', items.length)
-        console.log('Items:', JSON.stringify(items, null, 2))
+        console.log('Item count:', items.length)
 
         if (!metadata.customer_email) {
           console.error('❌ No customer_email in metadata - cannot create order')
@@ -176,6 +444,12 @@ serve(async (req) => {
         const discountLabel = couponCode
           ? `Discount (${couponCode})`
           : 'Discount'
+        const healthSafetyAccepted = metadataBoolean(metadata.health_safety_accepted)
+        const privacyPolicyAccepted = metadataBoolean(metadata.privacy_policy_accepted)
+        const newsletterOptIn = metadataBoolean(metadata.newsletter_opt_in)
+        const healthSafetyAcceptedAt = metadata.health_safety_accepted_at || null
+        const privacyPolicyAcceptedAt = metadata.privacy_policy_accepted_at || null
+        const newsletterOptInAt = metadata.newsletter_opt_in_at || null
         const emailOrderItems = items.map((item: any) => ({
           name: item.title,
           quantity: item.quantity,
@@ -193,7 +467,7 @@ serve(async (req) => {
         }
 
         console.log('✅ Metadata validation passed - proceeding to create order')
-        console.log('📦 Items in order:', JSON.stringify(items, null, 2))
+        console.log('📦 Items in order:', items.length)
 
         const { data: existingOrder, error: existingOrderError } = await supabase
           .from('orders')
@@ -217,7 +491,7 @@ serve(async (req) => {
         }
 
         // Create customer record if doesn't exist
-        console.log('🔍 Looking for existing customer:', metadata.customer_email)
+        console.log('🔍 Looking for existing customer by metadata email')
         const { data: existingCustomer, error: existingCustomerError } = await supabase
           .from('customers')
           .select('id')
@@ -255,6 +529,10 @@ serve(async (req) => {
           console.log('✅ Found existing customer:', customerId)
         }
 
+        if (newsletterOptIn && customerId) {
+          await markCustomerMarketingOptIn(supabase, customerId, newsletterOptInAt)
+        }
+
         const orderPayload = {
           customer_id: customerId,
           customer_email: metadata.customer_email,
@@ -274,19 +552,66 @@ serve(async (req) => {
           status: 'paid',
         }
 
+        const orderCouponPayload = {
+          coupon_id: couponId,
+          coupon_code: couponCode || null,
+          discount_gbp: discountAmount,
+        }
+
+        const orderConsentPayload = {
+          health_safety_accepted: healthSafetyAccepted,
+          health_safety_accepted_at: healthSafetyAcceptedAt,
+          privacy_policy_accepted: privacyPolicyAccepted,
+          privacy_policy_accepted_at: privacyPolicyAcceptedAt,
+          newsletter_opt_in: newsletterOptIn,
+          newsletter_opt_in_at: newsletterOptInAt,
+        }
+
         let { data: order, error: orderError } = await supabase
           .from('orders')
           .insert({
             ...orderPayload,
-            coupon_id: couponId,
-            coupon_code: couponCode || null,
-            discount_gbp: discountAmount,
+            ...orderCouponPayload,
+            ...orderConsentPayload,
           })
           .select('id, order_number')
           .single()
 
+        if (orderError && isMissingOrderConsentColumnError(orderError)) {
+          console.warn('⚠️ Orders consent columns are not available; retrying order insert without consent summary fields')
+          const retryResult = await supabase
+            .from('orders')
+            .insert({
+              ...orderPayload,
+              ...orderCouponPayload,
+            })
+            .select('id, order_number')
+            .single()
+
+          order = retryResult.data
+          orderError = retryResult.error
+        }
+
         if (orderError && isMissingOrderCouponColumnError(orderError)) {
           console.warn('⚠️ Orders coupon columns are not available; retrying order insert without coupon summary fields')
+          const retryResult = await supabase
+            .from('orders')
+            .insert({
+              ...orderPayload,
+              ...orderConsentPayload,
+            })
+            .select('id, order_number')
+            .single()
+
+          order = retryResult.data
+          orderError = retryResult.error
+        }
+
+        if (orderError && (
+          isMissingOrderCouponColumnError(orderError) ||
+          isMissingOrderConsentColumnError(orderError)
+        )) {
+          console.warn('⚠️ Orders optional columns are not available; retrying order insert with base fields only')
           const retryResult = await supabase
             .from('orders')
             .insert(orderPayload)
@@ -385,19 +710,8 @@ serve(async (req) => {
             const offeringEventId = offeringEvent.id
             console.log('✅ Found offering_event_id:', offeringEventId)
 
-            // Decrement event capacity
-            const { error: capacityError } = await supabase.rpc('decrement_event_capacity', {
-              p_offering_event_id: offeringEventId,
-              p_attendees: item.quantity,
-            })
-
-            if (capacityError) {
-              console.error('Error decrementing capacity:', capacityError)
-            } else {
-              console.log('✅ Decremented capacity for event')
-            }
-
-            // Create booking record using the order_item_id we got from the insert above
+            // Create booking record using the order_item_id we got from the insert above.
+            // Capacity is updated once by the database booking trigger.
             const { data: booking, error: bookingError } = await supabase
               .from('bookings')
               .insert({
@@ -428,12 +742,31 @@ serve(async (req) => {
                   last_name: attendee.lastName,
                   email: attendee.email || null,
                   phone: attendee.phone || null,
-                  notes: attendee.notes || null,
+                  allergies: attendee.allergies || null,
+                  notes: buildAttendeeNotes(attendee),
                 }))
 
-                const { error: attendeesError } = await supabase
+                let { error: attendeesError } = await supabase
                   .from('booking_attendees')
                   .insert(attendeesToInsert)
+
+                if (attendeesError && isMissingAttendeeAllergiesColumnError(attendeesError)) {
+                  console.warn('⚠️ booking_attendees.allergies is not available; retrying attendee insert with allergies in notes')
+                  const fallbackAttendeesToInsert = item.attendees.map((attendee: any) => ({
+                    booking_id: booking.id,
+                    first_name: attendee.firstName,
+                    last_name: attendee.lastName,
+                    email: attendee.email || null,
+                    phone: attendee.phone || null,
+                    notes: buildAttendeeNotes(attendee, true),
+                  }))
+
+                  const retryResult = await supabase
+                    .from('booking_attendees')
+                    .insert(fallbackAttendeesToInsert)
+
+                  attendeesError = retryResult.error
+                }
 
                 if (attendeesError) {
                   console.error('❌ Error creating attendees:', attendeesError)
@@ -501,6 +834,18 @@ serve(async (req) => {
           }
         }
 
+        if (newsletterOptIn) {
+          try {
+            await subscribeToMailchimp({
+              email: metadata.customer_email,
+              firstName: metadata.customer_first_name,
+              lastName: metadata.customer_last_name,
+            })
+          } catch (mailchimpError) {
+            console.error('❌ Error subscribing customer to Mailchimp:', mailchimpError)
+          }
+        }
+
         console.log('Order processing complete:', order.order_number)
 
         // Determine what types of items are in the order
@@ -512,9 +857,11 @@ serve(async (req) => {
 
         // Send order confirmation email (serves as receipt) for ALL orders
         try {
-          console.log('📧 Sending order confirmation/receipt email to:', metadata.customer_email)
-          const emailResponse = await supabase.functions.invoke('send-email', {
-            body: {
+          console.log('📧 Sending order confirmation/receipt email')
+          const emailResponse = await invokeSendEmail(
+            supabaseUrl,
+            supabaseServiceKey,
+            {
               template: 'order-confirmation',
               to: metadata.customer_email,
               data: {
@@ -537,11 +884,23 @@ serve(async (req) => {
                 hasEvents: hasEvents,
                 hasProducts: hasProducts,
               },
+              metadata: {
+                orderNumber: order.order_number,
+                stripeCheckoutSessionId: session.id,
+              },
             },
-          })
+          )
 
           if (emailResponse.error) {
             console.error('❌ Email function returned error:', emailResponse.error)
+            await logEmailFailure(supabase, {
+              template: 'order-confirmation',
+              to: metadata.customer_email,
+              metadata: {
+                orderNumber: order.order_number,
+                stripeCheckoutSessionId: session.id,
+              },
+            }, emailResponse.error)
           } else {
             console.log('✅ Order confirmation/receipt email sent successfully')
             console.log('Email response:', JSON.stringify(emailResponse.data, null, 2))
@@ -567,11 +926,24 @@ serve(async (req) => {
 
             // Add event-specific details
             if (item.type === 'event') {
-              const { data: offeringEvent } = await supabase
-                .from('offering_events')
-                .select('event_date, event_start_time')
-                .eq('offering_id', item.id)
-                .single()
+              let offeringEvent
+
+              if (item.event_id) {
+                const result = await supabase
+                  .from('offering_events')
+                  .select('event_date, event_start_time')
+                  .eq('id', item.event_id)
+                  .single()
+                offeringEvent = result.data
+              } else {
+                const result = await supabase
+                  .from('offering_events')
+                  .select('event_date, event_start_time')
+                  .eq('offering_id', item.offering_id || item.id)
+                  .limit(1)
+                  .single()
+                offeringEvent = result.data
+              }
 
               if (offeringEvent) {
                 return {
@@ -600,12 +972,13 @@ serve(async (req) => {
             })
           }
 
-          // Send admin email to both admin addresses
-          const adminEmails = ['alexishindle@gmail.com', 'hello@lotsoflovelyart.com']
+          const adminEmails = getAdminEmails()
 
           for (const adminEmail of adminEmails) {
-            const adminEmailResponse = await supabase.functions.invoke('send-email', {
-              body: {
+            const adminEmailResponse = await invokeSendEmail(
+              supabaseUrl,
+              supabaseServiceKey,
+              {
                 template: 'new-order-admin',
                 to: adminEmail,
                 data: {
@@ -624,11 +997,23 @@ serve(async (req) => {
                 hasEvents: hasEvents,
                 hasPhysicalProducts: hasPhysicalProducts,
               },
+              metadata: {
+                orderNumber: order.order_number,
+                stripeCheckoutSessionId: session.id,
+              },
             },
-            })
+            )
 
             if (adminEmailResponse.error) {
               console.error(`❌ Admin email function returned error for ${adminEmail}:`, adminEmailResponse.error)
+              await logEmailFailure(supabase, {
+                template: 'new-order-admin',
+                to: adminEmail,
+                metadata: {
+                  orderNumber: order.order_number,
+                  stripeCheckoutSessionId: session.id,
+                },
+              }, adminEmailResponse.error)
             } else {
               console.log(`✅ Admin notification email sent to ${adminEmail}`)
             }
@@ -675,7 +1060,7 @@ serve(async (req) => {
               }
 
               console.log('📧 Sending event confirmation email...')
-              console.log('📧 Attendees data:', item.attendees)
+              console.log('📧 Attendee details present:', Array.isArray(item.attendees) && item.attendees.length > 0)
 
               // Build full location string
               const locationParts = [
@@ -686,8 +1071,10 @@ serve(async (req) => {
               ].filter(Boolean)
               const fullLocation = locationParts.length > 0 ? locationParts.join(', ') : 'TBA'
 
-              const emailResponse = await supabase.functions.invoke('send-email', {
-                body: {
+              const emailResponse = await invokeSendEmail(
+                supabaseUrl,
+                supabaseServiceKey,
+                {
                   template: 'event-booking-confirmation',
                   to: metadata.customer_email,
                   data: {
@@ -707,11 +1094,25 @@ serve(async (req) => {
                     pricePaid: item.price * item.quantity,
                     attendees: item.attendees || undefined,
                   },
+                  metadata: {
+                    orderNumber: order.order_number,
+                    stripeCheckoutSessionId: session.id,
+                    offeringEventId: offeringEvent.id,
+                  },
                 },
-              })
+              )
 
               if (emailResponse.error) {
                 console.error('❌ Email function returned error:', emailResponse.error)
+                await logEmailFailure(supabase, {
+                  template: 'event-booking-confirmation',
+                  to: metadata.customer_email,
+                  metadata: {
+                    orderNumber: order.order_number,
+                    stripeCheckoutSessionId: session.id,
+                    offeringEventId: offeringEvent.id,
+                  },
+                }, emailResponse.error)
               } else {
                 console.log('✅ Event booking confirmation email sent for:', item.title)
               }

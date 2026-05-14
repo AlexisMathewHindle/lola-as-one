@@ -13,7 +13,7 @@ interface EventReminder7DaysData {
 
 export default function eventReminder7Days(data: EventReminder7DaysData) {
   const html = baseLayout(`
-    <h2>Workshop Reminder - 7 Days to Go! 🎨</h2>
+    <h2>Workshop reminder - 7 days to go</h2>
     
     <p>Hi ${data.customerName},</p>
     
@@ -106,4 +106,3 @@ The Lola As One Team
     text,
   }
 }
-

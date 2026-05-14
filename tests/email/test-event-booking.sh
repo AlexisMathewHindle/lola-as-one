@@ -6,10 +6,11 @@ TEST_EMAIL="${1:-alexishindle@gmail.com}"
 API_URL="http://127.0.0.1:54321/functions/v1/send-email"
 AUTH_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
 
-echo "🎨 Testing Event Booking Confirmation Email"
+echo "🎨 Testing Event Booking Emails"
 echo "📧 Sending to: $TEST_EMAIL"
 echo ""
 
+echo "1. Customer event booking confirmation"
 curl -i --location --request POST "$API_URL" \
   --header "Authorization: Bearer $AUTH_TOKEN" \
   --header "Content-Type: application/json" \
@@ -19,7 +20,7 @@ curl -i --location --request POST "$API_URL" \
     \"data\": {
       \"customerName\": \"Test User\",
       \"eventName\": \"Watercolor Landscapes Workshop\",
-      \"eventDate\": \"Saturday, March 15, 2026\",
+      \"eventDate\": \"Saturday, June 20, 2026\",
       \"eventTime\": \"10:00 AM - 1:00 PM\",
       \"location\": \"Lola Studio, 123 Creative Lane, London\",
       \"numberOfAttendees\": 2,
@@ -34,5 +35,34 @@ curl -i --location --request POST "$API_URL" \
 
 echo ""
 echo ""
-echo "✅ Test complete!"
+echo "2. Admin order notification for event booking"
+curl -i --location --request POST "$API_URL" \
+  --header "Authorization: Bearer $AUTH_TOKEN" \
+  --header "Content-Type: application/json" \
+  --data "{
+    \"template\": \"new-order-admin\",
+    \"to\": \"$TEST_EMAIL\",
+    \"data\": {
+      \"orderNumber\": \"TEST-ADMIN-001\",
+      \"customerName\": \"Test User\",
+      \"customerEmail\": \"test@example.com\",
+      \"orderTotal\": 90.00,
+      \"orderItems\": [
+        {
+          \"name\": \"Watercolor Landscapes Workshop\",
+          \"quantity\": 2,
+          \"price\": 90.00,
+          \"type\": \"event\",
+          \"attendees\": 2,
+          \"eventDate\": \"Saturday, June 20, 2026\",
+          \"eventTime\": \"10:00 AM - 1:00 PM\"
+        }
+      ],
+      \"hasEvents\": true,
+      \"hasPhysicalProducts\": false
+    }
+  }"
 
+echo ""
+echo ""
+echo "✅ Test complete!"

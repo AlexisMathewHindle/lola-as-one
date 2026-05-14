@@ -21,7 +21,7 @@ curl -s --location --request POST "$API_URL" \
     \"data\": {
       \"customerName\": \"Test User\",
       \"eventName\": \"Watercolor Landscapes Workshop\",
-      \"eventDate\": \"Saturday, February 13, 2026\",
+      \"eventDate\": \"Wednesday, May 20, 2026\",
       \"eventTime\": \"10:00 AM - 1:00 PM\",
       \"location\": \"Lola Studio, 123 Creative Lane, London\",
       \"numberOfAttendees\": 2,
@@ -43,7 +43,7 @@ curl -s --location --request POST "$API_URL" \
     \"data\": {
       \"customerName\": \"Test User\",
       \"eventName\": \"Watercolor Landscapes Workshop\",
-      \"eventDate\": \"Saturday, February 7, 2026\",
+      \"eventDate\": \"Thursday, May 14, 2026\",
       \"eventTime\": \"10:00 AM - 1:00 PM\",
       \"location\": \"Lola Studio, 123 Creative Lane, London\",
       \"weatherInfo\": \"Sunny with a high of 15°C. Perfect weather for creativity!\"
@@ -53,4 +53,3 @@ curl -s --location --request POST "$API_URL" \
 echo ""
 echo "✅ All event reminder tests complete!"
 echo "📬 Check your inbox at: $TEST_EMAIL"
-

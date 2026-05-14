@@ -3,6 +3,68 @@ import { supabase } from '../lib/supabase'
 
 const routes = [
   {
+    path: '/adult-art-workshops',
+    redirect: '/adult-workshops'
+  },
+  {
+    path: '/summer-workshops',
+    redirect: '/summer-holiday'
+  },
+  {
+    path: '/holiday-workshops',
+    redirect: '/half-term'
+  },
+  {
+    path: '/behaviour-policy',
+    redirect: '/terms-and-conditions'
+  },
+  {
+    path: '/basket',
+    redirect: '/cart'
+  },
+  {
+    path: '/registration',
+    redirect: '/workshops'
+  },
+  {
+    path: '/private-parties',
+    name: 'LegacyPrivatePartiesRedirect',
+    component: () => import('../views/LegacyWorkshopRedirect.vue'),
+    props: {
+      mode: 'category',
+      categorySlug: 'private-party',
+      fallbackPath: '/workshops'
+    }
+  },
+  {
+    path: '/category/:categorySlug',
+    name: 'LegacyCategoryRedirect',
+    component: () => import('../views/LegacyWorkshopRedirect.vue'),
+    props: (route) => ({
+      mode: 'category',
+      categorySlug: route.params.categorySlug,
+      fallbackPath: '/workshops'
+    })
+  },
+  {
+    path: '/event-details/:id',
+    name: 'LegacyEventDetailsRedirect',
+    component: () => import('../views/LegacyWorkshopRedirect.vue'),
+    props: {
+      mode: 'event',
+      fallbackPath: '/workshops'
+    }
+  },
+  {
+    path: '/booking/:id',
+    name: 'LegacyBookingRedirect',
+    component: () => import('../views/LegacyWorkshopRedirect.vue'),
+    props: {
+      mode: 'event',
+      fallbackPath: '/workshops'
+    }
+  },
+  {
     path: '/',
     name: 'Home',
     component: () => import('../views/Home.vue')
@@ -19,7 +81,7 @@ const routes = [
   },
   {
     path: '/half-term',
-    alias: ['/holiday-programs/half-term', '/holiday-workshops'],
+    alias: ['/holiday-programs/half-term'],
     name: 'HalfTerm',
     component: () => import('../views/HolidayProgramPage.vue'),
     props: {
@@ -30,7 +92,7 @@ const routes = [
   },
   {
     path: '/summer-holiday',
-    alias: ['/holiday-programs/summer-holiday', '/summer-workshops'],
+    alias: ['/holiday-programs/summer-holiday'],
     name: 'SummerHoliday',
     component: () => import('../views/HolidayProgramPage.vue'),
     props: {
@@ -103,6 +165,27 @@ const routes = [
     path: '/contact',
     name: 'Contact',
     component: () => import('../views/Contact.vue')
+  },
+  {
+    path: '/workshop-faqs',
+    alias: ['/faqs', '/faq'],
+    name: 'WorkshopFAQs',
+    component: () => import('../views/CmsInfoPage.vue'),
+    props: { pageKey: 'workshop-faqs' }
+  },
+  {
+    path: '/privacy-policy',
+    alias: ['/privacy'],
+    name: 'PrivacyPolicy',
+    component: () => import('../views/CmsInfoPage.vue'),
+    props: { pageKey: 'privacy-policy' }
+  },
+  {
+    path: '/terms-and-conditions',
+    alias: ['/terms'],
+    name: 'TermsAndConditions',
+    component: () => import('../views/CmsInfoPage.vue'),
+    props: { pageKey: 'terms-and-conditions' }
   },
   {
     path: '/design-system',
@@ -275,6 +358,11 @@ const routes = [
         path: 'navigation',
         name: 'AdminNavigation',
         component: () => import('../views/admin/Navigation.vue')
+      },
+      {
+        path: 'pages',
+        name: 'AdminInformationPages',
+        component: () => import('../views/admin/InformationPages.vue')
       },
       {
         path: 'settings',

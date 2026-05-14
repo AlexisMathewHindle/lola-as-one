@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Master test script for all email templates
-# This script sends test emails for all available templates
+# Master test script for the core email templates
+# This script sends test emails for checkout, event, subscription, contact, waitlist, and download flows
 
 # Configuration
 TEST_EMAIL="alexishindle@gmail.com"
@@ -78,7 +78,7 @@ echo "2️⃣  Event Booking Confirmation"
 send_test_email "event-booking-confirmation" '{
     "customerName": "Test User",
     "eventName": "Watercolor Landscapes Workshop",
-    "eventDate": "Saturday, March 15, 2026",
+    "eventDate": "Saturday, June 20, 2026",
     "eventTime": "10:00 AM - 1:00 PM",
     "location": "Lola Studio, 123 Creative Lane, London",
     "numberOfAttendees": 2,
@@ -90,8 +90,30 @@ send_test_email "event-booking-confirmation" '{
     "cancellationPolicy": "Free cancellation up to 48 hours before the event. Cancellations within 48 hours are non-refundable."
 }'
 
-# Test 3: Subscription Activated
-echo "3️⃣  Subscription Activated"
+# Test 3: New Order Admin
+echo "3️⃣  New Order Admin"
+send_test_email "new-order-admin" '{
+    "orderNumber": "TEST-ADMIN-001",
+    "customerName": "Test User",
+    "customerEmail": "test@example.com",
+    "orderTotal": 90.00,
+    "orderItems": [
+        {
+            "name": "Watercolor Landscapes Workshop",
+            "quantity": 2,
+            "price": 90.00,
+            "type": "event",
+            "attendees": 2,
+            "eventDate": "Saturday, June 20, 2026",
+            "eventTime": "10:00 AM - 1:00 PM"
+        }
+    ],
+    "hasEvents": true,
+    "hasPhysicalProducts": false
+}'
+
+# Test 4: Subscription Activated
+echo "4️⃣  Subscription Activated"
 send_test_email "subscription-activated" '{
     "customerName": "Test User",
     "subscriptionName": "Monthly Craft Box",
@@ -101,8 +123,8 @@ send_test_email "subscription-activated" '{
     "firstBoxShippingDate": "February 20, 2026"
 }'
 
-# Test 4: Subscription Renewal Success
-echo "4️⃣  Subscription Renewal Success"
+# Test 5: Subscription Renewal Success
+echo "5️⃣  Subscription Renewal Success"
 send_test_email "subscription-renewal-success" '{
     "customerName": "Test User",
     "subscriptionName": "Monthly Craft Box",
@@ -113,8 +135,8 @@ send_test_email "subscription-renewal-success" '{
     "paymentMethod": "Visa ending in 4242"
 }'
 
-# Test 5: Subscription Payment Failed
-echo "5️⃣  Subscription Payment Failed"
+# Test 6: Subscription Payment Failed
+echo "6️⃣  Subscription Payment Failed"
 send_test_email "subscription-payment-failed" '{
     "customerName": "Test User",
     "subscriptionName": "Monthly Craft Box",
@@ -124,15 +146,15 @@ send_test_email "subscription-payment-failed" '{
     "updatePaymentLink": "https://lolaasone.com/account/payment"
 }'
 
-# Test 6: Password Reset
-echo "6️⃣  Password Reset"
+# Test 7: Password Reset
+echo "7️⃣  Password Reset"
 send_test_email "password-reset" '{
     "resetLink": "https://lolaasone.com/reset-password?token=test123456",
     "expiryMinutes": 60
 }'
 
-# Test 7: Contact Form - Customer
-echo "7️⃣  Contact Form - Customer Confirmation"
+# Test 8: Contact Form - Customer
+echo "8️⃣  Contact Form - Customer Confirmation"
 send_test_email "contact-form-customer" '{
     "customerName": "Test User",
     "customerEmail": "test@example.com",
@@ -142,8 +164,8 @@ send_test_email "contact-form-customer" '{
     "submissionDate": "February 6, 2026 at 10:30 AM"
 }'
 
-# Test 8: Contact Form - Admin
-echo "8️⃣  Contact Form - Admin Notification"
+# Test 9: Contact Form - Admin
+echo "9️⃣  Contact Form - Admin Notification"
 send_test_email "contact-form-admin" '{
     "customerName": "Test User",
     "customerEmail": "test@example.com",
@@ -154,8 +176,8 @@ send_test_email "contact-form-admin" '{
     "submissionDate": "February 6, 2026 at 10:30 AM"
 }'
 
-# Test 9: Digital Download Ready
-echo "9️⃣  Digital Download Ready"
+# Test 10: Digital Download Ready
+echo "🔟 Digital Download Ready"
 send_test_email "digital-download-ready" '{
     "customerName": "Test User",
     "productName": "Watercolor Techniques eBook",
@@ -177,8 +199,8 @@ send_test_email "digital-download-ready" '{
     "orderNumber": "TEST-003"
 }'
 
-# Test 10: Order Shipped
-echo "🔟 Order Shipped"
+# Test 11: Order Shipped
+echo "1️⃣1️⃣  Order Shipped"
 send_test_email "order-shipped" '{
     "customerName": "Test User",
     "orderNumber": "TEST-004",
@@ -193,12 +215,12 @@ send_test_email "order-shipped" '{
     ]
 }'
 
-# Test 11: Event Reminder - 7 Days
-echo "1️⃣1️⃣  Event Reminder - 7 Days"
+# Test 12: Event Reminder - 7 Days
+echo "1️⃣2️⃣  Event Reminder - 7 Days"
 send_test_email "event-reminder-7-days" '{
     "customerName": "Test User",
     "eventName": "Watercolor Landscapes Workshop",
-    "eventDate": "Saturday, February 13, 2026",
+    "eventDate": "Wednesday, May 20, 2026",
     "eventTime": "10:00 AM - 1:00 PM",
     "location": "Lola Studio, 123 Creative Lane, London",
     "numberOfAttendees": 2,
@@ -206,23 +228,34 @@ send_test_email "event-reminder-7-days" '{
     "parkingInfo": "Free parking on Creative Lane. Nearest tube: Angel Station"
 }'
 
-# Test 12: Event Reminder - 24 Hours
-echo "1️⃣2️⃣  Event Reminder - 24 Hours"
+# Test 13: Event Reminder - 24 Hours
+echo "1️⃣3️⃣  Event Reminder - 24 Hours"
 send_test_email "event-reminder-24-hours" '{
     "customerName": "Test User",
     "eventName": "Watercolor Landscapes Workshop",
-    "eventDate": "Saturday, February 7, 2026",
+    "eventDate": "Thursday, May 14, 2026",
     "eventTime": "10:00 AM - 1:00 PM",
     "location": "Lola Studio, 123 Creative Lane, London",
     "weatherInfo": "Sunny with a high of 15°C. Perfect weather for creativity!"
 }'
 
-# Test 13: Waitlist - Event Available
-echo "1️⃣3️⃣  Waitlist - Event Available"
+# Test 14: Event Feedback Request
+echo "1️⃣4️⃣  Event Feedback Request"
+send_test_email "event-feedback-request" '{
+    "customerName": "Test User",
+    "eventName": "Watercolor Landscapes Workshop",
+    "eventDate": "Tuesday, May 12, 2026",
+    "bookingReference": "BOOK-12345",
+    "feedbackLink": "https://lolaasone.com/feedback?booking=BOOK-12345",
+    "photoShareLink": "https://lolaasone.com/share-photos?booking=BOOK-12345"
+}'
+
+# Test 15: Waitlist - Event Available
+echo "1️⃣5️⃣  Waitlist - Event Available"
 send_test_email "waitlist-event-available" '{
     "customerName": "Test User",
     "eventName": "Advanced Watercolor Techniques",
-    "eventDate": "Saturday, March 1, 2026",
+    "eventDate": "Saturday, June 20, 2026",
     "eventTime": "2:00 PM - 5:00 PM",
     "location": "Lola Studio, 123 Creative Lane, London",
     "spacesAvailable": 2,
@@ -231,8 +264,8 @@ send_test_email "waitlist-event-available" '{
     "bookingLink": "https://lolaasone.com/events/advanced-watercolor?waitlist=true"
 }'
 
-# Test 14: Waitlist - Product Available
-echo "1️⃣4️⃣  Waitlist - Product Available"
+# Test 16: Waitlist - Product Available
+echo "1️⃣6️⃣  Waitlist - Product Available"
 send_test_email "waitlist-product-available" '{
     "customerName": "Test User",
     "productName": "Limited Edition Watercolor Set",
@@ -250,4 +283,3 @@ echo ""
 echo "📬 Check your inbox at: $TEST_EMAIL"
 echo "🌐 View emails in Resend: https://resend.com/emails"
 echo ""
-

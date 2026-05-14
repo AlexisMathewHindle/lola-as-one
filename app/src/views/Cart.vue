@@ -113,15 +113,22 @@
                 </div>
 
                 <!-- Event Details (if event) -->
-                <div v-if="item.type === 'event' && item.eventDate" class="text-sm text-gray-600 mb-3">
+                <div v-if="item.type === 'event' && (item.eventDate || item.termLabel || item.isTermBundle)" class="text-sm text-gray-600 mb-3">
                   <div class="flex items-center gap-4">
-                    <span class="flex items-center">
+                    <span v-if="item.eventDate" class="flex items-center">
                       <font-awesome-icon icon="calendar" class="w-4 h-4 mr-1" />
                       {{ formatDate(item.eventDate) }}
                     </span>
                     <span v-if="item.eventTime" class="flex items-center">
                       <font-awesome-icon icon="clock" class="w-4 h-4 mr-1" />
                       {{ item.eventTime }}
+                    </span>
+                    <span v-if="item.termLabel" class="flex items-center">
+                      <font-awesome-icon icon="calendar" class="w-4 h-4 mr-1" />
+                      {{ item.termLabel }}
+                    </span>
+                    <span v-if="item.isTermBundle && item.items?.length" class="flex items-center">
+                      {{ item.items.length }} {{ item.items.length === 1 ? 'session' : 'sessions' }}
                     </span>
                   </div>
                 </div>
@@ -175,7 +182,7 @@
                       £{{ lineTotal(item).toFixed(2) }}
                     </div>
                     <div v-if="item.quantity > 1" class="text-xs text-gray-500">
-                      £{{ item.price.toFixed(2) }} each
+                      £{{ Number(item.price || 0).toFixed(2) }} each
                     </div>
                   </div>
                 </div>
@@ -299,7 +306,7 @@ const getItemTypeLabel = (item) => {
 
 // Calculate line total for an item
 const lineTotal = (item) => {
-  return item.price * item.quantity
+  return Number(item.price || 0) * item.quantity
 }
 
 const hasCompleteAttendeeDetails = (item) => {

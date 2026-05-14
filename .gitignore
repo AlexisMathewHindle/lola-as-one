@@ -3,6 +3,26 @@ node_modules/
 **/node_modules/
 
 docs/*
+!docs/events-data-cms-readiness.md
+!docs/events-data-cms-readiness-evidence.md
+!docs/events-data-cms-readiness-fix-log.md
+!docs/events-sql-rpc-verification.md
+!docs/admin-ui-edit-proof.md
+!docs/events-production-launch-epic.md
+!docs/public-discovery-event-detail-flow.md
+!docs/public-discovery-event-detail-flow-evidence.md
+!docs/public-discovery-responsive-screenshots.md
+!docs/public-discovery-booking-state-evidence.md
+!docs/public-discovery-legacy-route-evidence.md
+!docs/event-cart-checkout-readiness.md
+!docs/event-cart-checkout-readiness-evidence.md
+!docs/stripe-payment-webhook-proof.md
+!docs/stripe-payment-webhook-proof-evidence.md
+!docs/evidence/
+!docs/evidence/public-discovery-screenshots/
+!docs/evidence/public-discovery-screenshots/*.png
+!docs/platform-overview-and-epic-foundation.md
+!docs/production-roadmap.md
 exports/*
 
 # Build outputs
@@ -51,4 +71,3 @@ Thumbs.db
 
 # Package manager lock files (keep these!)
 # package-lock.json is important for reproducible builds
-

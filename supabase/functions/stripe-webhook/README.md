@@ -13,8 +13,10 @@ When a customer completes a payment, this webhook:
 5. ✅ **Decrements** inventory for physical products
 6. ✅ **Decrements** event capacity for workshops
 7. ✅ **Creates** booking records for events
-8. ✅ **Sends** order confirmation emails
-9. ✅ **Sends** event booking confirmation emails
+8. ✅ **Records** checkout consent and attendee allergy details
+9. ✅ **Sends** newsletter opt-ins to Mailchimp when configured
+10. ✅ **Sends** order confirmation emails
+11. ✅ **Sends** event booking confirmation emails
 
 ## Events Handled
 
@@ -29,6 +31,17 @@ STRIPE_SECRET_KEY=sk_test_...           # Your Stripe secret key
 STRIPE_WEBHOOK_SECRET=whsec_...         # Webhook signing secret
 SUPABASE_URL=https://...supabase.co     # Your Supabase project URL
 SUPABASE_SERVICE_ROLE_KEY=...           # Service role key for database access
+```
+
+## Optional Mailchimp Variables
+
+Set these if newsletter opt-ins at checkout should be added to a Mailchimp audience:
+
+```bash
+MAILCHIMP_API_KEY=...                   # Mailchimp Marketing API key, e.g. xxxx-us21
+MAILCHIMP_AUDIENCE_ID=...               # Mailchimp Audience/List ID
+MAILCHIMP_SERVER_PREFIX=us21            # Optional; inferred from API key when omitted
+MAILCHIMP_DOUBLE_OPT_IN=false           # Optional; set true to create pending subscribers
 ```
 
 ## Setup
@@ -103,6 +116,9 @@ The webhook expects the following metadata from the checkout session:
   customer_first_name: "John",
   customer_last_name: "Doe",
   customer_phone: "+44 20 1234 5678",
+  health_safety_accepted: "true",
+  privacy_policy_accepted: "true",
+  newsletter_opt_in: "true",
   shipping_name: "John Doe",
   shipping_line1: "123 Main St",
   shipping_line2: "Apt 4",
@@ -252,4 +268,3 @@ See [STRIPE-WEBHOOK-SETUP.md](../../../docs/STRIPE-WEBHOOK-SETUP.md) for detaile
 - [Quick Start Guide](../../../docs/STRIPE-WEBHOOK-QUICK-START.md)
 - [Full Setup Guide](../../../docs/STRIPE-WEBHOOK-SETUP.md)
 - [Stripe Integration Plan](../../../docs/stripe-backend-integration-plan.md)
-

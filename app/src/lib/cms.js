@@ -143,6 +143,23 @@ export async function getAdminPageWithSectionsByKey(pageKey) {
 }
 
 /**
+ * Update a CMS page or app-route page registry record.
+ */
+export async function saveSitePage(page) {
+  const { id, ...updates } = stripUndefinedFields(page)
+
+  const { data, error } = await supabase
+    .from('site_pages')
+    .update(updates)
+    .eq('id', id)
+    .select(ADMIN_PAGE_FIELDS)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+/**
  * Create or update page sections using the unique page_id + section_key constraint.
  */
 export async function upsertPageSections(sections) {

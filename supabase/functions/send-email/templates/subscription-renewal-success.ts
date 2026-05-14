@@ -12,7 +12,7 @@ interface SubscriptionRenewalData {
 
 export default function subscriptionRenewalSuccess(data: SubscriptionRenewalData) {
   const html = baseLayout(`
-    <h2>Payment Successful 💳</h2>
+    <h2>Payment successful</h2>
     
     <p>Hi ${data.customerName},</p>
     
@@ -81,4 +81,3 @@ The Lola As One Team
     text,
   }
 }
-

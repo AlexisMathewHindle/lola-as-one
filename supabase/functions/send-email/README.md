@@ -56,24 +56,91 @@ const { data, error } = await supabase.functions.invoke('send-email', {
 
 ## Available Templates
 
-### Critical Templates (Implemented)
-1. `order-confirmation` - Order confirmation for one-time purchases
-2. `event-booking-confirmation` - Event/workshop booking confirmation
-3. `subscription-activated` - New subscription activated
-4. `subscription-renewal-success` - Subscription payment successful
-5. `subscription-payment-failed` - Subscription payment failed
-6. `password-reset` - Password reset request
-7. `contact-form-customer` - Contact form submission (customer copy)
-8. `contact-form-admin` - Contact form submission (admin notification)
-9. `digital-download-ready` - Digital product download ready
-10. `order-shipped` - Order shipped notification
-11. `event-reminder-7-days` - Event reminder 7 days before
-12. `event-reminder-24-hours` - Event reminder 24 hours before
-13. `waitlist-event-available` - Event waitlist spot available
-14. `waitlist-product-available` - Product back in stock
+### Templates Implemented
 
-### Templates To Be Implemented
-See `docs/email-notification-system.md` for the complete list of 50+ templates.
+**Orders & Purchases**
+- `order-confirmation` - Order confirmation for one-time purchases
+- `order-shipped` - Order shipped notification
+- `order-delivered` - Order delivered notification
+- `order-cancelled` - Order cancellation notification
+- `refund-processed` - Refund confirmation
+
+**Event Bookings**
+- `event-booking-confirmation` - Event/workshop booking confirmation
+- `event-reminder-7-days` - Event reminder 7 days before
+- `event-reminder-24-hours` - Event reminder 24 hours before
+- `event-feedback-request` - Event feedback request after a workshop
+- `event-cancelled` - Event cancellation notification
+- `booking-cancelled` - Customer booking cancellation confirmation
+
+**Subscriptions**
+- `subscription-activated` - New subscription activated
+- `subscription-renewal-success` - Subscription payment successful
+- `subscription-payment-failed` - Subscription payment failed
+- `subscription-paused` - Subscription pause confirmation
+- `subscription-resumed` - Subscription resume confirmation
+- `subscription-cancelled` - Subscription cancellation confirmation
+- `subscription-ending-soon` - Subscription ending soon reminder
+- `subscription-box-shipped` - Subscription box shipped notification
+
+**Waitlist**
+- `waitlist-event-available` - Event waitlist spot available
+- `waitlist-product-available` - Product back in stock
+- `waitlist-spot-expired` - Waitlist offer expired
+
+**Digital, Gift Cards & Account**
+- `digital-download-ready` - Digital product download ready
+- `download-link-expiring-soon` - Digital download expiry reminder
+- `gift-card-purchased` - Gift card purchase confirmation
+- `gift-card-received` - Gift card recipient email
+- `password-reset` - Password reset request
+- `password-changed` - Password changed confirmation
+- `email-address-changed` - Email address changed confirmation
+- `welcome-email` - New account welcome email
+
+**Contact & Newsletter**
+- `contact-form-customer` - Contact form submission customer copy
+- `contact-form-admin` - Contact form submission admin notification
+- `newsletter-subscription-confirmed` - Newsletter subscription confirmation
+- `newsletter-unsubscribed` - Newsletter unsubscribe confirmation
+
+**Admin Notifications**
+- `new-order-admin` - Admin notification for a new order or event booking
+- `low-stock-alert-admin` - Low stock admin alert
+- `event-capacity-full-admin` - Full event admin alert
+- `subscription-payment-failed-admin` - Subscription payment failure admin alert
+- `new-waitlist-entry-admin` - New waitlist entry admin alert
+
+**Reviews & Marketing**
+- `product-review-request` - Product review request
+- `abandoned-cart-reminder` - Abandoned cart reminder
+- `new-workshop-announcement` - New workshop announcement
+- `new-product-launch` - New product announcement
+- `seasonal-promotion` - Seasonal promotion
+- `birthday-anniversary-email` - Birthday or anniversary message
+
+## Event Email Automation
+
+The `send-event-emails` Edge Function is designed to be scheduled once per day. It finds confirmed bookings and sends:
+
+- `event-reminder-7-days` when the event is 7 days away
+- `event-reminder-24-hours` when the event is 1 day away
+- `event-feedback-request` when the event was 1 day ago
+
+It records `bookingId`, `eventId`, and `automation: event-lifecycle` in `email_logs.metadata` so repeated scheduler runs do not send duplicate emails for the same booking/template.
+
+Recommended secrets:
+
+```bash
+SITE_URL=https://lolaasone.com
+EVENT_FEEDBACK_URL=https://lolaasone.com/contact
+EVENT_EMAIL_TIME_ZONE=Europe/London
+EVENT_EMAIL_CRON_SECRET=your-strong-secret
+ADMIN_EMAILS=hello@lotsoflovelyart.com
+```
+
+`EVENT_FEEDBACK_URL` is optional. If it is not set, feedback links fall back to `/contact` on `SITE_URL`.
+`ADMIN_EMAILS` is a comma-separated list used by the Stripe webhook for `new-order-admin`.
 
 ## Template Data Structures
 
@@ -117,4 +184,3 @@ The function returns:
 - `400` - Invalid request or email sending failed
 
 Check the `email_logs` table for detailed error messages.
-

@@ -25,7 +25,7 @@ interface OrderConfirmationData {
 
 export default function orderConfirmation(data: OrderConfirmationData) {
   const html = baseLayout(`
-    <h2>Thank you for your order! 🎉</h2>
+    <h2>Thank you for your order</h2>
     
     <p>Hi ${data.customerName},</p>
     
@@ -141,4 +141,3 @@ The Lola As One Team
     text,
   }
 }
-

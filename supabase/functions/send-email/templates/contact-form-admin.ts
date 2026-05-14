@@ -12,7 +12,7 @@ interface ContactFormAdminData {
 
 export default function contactFormAdmin(data: ContactFormAdminData) {
   const html = baseLayout(`
-    <h2>New Contact Form Submission 📬</h2>
+    <h2>New contact form submission</h2>
     
     <div class="info-box">
       <strong>Reference:</strong> ${data.referenceNumber}<br>
@@ -73,4 +73,3 @@ Reply to: ${data.customerEmail}
     text,
   }
 }
-

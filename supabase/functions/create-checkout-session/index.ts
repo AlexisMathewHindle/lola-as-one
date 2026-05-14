@@ -10,6 +10,8 @@ const corsHeaders = {
 const DEFAULT_CHECKOUT_APP_URL = 'https://lola-as-one.netlify.app'
 const LEGACY_CHECKOUT_HOSTS = new Set(['lola-workshops.netlify.app'])
 const GBP_CURRENCY = 'gbp'
+const MAX_STRIPE_METADATA_VALUE_LENGTH = 450
+const MAX_ATTENDEE_ALLERGIES_LENGTH = 240
 
 type CouponRecord = {
   id: string
@@ -63,6 +65,34 @@ function sanitizeMetadataTitle(title: unknown, fallbackTitle?: unknown): string 
   return normalizedTitle.slice(0, 120) || 'Item'
 }
 
+function isAccepted(value: unknown): boolean {
+  return value === true || value === 'true' || value === '1'
+}
+
+function splitMetadataValue(value: string): string[] {
+  const chunks: string[] = []
+
+  for (let index = 0; index < value.length; index += MAX_STRIPE_METADATA_VALUE_LENGTH) {
+    chunks.push(value.slice(index, index + MAX_STRIPE_METADATA_VALUE_LENGTH))
+  }
+
+  return chunks.length > 0 ? chunks : ['']
+}
+
+function setMetadataValue(metadata: Record<string, string>, key: string, value: string) {
+  const chunks = splitMetadataValue(value)
+
+  if (chunks.length === 1) {
+    metadata[key] = chunks[0]
+    return
+  }
+
+  metadata[`${key}_chunk_count`] = String(chunks.length)
+  chunks.forEach((chunk, index) => {
+    metadata[`${key}_${index}`] = chunk
+  })
+}
+
 function buildItemMetadata(item: any) {
   return {
     id: item.id || item.offering_id,
@@ -74,6 +104,18 @@ function buildItemMetadata(item: any) {
     type: item.type,
     eventDate: item.eventDate || null,
     eventTime: item.eventTime || null,
+  }
+}
+
+function buildAttendeeMetadata(attendee: any) {
+  return {
+    ...attendee,
+    firstName: String(attendee.firstName || '').trim(),
+    lastName: String(attendee.lastName || '').trim(),
+    email: String(attendee.email || '').trim(),
+    phone: String(attendee.phone || '').trim(),
+    allergies: String(attendee.allergies || '').trim().slice(0, MAX_ATTENDEE_ALLERGIES_LENGTH),
+    notes: String(attendee.notes || '').trim(),
   }
 }
 
@@ -216,12 +258,7 @@ serve(async (req) => {
     // Initialize Stripe
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY') || ''
 
-    // Debug logging (remove after testing)
-    console.log('Stripe key check:', {
-      hasKey: !!stripeKey,
-      keyPrefix: stripeKey.substring(0, 7),
-      keyLength: stripeKey.length
-    })
+    console.log('Stripe key configured:', !!stripeKey)
 
     if (!stripeKey || stripeKey === '12345678') {
       throw new Error('Stripe API key is not configured. Please set STRIPE_SECRET_KEY in Supabase secrets.')
@@ -238,16 +275,15 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Parse request body
-    const { items, customer, shipping, discountCode } = await req.json()
+    const { items, customer, shipping, discountCode, consents = {} } = await req.json()
     const normalizedDiscountCode = normalizeDiscountCode(discountCode)
 
     console.log('📦 Request data:', {
       itemCount: items?.length,
-      customerEmail: customer?.email,
+      hasCustomerEmail: !!customer?.email,
       hasShipping: !!shipping,
       discountCode: normalizedDiscountCode || null,
     })
-    console.log('📦 Items:', JSON.stringify(items, null, 2))
 
     // Validate request
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -255,6 +291,20 @@ serve(async (req) => {
     }
     if (!customer || !customer.email) {
       throw new Error('Customer email is required')
+    }
+
+    const hasEventItems = items.some(item => item.type === 'event')
+    const healthSafetyAccepted = isAccepted(consents.healthSafetyAccepted)
+    const privacyPolicyAccepted = isAccepted(consents.privacyPolicyAccepted)
+    const newsletterOptIn = isAccepted(consents.newsletterOptIn)
+    const consentAcceptedAt = new Date().toISOString()
+
+    if (hasEventItems && !healthSafetyAccepted) {
+      throw new Error('Please accept the health and safety agreement before continuing.')
+    }
+
+    if (!privacyPolicyAccepted) {
+      throw new Error('Please agree to the Privacy Policy before continuing.')
     }
 
     // Calculate totals
@@ -423,9 +473,7 @@ serve(async (req) => {
     }
 
     // Prepare items for metadata (without attendees to avoid 500 char limit)
-    console.log('📦 Original items:', JSON.stringify(items))
     const itemsForMetadata = items.map((item: any) => buildItemMetadata(item))
-    console.log('📦 Items without attendees:', JSON.stringify(itemsForMetadata))
     console.log('📦 Items metadata length:', JSON.stringify(itemsForMetadata).length)
 
     const itemMetadataFields: Record<string, string> = {
@@ -439,15 +487,15 @@ serve(async (req) => {
     })
 
     // Prepare attendees data separately (only for items that have attendees)
-    const attendeesData: Record<string, any> = {}
+    const attendeesData: Record<string, string> = {}
     items.forEach((item: any, index: number) => {
       if (item.attendees && item.attendees.length > 0) {
-        const attendeesJson = JSON.stringify(item.attendees)
-        console.log(`👥 Item ${index} attendees (${attendeesJson.length} chars):`, attendeesJson)
-        attendeesData[`item_${index}_attendees`] = attendeesJson
+        const attendeesJson = JSON.stringify(item.attendees.map(buildAttendeeMetadata))
+        console.log(`👥 Item ${index} attendee metadata length:`, attendeesJson.length)
+        setMetadataValue(attendeesData, `item_${index}_attendees`, attendeesJson)
       }
     })
-    console.log('📦 Attendees data keys:', Object.keys(attendeesData))
+    console.log('📦 Attendee metadata keys:', Object.keys(attendeesData))
 
     const checkoutAppUrl = getCheckoutAppUrl()
     let stripeCouponId = ''
@@ -480,6 +528,12 @@ serve(async (req) => {
         customer_first_name: customer.firstName,
         customer_last_name: customer.lastName,
         customer_phone: customer.phone || '',
+        health_safety_accepted: String(hasEventItems && healthSafetyAccepted),
+        health_safety_accepted_at: hasEventItems && healthSafetyAccepted ? consentAcceptedAt : '',
+        privacy_policy_accepted: String(privacyPolicyAccepted),
+        privacy_policy_accepted_at: privacyPolicyAccepted ? consentAcceptedAt : '',
+        newsletter_opt_in: String(newsletterOptIn),
+        newsletter_opt_in_at: newsletterOptIn ? consentAcceptedAt : '',
         discount_code: appliedCoupon?.coupon.code || normalizedDiscountCode,
         coupon_id: appliedCoupon?.coupon.id || '',
         coupon_applies_to: appliedCoupon?.coupon.applies_to || '',

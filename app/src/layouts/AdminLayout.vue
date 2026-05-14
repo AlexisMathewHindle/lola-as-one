@@ -144,6 +144,7 @@ const navSections = [
       { label: 'Offerings', path: '/admin/offerings', icon: 'box' },
       { label: 'Blog Posts', path: '/admin/blog', icon: 'newspaper' },
       { label: 'Homepage Content', path: '/admin/homepage', icon: 'image' },
+      { label: 'Information Pages', path: '/admin/pages', icon: 'file-alt' },
       { label: 'Navigation', path: '/admin/navigation', icon: 'list' }
     ]
   },
@@ -203,6 +204,7 @@ const pageTitle = computed(() => {
     '/admin/analytics': 'Analytics',
     '/admin/reviews': 'Reviews',
     '/admin/homepage': 'Homepage Content',
+    '/admin/pages': 'Information Pages',
     '/admin/navigation': 'Navigation',
     '/admin/settings': 'Settings'
   }

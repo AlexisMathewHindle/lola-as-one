@@ -53,6 +53,10 @@
                   </div>
 
                   <h1 class="mt-5 text-3xl font-display font-bold text-stone-900 sm:text-4xl">Adult Art Workshops</h1>
+
+                  <p v-if="heroDescription" class="mt-4 max-w-2xl text-base leading-relaxed text-stone-600 sm:text-lg">
+                    {{ heroDescription }}
+                  </p>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
@@ -67,13 +71,6 @@
                     <div class="mt-2 text-base font-semibold text-stone-900">{{ heroLocationName }}</div>
                     <div class="mt-1 text-sm text-stone-500">{{ heroLocationDetail }}</div>
                   </div>
-                </div>
-
-                <div class="rounded-[1.75rem] border border-stone-200 bg-white px-6 py-5">
-                  <div class="text-sm font-semibold uppercase tracking-[0.24em] text-stone-400">About These Workshops</div>
-                  <p class="mt-4 whitespace-pre-line text-base leading-relaxed text-stone-700">
-                    {{ heroDescription }}
-                  </p>
                 </div>
               </div>
             </div>
@@ -217,8 +214,7 @@ const heroDescription = computed(() => {
 const heroImage = computed(() => {
   if (!heroCategory.value) return null
 
-  const workshopImage = workshops.value.find((workshop) => workshop.category?.id === heroCategory.value.id)?.offering?.featured_image_url
-  return workshopImage || heroCategory.value.featured_image_url || null
+  return heroCategory.value.featured_image_url || null
 })
 
 const quantityByEventId = computed(() => {

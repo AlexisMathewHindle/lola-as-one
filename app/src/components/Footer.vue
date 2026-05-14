@@ -161,7 +161,10 @@ const fallbackFooterPrimaryItems = [
 
 const fallbackFooterSecondaryItems = [
   { id: 'footer-about', label: 'About', itemType: 'page', href: '/about' },
-  { id: 'footer-contact', label: 'Contact', itemType: 'page', href: '/contact' }
+  { id: 'footer-contact', label: 'Contact', itemType: 'page', href: '/contact' },
+  { id: 'footer-workshop-faqs', label: 'Workshop FAQs', itemType: 'page', href: '/workshop-faqs' },
+  { id: 'footer-privacy-policy', label: 'Privacy Policy', itemType: 'page', href: '/privacy-policy' },
+  { id: 'footer-terms', label: 'Terms and Conditions', itemType: 'page', href: '/terms-and-conditions' }
 ]
 
 const fallbackSocialLinks = {

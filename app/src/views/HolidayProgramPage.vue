@@ -49,6 +49,7 @@
         :workshop="representativeWorkshop"
         :age-group="categoryAgeLabel"
         :formatted-description="formattedDescription"
+        :show-description-panel="false"
         :session-events="sessions"
         :session-quantities="sessionQuantities"
         @increment-session="incrementSession"
@@ -125,7 +126,7 @@ const categoryAgeLabel = computed(() => {
 const firstSession = computed(() => sessions.value[0] || null)
 
 const heroImage = computed(() => {
-  return category.value?.featured_image_url || firstSession.value?.offering?.featured_image_url || null
+  return category.value?.featured_image_url || null
 })
 
 const primaryPrice = computed(() => {

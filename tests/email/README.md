@@ -24,28 +24,30 @@ This directory contains test scripts for all email templates in the Lola As One 
 
 **Location:** `test-email-templates.sh` (in project root)
 
-Tests all 14 email templates in one go:
+Tests the core checkout, event, contact, subscription, waitlist, and download templates in one go:
 
 ```bash
 chmod +x test-email-templates.sh
 ./test-email-templates.sh
 ```
 
-This will send test emails for:
+This will send test emails for the core flow templates:
 1. Order Confirmation
 2. Event Booking Confirmation
-3. Subscription Activated
-4. Subscription Renewal Success
-5. Subscription Payment Failed
-6. Password Reset
-7. Contact Form - Customer Confirmation
-8. Contact Form - Admin Notification
-9. Digital Download Ready
-10. Order Shipped
-11. Event Reminder - 7 Days
-12. Event Reminder - 24 Hours
-13. Waitlist - Event Available
-14. Waitlist - Product Available
+3. New Order Admin
+4. Subscription Activated
+5. Subscription Renewal Success
+6. Subscription Payment Failed
+7. Password Reset
+8. Contact Form - Customer Confirmation
+9. Contact Form - Admin Notification
+10. Digital Download Ready
+11. Order Shipped
+12. Event Reminder - 7 Days
+13. Event Reminder - 24 Hours
+14. Event Feedback Request
+15. Waitlist - Event Available
+16. Waitlist - Product Available
 
 ### Individual Category Tests
 
@@ -68,6 +70,7 @@ chmod +x tests/email/test-event-booking.sh
 
 Tests:
 - Event Booking Confirmation
+- New Order Admin notification with event booking details
 
 ```bash
 chmod +x tests/email/test-event-reminders.sh
@@ -77,6 +80,14 @@ chmod +x tests/email/test-event-reminders.sh
 Tests:
 - Event Reminder - 7 Days
 - Event Reminder - 24 Hours
+
+```bash
+chmod +x tests/email/test-event-feedback.sh
+./tests/email/test-event-feedback.sh
+```
+
+Tests:
+- Event Feedback Request
 
 #### Subscription Emails
 ```bash
@@ -145,6 +156,7 @@ Check the terminal where `supabase functions serve` is running for real-time log
 |----------|---------|----------------|
 | `order-confirmation` | Sent after successful order | orderNumber, orderItems, total |
 | `event-booking-confirmation` | Sent after booking a workshop | eventName, eventDate, bookingReference |
+| `new-order-admin` | Sent to admins after a new order/event booking | orderNumber, customerEmail, orderItems |
 | `subscription-activated` | Sent when subscription starts | subscriptionName, pricePerCycle |
 | `subscription-renewal-success` | Sent after successful renewal | amountCharged, nextBillingDate |
 | `subscription-payment-failed` | Sent when payment fails | failedAmount, updatePaymentLink |
@@ -155,8 +167,12 @@ Check the terminal where `supabase functions serve` is running for real-time log
 | `order-shipped` | Sent when order ships | trackingNumber, trackingUrl |
 | `event-reminder-7-days` | Reminder 7 days before event | eventName, eventDate |
 | `event-reminder-24-hours` | Reminder 24 hours before event | eventName, eventTime |
+| `event-feedback-request` | Feedback request after a workshop | eventName, feedbackLink |
 | `waitlist-event-available` | Spot available for waitlisted event | eventName, expiryTime |
 | `waitlist-product-available` | Product back in stock | productName, productLink |
+
+Additional registered templates:
+`order-delivered`, `order-cancelled`, `refund-processed`, `event-cancelled`, `booking-cancelled`, `subscription-paused`, `subscription-resumed`, `subscription-cancelled`, `subscription-ending-soon`, `subscription-box-shipped`, `waitlist-spot-expired`, `download-link-expiring-soon`, `gift-card-purchased`, `gift-card-received`, `welcome-email`, `password-changed`, `email-address-changed`, `newsletter-subscription-confirmed`, `newsletter-unsubscribed`, `low-stock-alert-admin`, `event-capacity-full-admin`, `subscription-payment-failed-admin`, `new-waitlist-entry-admin`, `product-review-request`, `abandoned-cart-reminder`, `new-workshop-announcement`, `new-product-launch`, `seasonal-promotion`, `birthday-anniversary-email`.
 
 ## Troubleshooting
 
@@ -198,4 +214,3 @@ AUTH_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiw
 3. 🔄 Deploy to production: `supabase functions deploy send-email`
 4. 🔄 Set production secrets: `supabase secrets set RESEND_API_KEY=your_key`
 5. 🔄 Integrate email triggers in application code
-

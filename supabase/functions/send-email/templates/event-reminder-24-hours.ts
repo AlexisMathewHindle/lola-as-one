@@ -11,13 +11,13 @@ interface EventReminder24HoursData {
 
 export default function eventReminder24Hours(data: EventReminder24HoursData) {
   const html = baseLayout(`
-    <h2>Tomorrow's the Day! 🎉</h2>
+    <h2>Tomorrow's the day</h2>
     
     <p>Hi ${data.customerName},</p>
     
     <p>This is your final reminder - your workshop is tomorrow!</p>
     
-    <div class="info-box" style="border-left-color: #28a745;">
+    <div class="info-box success-box">
       <strong>Workshop:</strong> ${data.eventName}<br>
       <strong>Date:</strong> ${data.eventDate}<br>
       <strong>Time:</strong> ${data.eventTime}<br>
@@ -25,18 +25,18 @@ export default function eventReminder24Hours(data: EventReminder24HoursData) {
     </div>
     
     ${data.weatherInfo ? `
-      <div style="margin: 20px 0; padding: 20px; background-color: #e7f3ff; border-left: 4px solid #3498db;">
-        <strong>🌤️ Weather Update</strong><br>
+      <div class="info-box">
+        <strong>Weather update</strong><br>
         ${data.weatherInfo}
       </div>
     ` : ''}
     
     <h3>Last-Minute Checklist</h3>
     <ul>
-      <li>✓ Check the location and plan your route</li>
-      <li>✓ Bring any required materials</li>
-      <li>✓ Arrive 10 minutes early</li>
-      <li>✓ Bring your enthusiasm and creativity!</li>
+      <li>Check the location and plan your route</li>
+      <li>Bring any required materials</li>
+      <li>Arrive 10 minutes early</li>
+      <li>Bring your enthusiasm and creativity</li>
     </ul>
     
     <p>If you have any last-minute questions or need to contact us urgently, please email <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a></p>
@@ -59,15 +59,15 @@ Time: ${data.eventTime}
 Location: ${data.location}
 
 ${data.weatherInfo ? `
-🌤️ WEATHER UPDATE
+WEATHER UPDATE
 ${data.weatherInfo}
 ` : ''}
 
 LAST-MINUTE CHECKLIST
-✓ Check the location and plan your route
-✓ Bring any required materials
-✓ Arrive 10 minutes early
-✓ Bring your enthusiasm and creativity!
+- Check the location and plan your route
+- Bring any required materials
+- Arrive 10 minutes early
+- Bring your enthusiasm and creativity
 
 If you have any last-minute questions or need to contact us urgently, please email hello@lolaasone.com
 
@@ -83,4 +83,3 @@ The Lola As One Team
     text,
   }
 }
-

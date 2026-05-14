@@ -11,13 +11,13 @@ interface SubscriptionPaymentFailedData {
 
 export default function subscriptionPaymentFailed(data: SubscriptionPaymentFailedData) {
   const html = baseLayout(`
-    <h2>Payment Failed - Action Required ⚠️</h2>
+    <h2>Payment failed - action required</h2>
     
     <p>Hi ${data.customerName},</p>
     
     <p>We tried to process your payment for <strong>${data.subscriptionName}</strong>, but unfortunately it didn't go through.</p>
     
-    <div class="info-box" style="border-left-color: #dc3545;">
+    <div class="info-box danger-box">
       <strong>Amount:</strong> £${data.failedAmount.toFixed(2)}<br>
       ${data.failureReason ? `<strong>Reason:</strong> ${data.failureReason}<br>` : ''}
       ${data.retryDate ? `<strong>Next Retry:</strong> ${data.retryDate}` : ''}
@@ -28,8 +28,8 @@ export default function subscriptionPaymentFailed(data: SubscriptionPaymentFaile
     
     <a href="${data.updatePaymentLink}" class="button">Update Payment Method</a>
     
-    <div style="margin-top: 30px; padding: 20px; background-color: #fff3cd; border-left: 4px solid #ffc107;">
-      <strong>⚠️ Important</strong><br>
+    <div class="info-box warning-box" style="margin-top: 30px;">
+      <strong>Important</strong><br>
       If we can't process your payment, your subscription may be paused or cancelled. We'll retry the payment automatically, but updating your payment method now will ensure uninterrupted service.
     </div>
     
@@ -61,7 +61,7 @@ WHAT YOU NEED TO DO
 Please update your payment method to keep your subscription active:
 ${data.updatePaymentLink}
 
-⚠️ IMPORTANT
+IMPORTANT
 If we can't process your payment, your subscription may be paused or cancelled. We'll retry the payment automatically, but updating your payment method now will ensure uninterrupted service.
 
 COMMON REASONS FOR PAYMENT FAILURE
@@ -82,4 +82,3 @@ The Lola As One Team
     text,
   }
 }
-
