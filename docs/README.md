@@ -54,10 +54,11 @@ Supporting current evidence:
 
 Use this as the fourth events launch workstream. It verifies Stripe session return URLs, webhook signature rejection, idempotency, order/item/booking/attendee persistence, capacity consistency, success-page recovery, and post-payment email side effects.
 
-Current status: sandbox payment proof is green as of 2026-05-19. The completed `cs_test_...` proof created the expected order, order item, booking, attendee row, success-page recovery, capacity consistency, Stripe event log, and order-linked sent email logs. Capacity double-counting was found, fixed, deployed, and the affected proof event row was repaired. Email proof is now green after setting `FUNCTIONS_GATEWAY_JWT` for protected function-to-function gateway auth. Replay/idempotency proof remains before the workstream is fully sandbox-complete. Stripe remains in sandbox/test mode; live Stripe keys, live webhook endpoint signing secret, production app return URL, and live-mode proof are required before production launch.
+Current status: sandbox-complete as of 2026-05-19. The completed `cs_test_...` proof created the expected order, order item, booking, attendee row, success-page recovery, capacity consistency, Stripe event log, and order-linked sent email logs. Capacity double-counting was found, fixed, deployed, and the affected proof event row was repaired. Email proof is green after setting `FUNCTIONS_GATEWAY_JWT` for protected function-to-function gateway auth. Replay/idempotency proof is green: duplicate Stripe event delivery and duplicate Checkout Session delivery did not create duplicate business rows, capacity changes, or email sends. Stripe remains in sandbox/test mode; sandbox proof booking cleanup/capacity reconciliation, live Stripe keys, live webhook endpoint signing secret, production app return URL, and live-mode proof are required before production launch.
 
 Supporting current evidence:
 - [Stripe Payment And Webhook Proof Evidence](./stripe-payment-webhook-proof-evidence.md)
+- [Stripe Replay And Idempotency Proof Evidence](./stripe-replay-idempotency-proof-evidence.md)
 
 ### [Production Roadmap](./production-roadmap.md) ⭐
 **Status:** Current

@@ -16,6 +16,7 @@ docs/*
 !docs/public-discovery-legacy-route-evidence.md
 !docs/event-cart-checkout-readiness.md
 !docs/event-cart-checkout-readiness-evidence.md
+!docs/stripe-wallet-checkout-readiness.md
 !docs/stripe-payment-webhook-proof.md
 !docs/stripe-payment-webhook-proof-evidence.md
 !docs/evidence/

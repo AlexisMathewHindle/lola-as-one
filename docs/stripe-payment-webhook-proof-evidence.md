@@ -79,4 +79,4 @@ Audit source: source code, production Supabase table reachability, production Ed
 - A `cs_test_...` session is sandbox evidence only; it does not satisfy live Stripe launch proof.
 - Email proof requires order-linked `email_logs` rows for the receipt, event booking confirmation, and admin notification with `status = 'sent'`.
 - Live proof requires a deliberate completed live-mode Stripe checkout and rerun with `STRIPE_CHECKOUT_SESSION_ID=cs_live_...`.
-- Duplicate webhook replay proof still requires a controlled Stripe Dashboard or Stripe CLI resend after the live session exists.
+- Sandbox replay/idempotency proof passed on 2026-05-19; live-mode replay/idempotency proof must be repeated after live Stripe cutover with a `cs_live_...` session.
