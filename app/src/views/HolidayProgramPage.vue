@@ -52,6 +52,8 @@
         :show-description-panel="false"
         :session-events="sessions"
         :session-quantities="sessionQuantities"
+        @increment-term="incrementTermGroup"
+        @decrement-term="decrementTermGroup"
         @increment-session="incrementSession"
         @decrement-session="decrementSession"
       />
@@ -180,10 +182,20 @@ const representativeWorkshop = computed(() => {
 
 const sessionQuantities = computed(() => {
   return cartStore.items.reduce((quantities, item) => {
+    if (Array.isArray(item.items) && item.items.length > 0) {
+      item.items.forEach((session) => {
+        const sessionKey = session.event_id || session.id || session.offering_event_id
+
+        if (sessionKey) {
+          quantities[sessionKey] = (quantities[sessionKey] || 0) + item.quantity
+        }
+      })
+    }
+
     const eventId = item.event_id || item.id || item.productId
 
     if (eventId) {
-      quantities[eventId] = item.quantity
+      quantities[eventId] = (quantities[eventId] || 0) + item.quantity
     }
 
     return quantities
@@ -221,6 +233,19 @@ const fetchHolidayProgram = async () => {
       return
     }
 
+    const { data: childCategories, error: childCategoryError } = await supabase
+      .from('event_categories')
+      .select('id')
+      .eq('parent_id', categoryData.id)
+      .eq('is_active', true)
+
+    if (childCategoryError) throw childCategoryError
+
+    const categoryIds = [
+      categoryData.id,
+      ...(childCategories || []).map((childCategory) => childCategory.id)
+    ]
+
     const { data, error: sessionsError } = await supabase
       .from('offering_events')
       .select(`
@@ -240,7 +265,7 @@ const fetchHolidayProgram = async () => {
           parent_id
         )
       `)
-      .eq('category_id', categoryData.id)
+      .in('category_id', categoryIds)
       .eq('offering.status', 'published')
       .gte('event_date', getLocalDateString())
       .order('event_date', { ascending: true })
@@ -301,6 +326,77 @@ const getSessionQuantity = (session) => {
   return sessionQuantities.value[session.id] || 0
 }
 
+const getTermGroupCartItem = (termGroup) => {
+  return cartStore.items.find((item) =>
+    item.term_group_key === termGroup.key ||
+    item.termGroupKey === termGroup.key ||
+    item.id === termGroup.key ||
+    item.productId === termGroup.key
+  ) || null
+}
+
+const getTermGroupQuantity = (termGroup) => {
+  const cartItem = getTermGroupCartItem(termGroup)
+
+  if (cartItem) {
+    return cartItem.quantity
+  }
+
+  if (!termGroup.sessions.length) {
+    return 0
+  }
+
+  return Math.min(...termGroup.sessions.map(getSessionQuantity))
+}
+
+const getTermGroupSpacesAvailable = (termGroup) => {
+  const availableCounts = termGroup.sessions
+    .map(getAvailableSpaces)
+    .filter((availableSpaces) => availableSpaces !== null)
+
+  if (availableCounts.length === 0) {
+    return null
+  }
+
+  return Math.min(...availableCounts)
+}
+
+const getSessionImage = (session) => {
+  return session.offering?.featured_image_url || session.category?.featured_image_url || category.value?.featured_image_url || null
+}
+
+const buildTermCartItem = (termGroup) => {
+  const firstSession = termGroup.sessions[0]
+
+  return {
+    id: termGroup.key,
+    productId: termGroup.key,
+    offering_id: firstSession?.offering?.id || firstSession?.offering_id || null,
+    event_id: termGroup.key,
+    type: 'event',
+    title: `${termGroup.title} - ${termGroup.label}`,
+    price: termGroup.unitPrice,
+    image: getSessionImage(firstSession),
+    slug: firstSession?.offering?.slug,
+    termLabel: termGroup.label,
+    term_group_key: termGroup.key,
+    isTermBundle: true,
+    items: termGroup.sessions.map((session) => ({
+      id: session.id,
+      event_id: session.id,
+      offering_event_id: session.id,
+      offering_id: session.offering?.id || session.offering_id || null,
+      title: session.offering?.title || termGroup.title,
+      price: toFiniteNumber(session.price_gbp) || 0,
+      image: getSessionImage(session),
+      slug: session.offering?.slug,
+      eventDate: session.event_date,
+      eventTime: session.event_start_time,
+      eventEndTime: session.event_end_time
+    }))
+  }
+}
+
 const incrementSession = (session) => {
   const currentQuantity = getSessionQuantity(session)
   const availableSpaces = getAvailableSpaces(session)
@@ -336,6 +432,46 @@ const decrementSession = (session) => {
   }
 
   cartStore.updateQuantity(session.id, currentQuantity - 1)
+}
+
+const incrementTermGroup = (termGroup) => {
+  const currentQuantity = getTermGroupQuantity(termGroup)
+  const availableSpaces = getTermGroupSpacesAvailable(termGroup)
+
+  if (availableSpaces !== null && currentQuantity >= availableSpaces) {
+    return
+  }
+
+  const cartItem = getTermGroupCartItem(termGroup)
+
+  if (cartItem) {
+    cartStore.updateQuantity(cartItem.productId || cartItem.id, cartItem.quantity + 1, cartItem.variantId)
+    return
+  }
+
+  if (currentQuantity > 0) {
+    termGroup.sessions.forEach(incrementSession)
+    return
+  }
+
+  cartStore.addItem(buildTermCartItem(termGroup))
+}
+
+const decrementTermGroup = (termGroup) => {
+  const currentQuantity = getTermGroupQuantity(termGroup)
+
+  if (currentQuantity <= 0) {
+    return
+  }
+
+  const cartItem = getTermGroupCartItem(termGroup)
+
+  if (cartItem) {
+    cartStore.updateQuantity(cartItem.productId || cartItem.id, cartItem.quantity - 1, cartItem.variantId)
+    return
+  }
+
+  termGroup.sessions.forEach(decrementSession)
 }
 
 watch(() => props.categorySlug, () => {

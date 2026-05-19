@@ -1,6 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '../lib/supabase'
 
+const titleFromSlug = (slug) => String(slug || 'Workshops')
+  .split('-')
+  .filter(Boolean)
+  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+  .join(' ')
+
 const routes = [
   {
     path: '/adult-art-workshops',
@@ -37,13 +43,45 @@ const routes = [
     }
   },
   {
+    path: '/category/adult-art-workshops',
+    redirect: '/adult-workshops'
+  },
+  {
+    path: '/category/adult-workshop',
+    redirect: '/adult-workshops'
+  },
+  {
+    path: '/category/adult-workshops',
+    redirect: '/adult-workshops'
+  },
+  {
+    path: '/category/half-term',
+    redirect: '/half-term'
+  },
+  {
+    path: '/category/holiday-workshops',
+    redirect: '/half-term'
+  },
+  {
+    path: '/category/summer',
+    redirect: '/summer-holiday'
+  },
+  {
+    path: '/category/summer-holiday',
+    redirect: '/summer-holiday'
+  },
+  {
+    path: '/category/summer-workshops',
+    redirect: '/summer-holiday'
+  },
+  {
     path: '/category/:categorySlug',
-    name: 'LegacyCategoryRedirect',
-    component: () => import('../views/LegacyWorkshopRedirect.vue'),
+    name: 'CategoryWorkshops',
+    component: () => import('../views/HolidayProgramPage.vue'),
     props: (route) => ({
-      mode: 'category',
       categorySlug: route.params.categorySlug,
-      fallbackPath: '/workshops'
+      fallbackTitle: titleFromSlug(route.params.categorySlug),
+      fallbackDescription: 'Browse upcoming workshops and book the term or sessions that work for your family.'
     })
   },
   {

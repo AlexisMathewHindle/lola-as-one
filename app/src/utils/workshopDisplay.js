@@ -46,13 +46,17 @@ export function getWorkshopAgeLabel(workshop) {
 }
 
 export function getWorkshopLayoutKey(workshop) {
+  if (workshop?.offering?.term_season && workshop?.offering?.term_half) {
+    return 'term_series'
+  }
+
+  if (workshop?.offering?.metadata?.term) {
+    return 'term_series'
+  }
+
   const categoryLayout = workshop?.category?.layout_key
   if (typeof categoryLayout === 'string' && categoryLayout.trim()) {
     return categoryLayout
-  }
-
-  if (workshop?.offering?.term_season && workshop?.offering?.term_half) {
-    return 'term_series'
   }
 
   return 'standard'

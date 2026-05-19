@@ -1,13 +1,13 @@
 # Lola As One Production Roadmap
 
 Status: current
-Last updated: 2026-05-14
+Last updated: 2026-05-19
 
 ## Purpose
 
 This roadmap turns the platform inventory into delivery epics for getting Lola As One to production.
 
-Current production focus: launch events and workshops first. Use [Events Production Launch Epic](./events-production-launch-epic.md) as the immediate execution plan for event discovery, bookings, Stripe, email confirmations, notifications, admin operations, waitlists, reminders, deployment, and go/no-go checks. Events Data And CMS Readiness and Public Discovery And Event Detail Flow are green as of 2026-05-14. Event Cart And Checkout has a green non-live automated audit. Stripe Payment And Webhook Proof has a completed sandbox `cs_test_...` checkout with order, booking, attendee, capacity, success-page, and Stripe event checks passing after a capacity double-count fix. It remains blocked on a fresh sandbox email proof with order-linked sent email logs; the latest blocker was `UNAUTHORIZED_INVALID_JWT_FORMAT`, and `stripe-webhook` now uses the Supabase anon JWT for protected function-to-function gateway auth. Stripe remains in sandbox/test mode; live Stripe cutover and live-mode proof are required before production launch.
+Current production focus: launch events and workshops first. Use [Events Production Launch Epic](./events-production-launch-epic.md) as the immediate execution plan for event discovery, bookings, Stripe, email confirmations, notifications, admin operations, waitlists, reminders, deployment, and go/no-go checks. Events Data And CMS Readiness and Public Discovery And Event Detail Flow are green as of 2026-05-14. Event Cart And Checkout has a green non-live automated audit. Stripe Payment And Webhook Proof is sandbox payment-proof green as of 2026-05-19 for order, booking, attendee, capacity, success-page, Stripe event, and email confirmation logs. Replay/idempotency proof is next. Stripe remains in sandbox/test mode; live Stripe cutover and live-mode proof are required before production launch.
 
 It is based on these confirmed launch decisions:
 
@@ -431,8 +431,8 @@ Make one-time checkout, event bookings, coupons, inventory, capacity, order crea
 Progress:
 
 - Event Cart And Checkout non-live audit is green on 2026-05-14: 19/19 checks passed for event add-to-cart from `/workshops/:slug`, `/adult-workshops`, and `/half-term`, checkout payload interception, capacity-before-Stripe checks, webhook order/booking/attendee/capacity paths, order success recovery, and production table reachability.
-- Stripe Payment And Webhook Proof has a completed sandbox `cs_test_...` checkout on 2026-05-14. Order, order item, booking, attendee, success-page recovery, capacity consistency, and Stripe event log checks pass after fixing the webhook/booking-trigger capacity double-count and repairing the affected proof event row.
-- Sandbox/test-mode email proof remains outstanding: after setting `FUNCTIONS_BASE_URL` and switching `stripe-webhook` to the Supabase anon JWT for protected function-to-function gateway auth, rerun with a deliverable recipient and prove order-linked `order-confirmation`, `event-booking-confirmation`, and `new-order-admin` logs in `sent` status. Live Stripe cutover plus live-mode webhook proof are still required before this launch epic can be marked complete.
+- Stripe Payment And Webhook Proof is sandbox payment-proof green on 2026-05-19. Order, order item, booking, attendee, success-page recovery, capacity consistency, Stripe event log, and order-linked `order-confirmation`, `event-booking-confirmation`, and `new-order-admin` sent logs pass after fixing the webhook/booking-trigger capacity double-count and protected `send-email` gateway auth.
+- Replay/idempotency proof remains outstanding before the sandbox workstream is fully complete. Live Stripe cutover plus live-mode webhook proof are still required before this launch epic can be marked complete.
 
 Scope:
 

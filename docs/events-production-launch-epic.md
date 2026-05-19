@@ -1,7 +1,7 @@
 # Events Production Launch Epic
 
 Status: current
-Last updated: 2026-05-14
+Last updated: 2026-05-19
 Production phase: events and workshops first
 
 ## Purpose
@@ -191,7 +191,7 @@ Acceptance criteria:
 Risk: critical
 Depends on: Event Cart And Checkout
 Execution doc: [Stripe Payment And Webhook Proof](./stripe-payment-webhook-proof.md)
-Current status: sandbox proof is blocked on email proof only as of 2026-05-14. Hardened `create-checkout-session`, `stripe-webhook`, and `send-email` are deployed to Supabase project `hubbjhtjyubzczxengyo`. The completed `cs_test_...` proof created the order, order item, booking, attendee row, success-page recovery, and Stripe event log. It exposed a capacity double-count between the webhook and booking trigger; the webhook now leaves capacity to the database booking trigger, the trigger mirrors `event_capacity.spaces_booked` into `offering_events.current_bookings`, and the affected proof event row was repaired. The latest email proof created order-linked failed logs for `order-confirmation`, `event-booking-confirmation`, and `new-order-admin` with `UNAUTHORIZED_INVALID_JWT_FORMAT`. A direct protected `send-email` probe succeeded. `FUNCTIONS_BASE_URL` is set, and `stripe-webhook` version 40 now uses the Supabase anon JWT for the protected Functions gateway call while keeping service-role database writes inside `send-email`. The remaining blocker is a fresh sandbox proof with those email logs in `sent` status. Stripe is still in sandbox/test mode; before production go-live this must be repeated with live Stripe keys, live webhook endpoint signing secret, production app return URL, and a documented `cs_live_...` booking proof.
+Current status: sandbox payment proof is green as of 2026-05-19. Hardened `create-checkout-session`, `stripe-webhook`, and `send-email` are deployed to Supabase project `hubbjhtjyubzczxengyo`. The completed `cs_test_...` proof created the order, order item, booking, attendee row, success-page recovery, capacity consistency, Stripe event log, and order-linked sent logs for `order-confirmation`, `event-booking-confirmation`, and `new-order-admin`. Earlier blockers were fixed: the webhook no longer double-counts capacity alongside the booking trigger, and protected `send-email` gateway auth now uses `FUNCTIONS_GATEWAY_JWT`, a neutral secret containing the anon JWT. Replay/idempotency proof remains before this workstream is fully sandbox-complete. Stripe is still in sandbox/test mode; before production go-live this must be repeated with live Stripe keys, live webhook endpoint signing secret, production app return URL, and a documented `cs_live_...` booking proof.
 
 Scope:
 

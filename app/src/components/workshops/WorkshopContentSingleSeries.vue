@@ -64,15 +64,15 @@
     </section>
 
     <section class="rounded-[2rem] border border-stone-200 bg-white p-5 shadow-[0_18px_50px_rgba(120,92,45,0.06)] sm:p-8 lg:p-10">
-      <div class="mb-8 text-center">
+      <div v-if="termGroups.length > 0" class="mb-8 text-center">
         <h2 class="text-2xl font-display font-bold text-stone-900 sm:text-4xl">Book by term</h2>
       </div>
 
-      <div v-if="termGroups.length === 0" class="rounded-[1.5rem] border border-dashed border-stone-300 bg-stone-50 px-6 py-10 text-center text-stone-500">
+      <div v-if="sessionEvents.length === 0" class="rounded-[1.5rem] border border-dashed border-stone-300 bg-stone-50 px-6 py-10 text-center text-stone-500">
         No upcoming sessions are scheduled right now.
       </div>
 
-      <div v-else class="space-y-4">
+      <div v-if="termGroups.length > 0" class="space-y-4">
         <article
           v-for="termGroup in termGroups"
           :key="termGroup.key"
@@ -154,12 +154,68 @@
           </div>
         </article>
       </div>
+
+      <div v-if="singleSessions.length > 0" class="space-y-4" :class="termGroups.length > 0 ? 'mt-10' : ''">
+        <div class="text-center">
+          <h2 class="text-2xl font-display font-bold text-stone-900 sm:text-4xl">
+            {{ termGroups.length > 0 ? 'Single workshops' : 'Book your workshops below' }}
+          </h2>
+        </div>
+
+        <article
+          v-for="session in singleSessions"
+          :key="session.id"
+          class="rounded-[1.5rem] border border-stone-200 bg-[#fdfcf9] px-4 py-4 sm:px-6"
+        >
+          <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-stone-500 sm:text-base">
+                <span>{{ formatDisplayDate(session.event_date) }}</span>
+                <span class="hidden text-stone-300 sm:inline">•</span>
+                <span>{{ formatTimeRange(session.event_start_time, session.event_end_time) }}</span>
+              </div>
+
+              <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+                <h3 class="text-lg font-semibold text-stone-900 sm:text-xl">{{ session.offering.title }}</h3>
+                <span :class="availabilityClass(session)" class="text-sm font-medium">
+                  {{ availabilityLabel(session) }}
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 lg:min-w-[260px]">
+              <button
+                type="button"
+                class="flex h-11 w-11 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-700 transition-colors hover:border-stone-400 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
+                :disabled="sessionQuantity(session) <= 0"
+                @click="$emit('decrement-session', session)"
+              >
+                <font-awesome-icon icon="minus" class="h-3 w-3" />
+              </button>
+
+              <div class="flex h-11 min-w-[3rem] items-center justify-center rounded-2xl border border-stone-200 bg-white px-4 text-lg font-semibold text-stone-900">
+                {{ sessionQuantity(session) }}
+              </div>
+
+              <button
+                type="button"
+                class="flex h-11 w-11 items-center justify-center rounded-full border border-[#d7b162] bg-[#d7b162] text-white transition-colors hover:bg-[#c39a48] hover:border-[#c39a48] disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-200"
+                :disabled="isSessionIncrementDisabled(session)"
+                @click="$emit('increment-session', session)"
+              >
+                <font-awesome-icon icon="plus" class="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
     </section>
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { getTermData } from '../../utils/termFormatters'
 import { groupTermSessions } from '../../utils/termGroups'
 
 const props = defineProps({
@@ -189,7 +245,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['increment-term', 'decrement-term'])
+defineEmits(['increment-term', 'decrement-term', 'increment-session', 'decrement-session'])
 
 const galleryImages = computed(() => {
   const images = []
@@ -239,7 +295,16 @@ const displayTitle = computed(() => {
   return props.workshop.category?.name || props.workshop.offering.title
 })
 
-const termGroups = computed(() => groupTermSessions(props.sessionEvents))
+const isTermSession = (session) => {
+  const termData = getTermData(session?.offering || {})
+  return Boolean(termData.season && termData.half)
+}
+
+const termSessions = computed(() => props.sessionEvents.filter(isTermSession))
+
+const singleSessions = computed(() => props.sessionEvents.filter((session) => !isTermSession(session)))
+
+const termGroups = computed(() => groupTermSessions(termSessions.value))
 
 const getCapacity = (session) => {
   if (Array.isArray(session.capacity)) {
@@ -274,6 +339,16 @@ const termGroupQuantity = (termGroup) => {
   }
 
   return Math.min(...termGroup.sessions.map(sessionQuantity))
+}
+
+const isSessionIncrementDisabled = (session) => {
+  const spacesAvailable = getSpacesAvailable(session)
+
+  if (spacesAvailable === null) {
+    return false
+  }
+
+  return sessionQuantity(session) >= spacesAvailable
 }
 
 const getTermGroupSpacesAvailable = (termGroup) => {

@@ -1,12 +1,12 @@
 # Stripe Payment And Webhook Proof
 
 Status: current
-Last updated: 2026-05-14
+Last updated: 2026-05-19
 Parent epic: [Events Production Launch Epic](./events-production-launch-epic.md)
 Risk: critical
 Depends on: [Event Cart And Checkout Readiness](./event-cart-checkout-readiness.md)
 
-Current execution status: sandbox proof is blocked on email proof only as of 2026-05-14. The latest completed `cs_test_...` proof created the order, order item, booking, attendee row, success-page recovery, capacity consistency, and Stripe event log. It created order-linked `email_logs`, but the required email templates were `failed` with `UNAUTHORIZED_INVALID_JWT_FORMAT`. A direct protected `send-email` probe succeeded, so `FUNCTIONS_BASE_URL` was added to the Supabase project and `stripe-webhook` was updated to call `send-email` through that explicit public Functions base URL while keeping the email endpoint JWT-protected. The webhook now uses the Supabase anon JWT for the protected Functions gateway call, keeps the service role key inside `send-email` for database writes, and writes fallback failed `email_logs` rows if the cross-function email call fails. Stripe is still in sandbox/test mode, so this workstream is not live-ready yet. Before go-live, rerun the sandbox proof with a launch-safe verified recipient, then repeat with live Stripe keys, the live webhook endpoint signing secret, production app return URL, and a final live-mode payment proof.
+Current execution status: sandbox payment proof is green as of 2026-05-19. The completed `cs_test_...` proof created the order, order item, booking, attendee row, success-page recovery, capacity consistency, Stripe event log, and order-linked sent email logs for `order-confirmation`, `event-booking-confirmation`, and `new-order-admin`. Earlier blockers were resolved: capacity double-counting between webhook and booking trigger was removed, and protected `send-email` gateway auth now uses `FUNCTIONS_GATEWAY_JWT`, a neutral secret containing the Supabase anon JWT. Stripe is still in sandbox/test mode, so this workstream is not production-green yet. Before go-live, complete replay/idempotency proof, then repeat with live Stripe keys, the live webhook endpoint signing secret, production app return URL, and a final live-mode payment proof.
 
 Current evidence:
 
@@ -144,17 +144,18 @@ Live-mode sessions are blocked unless `ALLOW_LIVE_STRIPE_PAYMENT_PROOF=1` is exp
 
 ## Latest Sandbox Proof Result
 
-Run date: 2026-05-14
-Checkout Session: `cs_test_a1OALpgUntnGRuLMGWWjJV214ZEcu8FGdOdDT15uPYokwuXHI1uNRAGIqU`
-Order: `ORD-20260514-000829`
-Target event: `fri-lo-flower-shapes`
+Run date: 2026-05-19
+Checkout Session: `cs_test_a1tK8xbzNzvW85xaecaK4Q4fgiz8yZXbnsXGYtsF7SnkB4RTs4izemO0rV`
+Order: `ORD-20260519-000833`
+Target event: `su01_wed_artclub-a-vase-full-of-van-goghs-flowers`
 
 Result:
 
-- Passed: order lookup, event order item, booking row, attendee row, order success recovery, Stripe event log.
+- Passed: order lookup, event order item, booking row, attendee row, order success recovery, capacity consistency, Stripe event log, and order-linked sent email logs.
 - Fixed after failure: capacity drift caused by both the webhook and the booking trigger updating capacity. The webhook now leaves event capacity to the confirmed-booking database trigger, and the trigger mirrors `event_capacity.spaces_booked` back into `offering_events.current_bookings`.
 - Repaired data: the first affected proof event was corrected from `event_capacity.spaces_booked = 4` back to `3`, matching `offering_events.current_bookings = 3`.
-- Latest blocker: the latest proof order has order-linked `order-confirmation`, `event-booking-confirmation`, and `new-order-admin` logs, but all required templates are `failed` with `UNAUTHORIZED_INVALID_JWT_FORMAT`. A direct protected `send-email` probe succeeded and logged metadata. `FUNCTIONS_BASE_URL` is set, and `stripe-webhook` version 40 now uses the Supabase anon JWT for the protected Functions gateway call. This needs a fresh sandbox proof with a deliverable recipient to go green.
+- Fixed after failure: protected `send-email` gateway calls failed with `UNAUTHORIZED_INVALID_JWT_FORMAT` until `FUNCTIONS_GATEWAY_JWT` was set to the anon JWT and used by `stripe-webhook` for function-to-function auth.
+- Current blocker: replay/idempotency proof is still pending, and live Stripe cutover proof remains required before launch.
 
 ### Completed Checkout Session Audit
 
@@ -176,17 +177,17 @@ Done when:
 
 | Evidence item | Required contents | Status |
 |---------------|-------------------|--------|
-| Source hardening | Signature rejection, no dev signature fallback, no secret-prefix logging. | Done: 11/11 source checks passed on 2026-05-14 |
+| Source hardening | Signature rejection, no dev signature fallback, no secret-prefix logging. | Done: 12/12 source checks passed on 2026-05-19 |
 | Endpoint preflight | Unsigned webhook request rejected, invalid-signature probe rejected without writing `stripe_events`, checkout CORS preflight available. | Done: 3/3 endpoint checks passed |
 | Production table reachability | Orders, items, bookings, attendees, capacity, Stripe events, email logs. | Done: 9/9 table checks passed |
-| Sandbox payment session | Completed `cs_test_...` session ID and order number. | Done: `cs_test_a1OALpgUntnGRuLMGWWjJV214ZEcu8FGdOdDT15uPYokwuXHI1uNRAGIqU`, `ORD-20260514-000829` |
+| Sandbox payment session | Completed `cs_test_...` session ID and order number. | Done: `cs_test_a1tK8xbzNzvW85xaecaK4Q4fgiz8yZXbnsXGYtsF7SnkB4RTs4izemO0rV`, `ORD-20260519-000833` |
 | Persistence proof | Order, item, booking, attendee rows. | Done for sandbox proof |
 | Capacity proof | Before/after or post-payment consistency check. | Done after fixing webhook/trigger double-count and repairing proof-event drift |
 | Success-page proof | `get-order-by-session` returns booking details. | Done for sandbox proof |
-| Email proof | Customer receipt, event booking confirmation, admin notification logs. | Blocked for existing proof; rerun required with order-linked sent logs |
+| Email proof | Customer receipt, event booking confirmation, admin notification logs. | Done for sandbox proof |
 | Replay/idempotency proof | Duplicate delivery does not duplicate business rows. | Pending |
 | Live Stripe cutover proof | Live keys, live webhook endpoint, production return URL, and completed `cs_live_...` booking proof before launch. | Required before go-live |
 
 ## Go/No-Go Rule
 
-This workstream can be sandbox-green when safe preflight and a completed `cs_test_...` payment session prove order, booking, attendee, capacity, success-page, email, and idempotency behavior without data drift. It is production-green only after the live Stripe cutover proof is completed and documented.
+This workstream is sandbox payment-proof green when safe preflight and a completed `cs_test_...` payment session prove order, booking, attendee, capacity, success-page, and email behavior without data drift. It is sandbox-complete after replay/idempotency proof is documented, and production-green only after the live Stripe cutover proof is completed and documented.

@@ -1,15 +1,15 @@
 # Stripe Payment And Webhook Proof Evidence
 
 Status: current
-Last updated: 2026-05-14
+Last updated: 2026-05-19
 Parent workstream: [Stripe Payment And Webhook Proof](./stripe-payment-webhook-proof.md)
-Audit source: source code, production Supabase table reachability, production Edge Function preflight, and checkout session cs_test_a173TvpOTq3MvAKutiM30p8Xh2t7D5UYY4hxaeIaIKN4oqQzB7y10VjB3q
+Audit source: source code, production Supabase table reachability, production Edge Function preflight, and checkout session cs_test_a1tK8xbzNzvW85xaecaK4Q4fgiz8yZXbnsXGYtsF7SnkB4RTs4izemO0rV
 
 ## Run Summary
 
 | Check | Result |
 |-------|--------|
-| Overall status | blocked |
+| Overall status | green |
 | Source checks | 12 |
 | Source checks passed | 12 |
 | Production table checks | 9 |
@@ -17,8 +17,8 @@ Audit source: source code, production Supabase table reachability, production Ed
 | Endpoint checks | 3 |
 | Endpoint checks passed | 3 |
 | Completed payment session checks | 8 |
-| Completed payment session checks passed | 7 |
-| Failed checks | 1 |
+| Completed payment session checks passed | 8 |
+| Failed checks | 0 |
 | Skipped checks | 0 |
 
 ## Source Hardening Checks
@@ -30,7 +30,7 @@ Audit source: source code, production Supabase table reachability, production Ed
 | passed | Subscription event isolation | Subscription checkout sessions do not create one-time event orders. | - |
 | passed | Webhook persistence paths | Orders, order items, bookings, and attendee insert paths are present. | - |
 | passed | Booking-trigger capacity decrement | Webhook creates bookings; the database trigger updates capacity once and mirrors current_bookings. | - |
-| passed | Webhook email side effects | Customer receipt, admin notification, event confirmation email calls, explicit service-role invocation, fallback failure logging, and order-linked email metadata are present. | - |
+| passed | Webhook email side effects | Customer receipt, admin notification, event confirmation email calls, gateway JWT invocation, fallback failure logging, and order-linked email metadata are present. | - |
 | passed | Email failure logging | send-email writes failed email attempts to email_logs. | - |
 | passed | Checkout return URLs | Checkout session uses app success and cancel URLs. | - |
 | passed | Checkout event metadata | Line item and attendee metadata are available for webhook reconstruction. | - |
@@ -64,13 +64,13 @@ Audit source: source code, production Supabase table reachability, production Ed
 
 | Result | Check | Detail | Failure |
 | --- | --- | --- | --- |
-| passed | Payment session order lookup | ORD-20260514-000831; paid; GBP 12 | - |
+| passed | Payment session order lookup | ORD-20260519-000833; paid; GBP 12 | - |
 | passed | Payment session event order items | 1 event item(s) | - |
 | passed | Payment session booking rows | 1 booking row(s) | - |
 | passed | Payment session attendee rows | 1 attendee row(s) for 1 booked place(s) | - |
-| passed | Payment session success-page recovery | ORD-20260514-000831; 1 booking row(s) | - |
+| passed | Payment session success-page recovery | ORD-20260519-000833; 1 booking row(s) | - |
 | passed | Payment session capacity consistency | 1 event capacity row(s) consistent | - |
-| failed | Payment session email logs | ORD-20260514-000831 | Templates without sent status: order-confirmation, event-booking-confirmation, new-order-admin |
+| passed | Payment session email logs | order-confirmation, event-booking-confirmation, new-order-admin sent | - |
 | passed | Payment session stripe event log | 1 checkout.session.completed event(s) after order creation | - |
 
 ## Notes

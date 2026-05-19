@@ -166,10 +166,10 @@ function sourceChecks() {
       webhookSource.includes('stripeCheckoutSessionId: session.id') &&
       webhookSource.includes('invokeSendEmail') &&
       webhookSource.includes('Authorization: `Bearer ${authToken}`') &&
-      webhookSource.includes("Deno.env.get('SUPABASE_ANON_KEY') || serviceRoleKey") &&
+      webhookSource.includes("Deno.env.get('FUNCTIONS_GATEWAY_JWT') || serviceRoleKey") &&
       webhookSource.includes('FUNCTIONS_BASE_URL') &&
       webhookSource.includes('logEmailFailure')
-      ? passed('Webhook email side effects', 'Customer receipt, admin notification, event confirmation email calls, explicit service-role invocation, fallback failure logging, and order-linked email metadata are present.')
+      ? passed('Webhook email side effects', 'Customer receipt, admin notification, event confirmation email calls, gateway JWT invocation, fallback failure logging, and order-linked email metadata are present.')
       : failed('Webhook email side effects', 'Webhook should invoke receipt, admin, and event confirmation templates.', 'Missing expected email call.'),
     sendEmailSource.includes("status: 'failed'") &&
       sendEmailSource.includes('error_message') &&

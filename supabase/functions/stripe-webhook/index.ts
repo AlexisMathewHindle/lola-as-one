@@ -177,7 +177,7 @@ async function logEmailFailure(supabase: any, body: Record<string, any>, error: 
 
 async function invokeSendEmail(supabaseUrl: string, serviceRoleKey: string, body: Record<string, any>) {
   const functionsBaseUrl = getFunctionsBaseUrl(supabaseUrl)
-  const authToken = (Deno.env.get('SUPABASE_ANON_KEY') || serviceRoleKey).trim()
+  const authToken = (Deno.env.get('FUNCTIONS_GATEWAY_JWT') || serviceRoleKey).trim()
   const response = await fetch(`${functionsBaseUrl}/functions/v1/send-email`, {
     method: 'POST',
     headers: {

@@ -1,7 +1,7 @@
 # Lola As One — CMS Documentation
 
 **Project:** Simple CMS for selling boxes and booking events
-**Last Updated:** 2026-05-14
+**Last Updated:** 2026-05-19
 **Status:** Historical epic index plus current platform planning baseline.
 
 ---
@@ -54,7 +54,7 @@ Supporting current evidence:
 
 Use this as the fourth events launch workstream. It verifies Stripe session return URLs, webhook signature rejection, idempotency, order/item/booking/attendee persistence, capacity consistency, success-page recovery, and post-payment email side effects.
 
-Current status: sandbox proof is blocked on email proof only as of 2026-05-14. The completed `cs_test_...` proof created the expected order, order item, booking, attendee row, success-page recovery, and Stripe event log. Capacity double-counting was found, fixed, deployed, and the affected proof event row was repaired. The latest email proof created order-linked logs, but the required templates failed with `UNAUTHORIZED_INVALID_JWT_FORMAT`; a direct protected `send-email` probe passed, `FUNCTIONS_BASE_URL` is set, and `stripe-webhook` version 40 now uses the Supabase anon JWT for the protected Functions gateway call. The remaining blocker is a fresh sandbox proof with order-linked `order-confirmation`, `event-booking-confirmation`, and `new-order-admin` logs in `sent` status. Stripe remains in sandbox/test mode; live Stripe keys, live webhook endpoint signing secret, production app return URL, and live-mode proof are required before production launch.
+Current status: sandbox payment proof is green as of 2026-05-19. The completed `cs_test_...` proof created the expected order, order item, booking, attendee row, success-page recovery, capacity consistency, Stripe event log, and order-linked sent email logs. Capacity double-counting was found, fixed, deployed, and the affected proof event row was repaired. Email proof is now green after setting `FUNCTIONS_GATEWAY_JWT` for protected function-to-function gateway auth. Replay/idempotency proof remains before the workstream is fully sandbox-complete. Stripe remains in sandbox/test mode; live Stripe keys, live webhook endpoint signing secret, production app return URL, and live-mode proof are required before production launch.
 
 Supporting current evidence:
 - [Stripe Payment And Webhook Proof Evidence](./stripe-payment-webhook-proof-evidence.md)
