@@ -133,7 +133,7 @@
         @input="updateField('location_name', $event.target.value)"
         type="text"
         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-        placeholder="e.g., Lola Creative Space"
+        placeholder="e.g., LoLA Creative Space"
       >
     </div>
     
@@ -353,6 +353,7 @@
 <script setup>
 import { defineProps, defineEmits, onMounted, computed } from 'vue'
 import { useEventCategories } from '../../composables/useEventCategories'
+import { DEFAULT_EVENT_LOCATION } from '../../constants/eventDefaults'
 import { formatTermLabel, generateLegacyTerm } from '../../utils/termFormatters'
 
 const props = defineProps({
@@ -362,10 +363,7 @@ const props = defineProps({
       event_date: '',
       event_start_time: '',
       event_end_time: '',
-      location_name: '',
-      location_address: '',
-      location_city: '',
-      location_postcode: '',
+      ...DEFAULT_EVENT_LOCATION,
       max_capacity: 12,
       available_spaces: 12,
       price_gbp: 0,
@@ -468,4 +466,3 @@ const handleTermChange = (field, value) => {
   })
 }
 </script>
-

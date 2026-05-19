@@ -31,7 +31,7 @@
           Back to Offerings
         </router-link>
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
-          {{ isEdit ? 'Edit Offering' : 'Create New Offering' }}
+          {{ isEdit ? 'Edit Offering' : (isDuplicate ? 'Duplicate Offering' : 'Create New Offering') }}
         </h1>
       </div>
 
@@ -308,7 +308,7 @@
         >
           <font-awesome-icon v-if="saving" icon="clock" class="w-4 h-4 mr-2 animate-spin" />
           <font-awesome-icon v-else icon="save" class="w-4 h-4 mr-2" />
-          {{ saving ? 'Saving...' : (isEdit ? 'Update Offering' : 'Create Offering') }}
+          {{ saving ? 'Saving...' : (isEdit ? 'Update Offering' : (isDuplicate ? 'Create Duplicate' : 'Create Offering')) }}
         </button>
       </div>
     </form>
@@ -326,11 +326,17 @@ import SubscriptionFields from '../../components/admin/SubscriptionFields.vue'
 import DigitalProductFields from '../../components/admin/DigitalProductFields.vue'
 import MultipleImageUploader from '../../components/shared/MultipleImageUploader.vue'
 import RichTextEditor from '../../components/shared/RichTextEditor.vue'
+import { DEFAULT_EVENT_LOCATION } from '../../constants/eventDefaults'
 
 const route = useRoute()
 const router = useRouter()
 
 const isEdit = computed(() => !!route.params.id)
+const duplicateSourceId = computed(() => {
+  const source = route.query.duplicate
+  return Array.isArray(source) ? source[0] : source
+})
+const isDuplicate = computed(() => !isEdit.value && !!duplicateSourceId.value)
 const selectedType = ref(null)
 const saving = ref(false)
 const error = ref(null)
@@ -353,6 +359,23 @@ const form = ref({
 })
 
 const typeSpecificData = ref({})
+const duplicateMetadata = ref(null)
+
+const createDefaultEventData = () => ({
+  event_date: '',
+  event_start_time: '',
+  event_end_time: '',
+  ...DEFAULT_EVENT_LOCATION,
+  max_capacity: 12,
+  available_spaces: 12,
+  current_bookings: 0,
+  price_gbp: 0,
+  category_id: '',
+  waitlist_enabled: false,
+  term_season: null,
+  term_half: null,
+  term_year: null
+})
 
 // Subscription plan box configuration
 const availableBoxProducts = ref([])
@@ -419,6 +442,19 @@ const generateSlug = (title) => {
     .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
 }
 
+const cloneValue = (value) => JSON.parse(JSON.stringify(value ?? null))
+
+const addDaysToDateString = (dateString, days) => {
+  if (!dateString) return ''
+
+  const [year, month, day] = String(dateString).split('-').map(Number)
+  if (!year || !month || !day) return dateString
+
+  const date = new Date(Date.UTC(year, month - 1, day))
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
 // Watch title and auto-generate slug if slug is empty or matches previous title
 watch(() => form.value.title, (newTitle, oldTitle) => {
   // Only auto-generate if slug is empty or matches the old title's slug
@@ -435,6 +471,13 @@ watch(() => form.value.slug, () => {
 
 // When switching to a subscription offering, load available physical box products
 watch(selectedType, async (newType) => {
+  if (newType === 'event' && !isEdit.value) {
+    typeSpecificData.value = {
+      ...createDefaultEventData(),
+      ...typeSpecificData.value
+    }
+  }
+
   if (newType === 'subscription') {
     // Reset selected boxes when changing to a subscription type
     selectedBoxProductIds.value = []
@@ -461,6 +504,51 @@ const checkSlugExists = async (slug) => {
   }
 
   return !!data
+}
+
+const generateUniqueSlug = async (slug, title) => {
+  const baseSlug = generateSlug(slug || title || 'offering') || 'offering'
+  let candidate = `${baseSlug}-copy`
+  let counter = 2
+
+  while (await checkSlugExists(candidate)) {
+    candidate = `${baseSlug}-copy-${counter}`
+    counter += 1
+  }
+
+  return candidate
+}
+
+const checkSkuExists = async (sku) => {
+  if (!sku?.trim()) return false
+
+  const { data, error: checkError } = await supabase
+    .from('offering_products')
+    .select('id')
+    .eq('sku', sku)
+    .maybeSingle()
+
+  if (checkError) {
+    console.error('Error checking SKU:', checkError)
+    return false
+  }
+
+  return !!data
+}
+
+const generateUniqueSku = async (sku) => {
+  const baseSku = sku?.trim()
+  if (!baseSku) return ''
+
+  let candidate = `${baseSku}-copy`
+  let counter = 2
+
+  while (await checkSkuExists(candidate)) {
+    candidate = `${baseSku}-copy-${counter}`
+    counter += 1
+  }
+
+  return candidate
 }
 
 // Check slug availability with visual feedback
@@ -605,6 +693,10 @@ const handleSubmit = async () => {
       meta_title: form.value.meta_title?.trim() || null,
       meta_description: form.value.meta_description?.trim() || null,
       updated_by: user.id
+    }
+
+    if (!isEdit.value && duplicateMetadata.value) {
+      offeringData.metadata = cloneValue(duplicateMetadata.value)
     }
 
     // Add term data for events
@@ -986,7 +1078,57 @@ const loadOffering = async () => {
   }
 }
 
-const loadTypeSpecificData = async (offeringId, type, metadata) => {
+const loadDuplicateOffering = async (sourceId) => {
+  loading.value = true
+  error.value = null
+  duplicateMetadata.value = null
+  slugCheckResult.value = null
+
+  try {
+    const { data: offering, error: offeringError } = await supabase
+      .from('offerings')
+      .select('*')
+      .eq('id', sourceId)
+      .single()
+
+    if (offeringError) throw offeringError
+
+    if (!offering) {
+      throw new Error('Offering not found')
+    }
+
+    const duplicateSlug = await generateUniqueSlug(offering.slug, offering.title)
+
+    form.value = {
+      title: offering.title || '',
+      slug: duplicateSlug,
+      description_short: offering.description_short || '',
+      description_long: offering.description_long || '',
+      featured_image_url: offering.featured_image_url || '',
+      secondary_images: cloneValue(offering.secondary_images || []),
+      status: 'draft',
+      featured: offering.featured ?? false,
+      scheduled_publish_at: null,
+      meta_title: offering.meta_title || '',
+      meta_description: offering.meta_description || ''
+    }
+
+    duplicateMetadata.value = offering.metadata ? cloneValue(offering.metadata) : null
+    selectedType.value = offering.type
+    slugCheckResult.value = 'available'
+
+    await loadTypeSpecificData(offering.id, offering.type, offering.metadata, { duplicate: true })
+  } catch (err) {
+    console.error('Error loading duplicate offering:', err)
+    error.value = err.message || 'Failed to load offering to duplicate'
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadTypeSpecificData = async (offeringId, type, metadata, options = {}) => {
+  const duplicate = options.duplicate === true
+
   if (type === 'event') {
     // Load offering to get term data
     const { data: offering } = await supabase
@@ -1018,7 +1160,7 @@ const loadTypeSpecificData = async (offeringId, type, metadata) => {
       const waitlistEnabled = capacityData?.waitlist_enabled ?? data.waitlist_enabled ?? false
 
       typeSpecificData.value = {
-        event_date: data.event_date,
+        event_date: duplicate ? addDaysToDateString(data.event_date, 1) : data.event_date,
         event_start_time: data.event_start_time,
         event_end_time: data.event_end_time,
         location_name: data.location_name,
@@ -1027,10 +1169,17 @@ const loadTypeSpecificData = async (offeringId, type, metadata) => {
         location_postcode: data.location_postcode,
         max_capacity: data.max_capacity,
         available_spaces: availableSpaces,
-        current_bookings: currentBookings,
+        current_bookings: duplicate ? 0 : currentBookings,
         price_gbp: parseFloat(data.price_gbp),
         category_id: data.category_id || '',
         waitlist_enabled: waitlistEnabled,
+        term_season: offering?.term_season || null,
+        term_half: offering?.term_half || null,
+        term_year: offering?.term_year || null
+      }
+    } else if (duplicate) {
+      typeSpecificData.value = {
+        ...createDefaultEventData(),
         term_season: offering?.term_season || null,
         term_half: offering?.term_half || null,
         term_year: offering?.term_year || null
@@ -1047,7 +1196,7 @@ const loadTypeSpecificData = async (offeringId, type, metadata) => {
 
     if (data) {
       typeSpecificData.value = {
-        sku: data.sku,
+        sku: duplicate ? await generateUniqueSku(data.sku) : data.sku,
         price_gbp: parseFloat(data.price_gbp),
         track_inventory: data.track_inventory,
         stock_quantity: data.stock_quantity,
@@ -1067,7 +1216,7 @@ const loadTypeSpecificData = async (offeringId, type, metadata) => {
 
 		if (data) {
 			typeSpecificData.value = {
-				sku: data.sku,
+				sku: duplicate ? await generateUniqueSku(data.sku) : data.sku,
 				price_gbp: parseFloat(data.price_gbp),
 				billing_interval: metadata?.billing_interval || 'month',
 				stripe_product_id: metadata?.stripe_product_id || '',
@@ -1181,7 +1330,8 @@ const syncSubscriptionPlanBoxes = async (offeringId) => {
 onMounted(async () => {
   if (isEdit.value) {
     await loadOffering()
+  } else if (duplicateSourceId.value) {
+    await loadDuplicateOffering(duplicateSourceId.value)
   }
 })
 </script>
-

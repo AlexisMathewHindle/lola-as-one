@@ -136,6 +136,9 @@
                 Title
               </th>
               <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Category
+              </th>
+              <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Price
               </th>
               <th
@@ -170,6 +173,9 @@
                 <div class="text-xs text-gray-500 mt-0.5">{{ offering.slug }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-600">{{ getOfferingCategory(offering) }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900">{{ formatPrice(offering) }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -200,6 +206,13 @@
                     title="Edit"
                   >
                     <font-awesome-icon icon="edit" class="w-4 h-4" />
+                  </router-link>
+                  <router-link
+                    :to="{ name: 'AdminOfferingsNew', query: { duplicate: offering.id } }"
+                    class="text-gray-600 hover:text-gray-800 transition-colors"
+                    title="Duplicate"
+                  >
+                    <font-awesome-icon icon="copy" class="w-4 h-4" />
                   </router-link>
                   <button
                     @click="deleteOffering(offering)"
@@ -245,27 +258,38 @@
                 <span class="text-gray-500">Details:</span>
                 <span class="ml-1 text-gray-600">{{ getOfferingDetails(offering) }}</span>
               </div>
+              <div>
+                <span class="text-gray-500">Category:</span>
+                <span class="ml-1 text-gray-600">{{ getOfferingCategory(offering) }}</span>
+              </div>
             </div>
-            <div class="flex items-center space-x-3 pt-3 border-t border-gray-100">
+            <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100">
               <!-- View Attendees button for events (mobile) -->
               <router-link
                 v-if="offering.type === 'event' && getEventId(offering)"
                 :to="`/admin/events/${getEventId(offering)}`"
-                class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
+                class="flex-1 min-w-32 inline-flex items-center justify-center px-3 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
               >
                 <font-awesome-icon icon="users" class="w-4 h-4 mr-2" />
                 Attendees
               </router-link>
               <router-link
                 :to="`/admin/offerings/${offering.id}/edit`"
-                class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors text-sm font-medium"
+                class="flex-1 min-w-32 inline-flex items-center justify-center px-3 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors text-sm font-medium"
               >
                 <font-awesome-icon icon="edit" class="w-4 h-4 mr-2" />
                 Edit
               </router-link>
+              <router-link
+                :to="{ name: 'AdminOfferingsNew', query: { duplicate: offering.id } }"
+                class="flex-1 min-w-32 inline-flex items-center justify-center px-3 py-2 border border-gray-500 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+              >
+                <font-awesome-icon icon="copy" class="w-4 h-4 mr-2" />
+                Duplicate
+              </router-link>
               <button
                 @click="deleteOffering(offering)"
-                class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+                class="flex-1 min-w-32 inline-flex items-center justify-center px-3 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
               >
                 <font-awesome-icon icon="trash" class="w-4 h-4 mr-2" />
                 Delete
@@ -314,6 +338,11 @@ const fetchOfferings = async () => {
         *,
         offering_events (
           *,
+          category:event_categories (
+            id,
+            name,
+            slug
+          ),
           capacity:event_capacity(*)
         ),
         offering_products (*),
@@ -533,6 +562,23 @@ const getOfferingDetails = (offering) => {
   }
 
   return '—'
+}
+
+const getOfferingCategory = (offering) => {
+  if (offering.type !== 'event' || !offering.offering_events) {
+    return '—'
+  }
+
+  const events = Array.isArray(offering.offering_events)
+    ? offering.offering_events
+    : [offering.offering_events]
+
+  const categoryNames = events
+    .map(event => event?.category?.name)
+    .filter(Boolean)
+
+  const uniqueNames = [...new Set(categoryNames)]
+  return uniqueNames.length ? uniqueNames.join(', ') : '—'
 }
 
 const getEventId = (offering) => {
