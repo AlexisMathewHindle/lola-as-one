@@ -526,6 +526,11 @@
                 </span>
               </div>
 
+              <div v-if="siblingDiscountEstimate > 0" class="flex justify-between text-sm text-green-700">
+                <span>Sibling discount</span>
+                <span class="font-semibold">-£{{ siblingDiscountEstimate.toFixed(2) }}</span>
+              </div>
+
               <div class="flex justify-between text-xs text-gray-500">
                 <span>VAT (20% included)</span>
                 <span>£{{ vat.toFixed(2) }}</span>
@@ -791,14 +796,48 @@ const shipping = computed(() => {
   return hasPhysicalItems.value ? 5.00 : 0
 })
 
+const isAdultWorkshopCartItem = (item) => {
+  return item.categoryLayout === 'adult_workshop' ||
+    item.category_layout === 'adult_workshop' ||
+    item.layout_key === 'adult_workshop'
+}
+
+const getSiblingEligibleLineTotal = (item) => {
+  if (item.type !== 'event' || isAdultWorkshopCartItem(item)) {
+    return 0
+  }
+
+  const quantity = Number(item.quantity || 0)
+
+  if (quantity < 2) {
+    return 0
+  }
+
+  if (Array.isArray(item.items) && item.items.length > 0) {
+    return item.items.reduce((sum, session) => {
+      return sum + Number(session.price || 0)
+    }, 0) * quantity
+  }
+
+  return Number(item.price || 0) * quantity
+}
+
+const siblingDiscountEstimate = computed(() => {
+  const eligibleSubtotal = cartStore.items.reduce((sum, item) => {
+    return sum + getSiblingEligibleLineTotal(item)
+  }, 0)
+
+  return Math.round(eligibleSubtotal * 10) / 100
+})
+
 // VAT calculation (20% included in prices)
 const vat = computed(() => {
-  return (cartStore.subtotal + shipping.value) * 0.2 / 1.2
+  return total.value * 0.2 / 1.2
 })
 
 // Total calculation
 const total = computed(() => {
-  return cartStore.subtotal + shipping.value
+  return Math.max(0, cartStore.subtotal + shipping.value - siblingDiscountEstimate.value)
 })
 
 // Format date helper
@@ -899,6 +938,9 @@ const buildExpandedEventItems = (item, attendees) => {
     slug: session.slug || item.slug,
     eventDate: session.eventDate || session.event_date,
     eventTime: session.eventTime || session.event_start_time,
+    categoryLayout: session.categoryLayout || session.category_layout || item.categoryLayout || item.category_layout || null,
+    categorySlug: session.categorySlug || session.category_slug || item.categorySlug || item.category_slug || null,
+    categoryName: session.categoryName || session.category_name || item.categoryName || item.category_name || null,
     attendees
   }))
 }

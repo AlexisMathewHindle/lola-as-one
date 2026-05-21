@@ -19,6 +19,9 @@ export const useCartStore = defineStore('cart', () => {
     const productName = product.title || product.name
     const productPrice = product.price || product.price_gbp
     const productImage = product.image || product.image_url || product.featured_image_url
+    const categoryLayout = product.categoryLayout || product.category_layout || product.layout_key || product.category?.layout_key || null
+    const categorySlug = product.categorySlug || product.category_slug || product.category?.slug || null
+    const categoryName = product.categoryName || product.category_name || product.category?.name || null
     const showToast = options.showToast !== false
 
     const existingItem = items.value.find(item =>
@@ -30,6 +33,9 @@ export const useCartStore = defineStore('cart', () => {
       if (Array.isArray(product.items)) {
         existingItem.items = product.items
       }
+      existingItem.categoryLayout = categoryLayout || existingItem.categoryLayout || null
+      existingItem.categorySlug = categorySlug || existingItem.categorySlug || null
+      existingItem.categoryName = categoryName || existingItem.categoryName || null
       // If attendees are provided, update them
       if (attendees && productType === 'event') {
         existingItem.attendees = attendees
@@ -59,6 +65,9 @@ export const useCartStore = defineStore('cart', () => {
         termGroupKey: product.termGroupKey || product.term_group_key || null,
         isTermBundle: Boolean(product.isTermBundle),
         items: Array.isArray(product.items) ? product.items : null,
+        categoryLayout,
+        categorySlug,
+        categoryName,
         // Optional: subscription configuration for subscription items
         subscriptionConfig: product.subscriptionConfig || null,
         // Store attendee details for events

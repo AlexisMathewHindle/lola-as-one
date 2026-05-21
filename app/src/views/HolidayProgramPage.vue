@@ -73,6 +73,10 @@ const props = defineProps({
     type: String,
     required: true
   },
+  categorySlugAliases: {
+    type: Array,
+    default: () => []
+  },
   fallbackTitle: {
     type: String,
     required: true
@@ -91,6 +95,13 @@ const loading = ref(true)
 const error = ref(null)
 
 const fallbackTitle = computed(() => props.fallbackTitle)
+
+const categorySlugCandidates = computed(() => {
+  return [...new Set([
+    props.categorySlug,
+    ...props.categorySlugAliases
+  ].filter(Boolean))]
+})
 
 const pageHeading = computed(() => category.value?.name || props.fallbackTitle)
 
@@ -218,14 +229,17 @@ const fetchHolidayProgram = async () => {
     category.value = null
     sessions.value = []
 
-    const { data: categoryData, error: categoryError } = await supabase
+    const { data: categoryMatches, error: categoryError } = await supabase
       .from('event_categories')
       .select('id, name, slug, description, age_range, color_hex, icon, featured_image_url, layout_key, parent_id, is_active')
-      .eq('slug', props.categorySlug)
+      .in('slug', categorySlugCandidates.value)
       .eq('is_active', true)
-      .maybeSingle()
 
     if (categoryError) throw categoryError
+
+    const categoryData = categorySlugCandidates.value
+      .map((slug) => (categoryMatches || []).find((match) => match.slug === slug))
+      .find(Boolean) || null
 
     category.value = categoryData
 
@@ -381,6 +395,9 @@ const buildTermCartItem = (termGroup) => {
     termLabel: termGroup.label,
     term_group_key: termGroup.key,
     isTermBundle: true,
+    categoryLayout: firstSession?.category?.layout_key || category.value?.layout_key || 'standard',
+    categorySlug: firstSession?.category?.slug || category.value?.slug || props.categorySlug,
+    categoryName: firstSession?.category?.name || category.value?.name || null,
     items: termGroup.sessions.map((session) => ({
       id: session.id,
       event_id: session.id,
@@ -392,7 +409,10 @@ const buildTermCartItem = (termGroup) => {
       slug: session.offering?.slug,
       eventDate: session.event_date,
       eventTime: session.event_start_time,
-      eventEndTime: session.event_end_time
+      eventEndTime: session.event_end_time,
+      categoryLayout: session.category?.layout_key || category.value?.layout_key || 'standard',
+      categorySlug: session.category?.slug || category.value?.slug || props.categorySlug,
+      categoryName: session.category?.name || category.value?.name || null
     }))
   }
 }
@@ -420,7 +440,10 @@ const incrementSession = (session) => {
     image: session.offering?.featured_image_url || session.category?.featured_image_url || category.value?.featured_image_url || null,
     slug: session.offering.slug,
     eventDate: session.event_date,
-    eventTime: session.event_start_time
+    eventTime: session.event_start_time,
+    categoryLayout: session.category?.layout_key || category.value?.layout_key || 'standard',
+    categorySlug: session.category?.slug || category.value?.slug || props.categorySlug,
+    categoryName: session.category?.name || category.value?.name || null
   })
 }
 

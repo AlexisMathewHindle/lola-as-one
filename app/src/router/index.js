@@ -7,6 +7,8 @@ const titleFromSlug = (slug) => String(slug || 'Workshops')
   .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
   .join(' ')
 
+const currentSummerHolidayCategorySlug = `summer-holiday-${new Date().getFullYear()}`
+
 const routes = [
   {
     path: '/adult-art-workshops',
@@ -134,7 +136,8 @@ const routes = [
     name: 'SummerHoliday',
     component: () => import('../views/HolidayProgramPage.vue'),
     props: {
-      categorySlug: 'summer-holiday',
+      categorySlug: currentSummerHolidayCategorySlug,
+      categorySlugAliases: ['summer-holiday'],
       fallbackTitle: 'Summer Holiday',
       fallbackDescription: 'Browse summer holiday art workshops and open studio sessions for children and families.'
     }

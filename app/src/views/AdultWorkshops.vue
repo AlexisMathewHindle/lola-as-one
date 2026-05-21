@@ -474,7 +474,10 @@ const incrementWorkshop = (workshop) => {
     image: getWorkshopImage(workshop),
     slug: workshop.offering.slug,
     eventDate: workshop.event_date,
-    eventTime: workshop.event_start_time
+    eventTime: workshop.event_start_time,
+    categoryLayout: workshop.category?.layout_key || 'adult_workshop',
+    categorySlug: workshop.category?.slug || 'adult-workshops',
+    categoryName: workshop.category?.name || 'Adult Workshops'
   })
 }
 

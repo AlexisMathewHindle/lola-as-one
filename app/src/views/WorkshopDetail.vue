@@ -853,6 +853,9 @@ const buildTermCartItem = (termGroup) => {
     termLabel: termGroup.label,
     term_group_key: termGroup.key,
     isTermBundle: true,
+    categoryLayout: firstSession?.category?.layout_key || 'standard',
+    categorySlug: firstSession?.category?.slug || null,
+    categoryName: firstSession?.category?.name || null,
     items: termGroup.sessions.map((session) => ({
       id: session.id,
       event_id: session.id,
@@ -864,7 +867,10 @@ const buildTermCartItem = (termGroup) => {
       slug: session.offering?.slug,
       eventDate: session.event_date,
       eventTime: session.event_start_time,
-      eventEndTime: session.event_end_time
+      eventEndTime: session.event_end_time,
+      categoryLayout: session.category?.layout_key || 'standard',
+      categorySlug: session.category?.slug || null,
+      categoryName: session.category?.name || null
     }))
   }
 }
@@ -892,7 +898,10 @@ const incrementSeriesSession = (session) => {
     image: session.offering.featured_image_url || session.category?.featured_image_url || null,
     slug: session.offering.slug,
     eventDate: session.event_date,
-    eventTime: session.event_start_time
+    eventTime: session.event_start_time,
+    categoryLayout: session.category?.layout_key || 'standard',
+    categorySlug: session.category?.slug || null,
+    categoryName: session.category?.name || null
   })
 }
 
@@ -963,7 +972,10 @@ const handleBooking = async () => {
       image: workshop.value.offering.featured_image_url,
       slug: workshop.value.offering.slug,
       eventDate: workshop.value.event_date,
-      eventTime: workshop.value.event_start_time
+      eventTime: workshop.value.event_start_time,
+      categoryLayout: workshop.value.category?.layout_key || 'standard',
+      categorySlug: workshop.value.category?.slug || null,
+      categoryName: workshop.value.category?.name || null
     }, bookingForm.value.numberOfAttendees, null, bookingForm.value.attendees)
 
     // Navigate to cart

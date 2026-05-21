@@ -7,6 +7,8 @@ type AdminAttendee = {
   allergies?: string
 }
 
+type AdminAttendees = number | string | AdminAttendee[]
+
 interface NewOrderAdminData {
   orderNumber: string
   customerName: string
@@ -17,7 +19,7 @@ interface NewOrderAdminData {
     quantity: number
     price: number
     type: string
-    attendees?: number | AdminAttendee[]
+    attendees?: AdminAttendees
     eventDate?: string
     eventTime?: string
   }>
@@ -32,8 +34,21 @@ interface NewOrderAdminData {
   hasPhysicalProducts: boolean
 }
 
-function attendeeCount(attendees: number | AdminAttendee[] | undefined, fallbackQuantity: number): number {
-  return Array.isArray(attendees) ? attendees.length : attendees || fallbackQuantity
+function attendeeCount(attendees: AdminAttendees | undefined, fallbackQuantity: number): number {
+  if (Array.isArray(attendees)) {
+    return attendees.length || fallbackQuantity
+  }
+
+  if (typeof attendees === 'number') {
+    return Number.isFinite(attendees) && attendees > 0 ? attendees : fallbackQuantity
+  }
+
+  if (typeof attendees === 'string') {
+    const parsedCount = Number.parseInt(attendees, 10)
+    return Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : fallbackQuantity
+  }
+
+  return fallbackQuantity
 }
 
 function attendeeName(attendee: AdminAttendee, index: number): string {
@@ -41,7 +56,7 @@ function attendeeName(attendee: AdminAttendee, index: number): string {
   return name || `Attendee ${index + 1}`
 }
 
-function attendeeHtml(attendees: number | AdminAttendee[] | undefined): string {
+function attendeeHtml(attendees: AdminAttendees | undefined): string {
   if (!Array.isArray(attendees) || attendees.length === 0) {
     return ''
   }
@@ -58,7 +73,7 @@ function attendeeHtml(attendees: number | AdminAttendee[] | undefined): string {
   `
 }
 
-function attendeeText(attendees: number | AdminAttendee[] | undefined): string {
+function attendeeText(attendees: AdminAttendees | undefined): string {
   if (!Array.isArray(attendees) || attendees.length === 0) {
     return ''
   }

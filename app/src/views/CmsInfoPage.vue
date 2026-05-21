@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-white">
     <section class="border-b border-gray-200 bg-gray-50">
       <div class="container mx-auto max-w-4xl px-4 py-14 sm:py-16">
-        <p class="text-sm font-semibold uppercase tracking-wide text-primary-600">Information</p>
+        <p class="text-sm font-semibold uppercase tracking-wide text-primary-600">{{ pageEyebrow }}</p>
         <h1 class="mt-3 max-w-3xl text-4xl font-bold text-gray-900 sm:text-5xl">
           {{ pageTitle }}
         </h1>
@@ -58,6 +58,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { getPageWithSectionsByKey } from '@/lib/cms'
+import { infoPageDefaultsFor } from '@/constants/infoPageDefaults'
 
 const props = defineProps({
   pageKey: {
@@ -71,52 +72,16 @@ const sections = ref([])
 const loading = ref(true)
 const error = ref('')
 
-const workshopFaqBodyHtml = `
-  <h2>How long does a workshop last?</h2>
-  <p>The LoLA art workshops generally last 1 hour unless specified otherwise. Please arrive before the workshop to allow your child to settle into the space.</p>
-  <h2>What to bring?</h2>
-  <p>We provide all art materials and lots of creative fun, but do dress for mess. There will be aprons for those who would like them. Please note that you will be taking the artwork home with you after the session.</p>
-  <h2>Where can I wait for my child?</h2>
-  <p>Parents are kindly requested to leave the workshop area during the class to minimise distraction. Please relax and enjoy a drink and a snack in the LoLA cafe.</p>
-  <h2>What if I need to change my booking, cancel, or my child is unwell?</h2>
-  <p>Our workshop requires a 48-hour cancellation notice to ensure a full refund or rescheduling. Cancellations made less than 48 hours before the scheduled workshop will not be eligible for a refund. This policy allows us to manage resources effectively and offer spots to other participants. Please note that if your child does not attend due to illness, these rules still apply.</p>
-  <p>Changes to bookings can be made by emailing the team at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a>.</p>
-  <h2>Photography</h2>
-  <p>We like to take photographs of the LoLA studio and all the wonderful artwork the children create, however we will avoid taking photos of faces. These photos can be used on social media or our website. If you would prefer your child not to be photographed at all, please let us know by emailing us at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a>.</p>
-  <h2>Allergies and medication</h2>
-  <p>Because the LoLA space is both a cafe and workshop space, please make us aware of any allergies or ask staff for more details on what we use in our food. Please note that allergies are not catered for.</p>
-  <p>If your child takes any medication that we need to be aware of, please immediately alert a member of staff or email us at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a>.</p>
-  <p>We assume that by booking this session you have parental responsibility for the children booked. Please inform us if another guardian will be attending the session or if guardianship will change before the session starts. Please read our <a href="/privacy-policy">data protection information</a>.</p>
-  <h2>Still have a question?</h2>
-  <p>Please do not hesitate to email us if you have any questions.</p>
-  <p>With kind wishes,<br>The LoLA team</p>
-`.trim()
+const fallbackSectionsFor = (pageKey) => {
+  const defaults = infoPageDefaultsFor(pageKey)
+  if (!defaults) return []
 
-const fallbackContent = {
-  'workshop-faqs': [
+  return [
     {
-      section_key: 'workshop_faqs_fallback',
+      section_key: `${pageKey.replace(/-/g, '_')}_fallback`,
       config_json: {
-        title: 'Workshop FAQs',
-        body_html: workshopFaqBodyHtml
-      }
-    }
-  ],
-  'privacy-policy': [
-    {
-      section_key: 'privacy_fallback',
-      config_json: {
-        title: 'Privacy Policy',
-        body_html: '<p>The privacy policy is being updated. Please contact the studio for privacy questions.</p>'
-      }
-    }
-  ],
-  'terms-and-conditions': [
-    {
-      section_key: 'terms_fallback',
-      config_json: {
-        title: 'Terms and Conditions',
-        body_html: '<p>The terms and conditions are being updated. Please contact the studio for booking questions.</p>'
+        title: defaults.sectionTitle || defaults.title,
+        body_html: defaults.bodyHtml
       }
     }
   ]
@@ -124,21 +89,15 @@ const fallbackContent = {
 
 const pageTitle = computed(() => page.value?.title || fallbackTitle(props.pageKey))
 const pageSummary = computed(() => page.value?.seo_description || fallbackSummary(props.pageKey))
-const visibleSections = computed(() => sections.value.length ? sections.value : fallbackContent[props.pageKey] || [])
+const pageEyebrow = computed(() => props.pageKey === 'about' ? 'About' : 'Information')
+const visibleSections = computed(() => sections.value.length ? sections.value : fallbackSectionsFor(props.pageKey))
 
 function fallbackTitle(pageKey) {
-  if (pageKey === 'workshop-faqs' || pageKey === 'faqs') return 'Workshop FAQs'
-  if (pageKey === 'privacy-policy') return 'Privacy Policy'
-  if (pageKey === 'terms-and-conditions') return 'Terms and Conditions'
-  return 'Information'
+  return infoPageDefaultsFor(pageKey)?.title || 'Information'
 }
 
 function fallbackSummary(pageKey) {
-  if (pageKey === 'workshop-faqs' || pageKey === 'faqs') {
-    return 'Useful details about attending, changing, and preparing for LoLA art workshops.'
-  }
-
-  return ''
+  return infoPageDefaultsFor(pageKey)?.summary || ''
 }
 
 function sectionConfig(section) {
@@ -157,7 +116,7 @@ async function loadPage() {
   } catch (err) {
     page.value = null
     sections.value = []
-    error.value = fallbackContent[props.pageKey]
+    error.value = fallbackSectionsFor(props.pageKey).length
       ? ''
       : (err?.message || 'This page could not be loaded from the CMS.')
     document.title = `${fallbackTitle(props.pageKey)} | Lola As One`

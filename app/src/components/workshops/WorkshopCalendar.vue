@@ -388,8 +388,8 @@ const handleResize = () => {
 
 const getStartOfWeek = (date) => {
   const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day
+  const dayOffsetFromMonday = (d.getDay() + 6) % 7
+  const diff = d.getDate() - dayOffsetFromMonday
   return new Date(d.setDate(diff))
 }
 

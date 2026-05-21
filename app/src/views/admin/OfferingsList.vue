@@ -143,16 +143,20 @@
       <div v-else class="overflow-x-auto">
         <table class="hidden lg:table min-w-full divide-y divide-gray-200">
           <colgroup>
-            <col class="w-[48%]" />
-            <col class="w-[15%]" />
+            <col class="w-[36%]" />
+            <col class="w-[16%]" />
             <col class="w-[14%]" />
+            <col class="w-[13%]" />
+            <col class="w-[10%]" />
             <col class="w-[11%]" />
-            <col class="w-[12%]" />
           </colgroup>
           <thead class="bg-gray-50">
             <tr>
               <th class="px-3 xl:px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Offering
+              </th>
+              <th class="px-3 xl:px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Category
               </th>
               <th
                 class="px-3 xl:px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
@@ -194,6 +198,9 @@
                     </div>
                   </div>
                 </div>
+              </td>
+              <td class="px-3 xl:px-4 py-4">
+                <div class="text-sm text-gray-600">{{ getOfferingCategory(offering) }}</div>
               </td>
               <td class="px-3 xl:px-4 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900">{{ getOfferingDateLabel(offering) }}</div>

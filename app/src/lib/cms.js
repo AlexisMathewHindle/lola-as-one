@@ -4,6 +4,7 @@ const PUBLIC_PAGE_FIELDS = 'id, page_key, title, slug, path, page_kind, template
 const ADMIN_PAGE_FIELDS = 'id, page_key, title, slug, path, page_kind, template_key, route_name, status, show_in_navigation, seo_title, seo_description, published_at'
 const ADMIN_SECTION_FIELDS = 'id, page_id, section_key, section_type, sort_order, is_enabled, config_json, created_by, updated_by, created_at, updated_at'
 const ADMIN_SETTING_FIELDS = 'id, setting_key, setting_group, label, value_json, is_public, sort_order, description, created_by, updated_by, created_at, updated_at'
+const EVENT_CATEGORY_NAV_FIELDS = 'id, name, slug, parent_id, display_order, is_active'
 
 const isPlainObject = (value) =>
   Object.prototype.toString.call(value) === '[object Object]'
@@ -488,4 +489,62 @@ export async function getMenuByKey(menuKey) {
     ...menu,
     items
   }
+}
+
+/**
+ * Fetch active child event categories for the generated Summer Holiday dropdown.
+ * The top-level menu remains CMS-managed; these children come from event categories.
+ */
+export async function getSummerHolidayDropdownItems() {
+  const currentYear = new Date().getFullYear()
+  const preferredParentSlugs = [
+    `summer-holiday-${currentYear}`,
+    'summer-holiday'
+  ]
+
+  const { data: categories, error } = await supabase
+    .from('event_categories')
+    .select(EVENT_CATEGORY_NAV_FIELDS)
+    .eq('is_active', true)
+    .order('display_order', { ascending: true })
+    .order('name', { ascending: true })
+
+  if (error) throw error
+
+  const activeCategories = categories || []
+  const preferredParent = preferredParentSlugs
+    .map((slug) => activeCategories.find((category) => category.slug === slug && !category.parent_id))
+    .find(Boolean)
+
+  const fallbackParent = activeCategories.find((category) =>
+    !category.parent_id &&
+    category.slug?.startsWith('summer-holiday-')
+  )
+
+  const parentCategory = preferredParent || fallbackParent
+  if (!parentCategory) return []
+
+  return activeCategories
+    .filter((category) => category.parent_id === parentCategory.id)
+    .sort((first, second) => {
+      const firstOrder = Number(first.display_order) || 0
+      const secondOrder = Number(second.display_order) || 0
+
+      if (firstOrder !== secondOrder) {
+        return firstOrder - secondOrder
+      }
+
+      return String(first.name || '').localeCompare(String(second.name || ''))
+    })
+    .map((category) => ({
+      id: `summer-holiday-category-${category.id}`,
+      label: category.name,
+      itemType: 'page',
+      href: `/category/${category.slug}`,
+      openInNewTab: false,
+      sortOrder: category.display_order,
+      pageKey: null,
+      categorySlug: category.slug,
+      isGeneratedDropdownItem: true
+    }))
 }

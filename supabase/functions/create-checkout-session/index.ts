@@ -12,6 +12,10 @@ const LEGACY_CHECKOUT_HOSTS = new Set(['lola-workshops.netlify.app'])
 const GBP_CURRENCY = 'gbp'
 const MAX_STRIPE_METADATA_VALUE_LENGTH = 450
 const MAX_ATTENDEE_ALLERGIES_LENGTH = 240
+const SIBLING_DISCOUNT_CODE = 'SIBLING10'
+const SIBLING_DISCOUNT_PERCENTAGE = 10
+const SIBLING_DISCOUNT_SOURCE = 'automatic_sibling'
+const ADULT_WORKSHOP_LAYOUT_KEY = 'adult_workshop'
 
 type CouponRecord = {
   id: string
@@ -26,12 +30,14 @@ type CouponRecord = {
   usage_count?: number | null
   per_customer_limit?: number | null
   applies_to?: string | null
+  metadata?: Record<string, unknown> | null
 }
 
 type AppliedCoupon = {
   coupon: CouponRecord
   discountPence: number
   eligibleSubtotalPence: number
+  source?: 'manual_coupon' | typeof SIBLING_DISCOUNT_SOURCE
 }
 
 function getCheckoutAppUrl(): string {
@@ -135,6 +141,14 @@ function getItemLinePence(item: any): number {
   return Math.max(0, toPence(item.price) * quantity)
 }
 
+function getEventLookupId(item: any): string {
+  if (item.type !== 'event') {
+    return ''
+  }
+
+  return String(item.event_id || item.id || '').trim()
+}
+
 function isItemEligibleForCoupon(item: any, appliesTo?: string | null): boolean {
   const target = appliesTo || 'all'
   const itemType = item.type || 'product_physical'
@@ -157,6 +171,160 @@ function calculateEligibleSubtotalPence(items: any[], appliesTo?: string | null)
   }, 0)
 }
 
+function getCategoryFromEventRecord(eventRecord: any) {
+  const category = eventRecord?.category
+  return Array.isArray(category) ? category[0] : category
+}
+
+async function fetchEventEligibilityById(supabase: any, items: any[]) {
+  const eventIds = [...new Set(
+    items
+      .map(getEventLookupId)
+      .filter(Boolean)
+  )]
+
+  if (eventIds.length === 0) {
+    return new Map<string, any>()
+  }
+
+  const { data, error } = await supabase
+    .from('offering_events')
+    .select('id, category:event_categories(id, slug, name, layout_key)')
+    .in('id', eventIds)
+
+  if (error) {
+    console.error('Error loading event category data for automatic discounts:', error)
+    return new Map<string, any>()
+  }
+
+  return new Map((data || []).map((eventRecord: any) => [eventRecord.id, eventRecord]))
+}
+
+function isAdultWorkshopEvent(eventRecord: any): boolean {
+  return getCategoryFromEventRecord(eventRecord)?.layout_key === ADULT_WORKSHOP_LAYOUT_KEY
+}
+
+function calculateSiblingEligibleSubtotalPence(items: any[], eventEligibilityById: Map<string, any>): number {
+  return items.reduce((sum, item) => {
+    if (item.type !== 'event') {
+      return sum
+    }
+
+    if (Number(item.quantity || 0) < 2) {
+      return sum
+    }
+
+    const eventId = getEventLookupId(item)
+    const eventRecord = eventEligibilityById.get(eventId)
+
+    if (!eventRecord || isAdultWorkshopEvent(eventRecord)) {
+      return sum
+    }
+
+    return sum + getItemLinePence(item)
+  }, 0)
+}
+
+async function loadSiblingDiscountCoupon(supabase: any): Promise<CouponRecord | null> {
+  const { data: coupon, error } = await supabase
+    .from('coupons')
+    .select('id, code, name, discount_type, discount_value, is_active, valid_from, valid_until, usage_limit, usage_count, per_customer_limit, applies_to, metadata')
+    .eq('code', SIBLING_DISCOUNT_CODE)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error loading sibling discount coupon record:', error)
+  }
+
+  if (coupon) {
+    if (!coupon.is_active) {
+      return null
+    }
+
+    const now = Date.now()
+    if (coupon.valid_from && new Date(coupon.valid_from).getTime() > now) {
+      return null
+    }
+
+    if (coupon.valid_until && new Date(coupon.valid_until).getTime() < now) {
+      return null
+    }
+
+    return coupon
+  }
+
+  return {
+    id: '',
+    code: SIBLING_DISCOUNT_CODE,
+    name: 'Sibling discount',
+    discount_type: 'percentage',
+    discount_value: SIBLING_DISCOUNT_PERCENTAGE,
+    is_active: true,
+    applies_to: 'events',
+    metadata: {
+      automatic_discount: true,
+      rule: 'sibling_discount',
+    },
+  }
+}
+
+async function calculateSiblingDiscountForCheckout(
+  supabase: any,
+  items: any[],
+  eventEligibilityById: Map<string, any>,
+): Promise<AppliedCoupon | null> {
+  const eligibleSubtotalPence = calculateSiblingEligibleSubtotalPence(items, eventEligibilityById)
+
+  if (eligibleSubtotalPence <= 0) {
+    return null
+  }
+
+  const coupon = await loadSiblingDiscountCoupon(supabase)
+
+  if (!coupon) {
+    return null
+  }
+
+  const configuredPercentage = coupon.discount_type === 'percentage'
+    ? Math.min(Number(coupon.discount_value || SIBLING_DISCOUNT_PERCENTAGE), 100)
+    : SIBLING_DISCOUNT_PERCENTAGE
+
+  const discountPence = Math.round(eligibleSubtotalPence * configuredPercentage / 100)
+
+  if (discountPence <= 0) {
+    return null
+  }
+
+  return {
+    coupon,
+    discountPence,
+    eligibleSubtotalPence,
+    source: SIBLING_DISCOUNT_SOURCE,
+  }
+}
+
+function chooseBestDiscount(manualCoupon: AppliedCoupon | null, siblingDiscount: AppliedCoupon | null): AppliedCoupon | null {
+  if (manualCoupon && siblingDiscount) {
+    return siblingDiscount.discountPence > manualCoupon.discountPence
+      ? siblingDiscount
+      : manualCoupon
+  }
+
+  return manualCoupon || siblingDiscount
+}
+
+function getDiscountLabel(appliedCoupon: AppliedCoupon | null): string {
+  if (!appliedCoupon) {
+    return ''
+  }
+
+  if (appliedCoupon.source === SIBLING_DISCOUNT_SOURCE || appliedCoupon.coupon.code === SIBLING_DISCOUNT_CODE) {
+    return 'Sibling discount'
+  }
+
+  return `Discount ${appliedCoupon.coupon.code}`
+}
+
 async function validateCouponForCheckout(
   supabase: any,
   items: any[],
@@ -169,7 +337,7 @@ async function validateCouponForCheckout(
 
   const { data: coupon, error: couponError } = await supabase
     .from('coupons')
-    .select('id, code, name, discount_type, discount_value, is_active, valid_from, valid_until, usage_limit, usage_count, per_customer_limit, applies_to')
+    .select('id, code, name, discount_type, discount_value, is_active, valid_from, valid_until, usage_limit, usage_count, per_customer_limit, applies_to, metadata')
     .eq('code', discountCode)
     .maybeSingle()
 
@@ -180,6 +348,10 @@ async function validateCouponForCheckout(
 
   if (!coupon) {
     throw new Error(`Discount code "${discountCode}" is not valid.`)
+  }
+
+  if (coupon.metadata?.automatic_discount === true) {
+    throw new Error(`Discount code "${discountCode}" is applied automatically when eligible.`)
   }
 
   if (!coupon.is_active) {
@@ -243,6 +415,7 @@ async function validateCouponForCheckout(
     coupon,
     discountPence,
     eligibleSubtotalPence,
+    source: 'manual_coupon',
   }
 }
 
@@ -277,6 +450,9 @@ serve(async (req) => {
     // Parse request body
     const { items, customer, shipping, discountCode, consents = {} } = await req.json()
     const normalizedDiscountCode = normalizeDiscountCode(discountCode)
+    const manualDiscountCode = normalizedDiscountCode === SIBLING_DISCOUNT_CODE
+      ? ''
+      : normalizedDiscountCode
 
     console.log('📦 Request data:', {
       itemCount: items?.length,
@@ -312,23 +488,34 @@ serve(async (req) => {
     const hasPhysicalItems = items.some(item => item.type === 'product_physical')
     const shippingCost = hasPhysicalItems ? 5.00 : 0.00
     const totalBeforeDiscount = subtotal + shippingCost
-    const appliedCoupon = await validateCouponForCheckout(
+    const eventEligibilityById = await fetchEventEligibilityById(supabase, items)
+    const manualCoupon = await validateCouponForCheckout(
       supabase,
       items,
       customer.email,
-      normalizedDiscountCode,
+      manualDiscountCode,
     )
+    const siblingDiscount = await calculateSiblingDiscountForCheckout(
+      supabase,
+      items,
+      eventEligibilityById,
+    )
+    const appliedCoupon = chooseBestDiscount(manualCoupon, siblingDiscount)
+    const discountLabel = getDiscountLabel(appliedCoupon)
     const discountAmount = appliedCoupon ? appliedCoupon.discountPence / 100 : 0
     const total = Math.max(0, totalBeforeDiscount - discountAmount)
     const vat = total * 0.20 / 1.20 // VAT is included in prices
 
-    console.log('🏷️ Coupon validation result:', appliedCoupon
+    console.log('🏷️ Discount validation result:', appliedCoupon
       ? {
           code: appliedCoupon.coupon.code,
           couponId: appliedCoupon.coupon.id,
           appliesTo: appliedCoupon.coupon.applies_to || 'all',
+          source: appliedCoupon.source || 'manual_coupon',
           discountPence: appliedCoupon.discountPence,
           eligibleSubtotalPence: appliedCoupon.eligibleSubtotalPence,
+          manualDiscountPence: manualCoupon?.discountPence || 0,
+          siblingDiscountPence: siblingDiscount?.discountPence || 0,
         }
       : null)
 
@@ -505,10 +692,11 @@ serve(async (req) => {
         duration: 'once',
         amount_off: appliedCoupon.discountPence,
         currency: GBP_CURRENCY,
-        name: `Discount ${appliedCoupon.coupon.code}`,
+        name: discountLabel || `Discount ${appliedCoupon.coupon.code}`,
         metadata: {
           app_coupon_id: appliedCoupon.coupon.id,
           app_coupon_code: appliedCoupon.coupon.code,
+          app_discount_source: appliedCoupon.source || 'manual_coupon',
         },
       })
 
@@ -534,12 +722,16 @@ serve(async (req) => {
         privacy_policy_accepted_at: privacyPolicyAccepted ? consentAcceptedAt : '',
         newsletter_opt_in: String(newsletterOptIn),
         newsletter_opt_in_at: newsletterOptIn ? consentAcceptedAt : '',
-        discount_code: appliedCoupon?.coupon.code || normalizedDiscountCode,
+        discount_code: appliedCoupon?.coupon.code || manualDiscountCode,
+        requested_discount_code: normalizedDiscountCode,
         coupon_id: appliedCoupon?.coupon.id || '',
         coupon_applies_to: appliedCoupon?.coupon.applies_to || '',
         discount_type: appliedCoupon?.coupon.discount_type || '',
         discount_value: appliedCoupon ? String(appliedCoupon.coupon.discount_value) : '',
         discount_amount: discountAmount.toFixed(2),
+        discount_label: discountLabel,
+        discount_source: appliedCoupon?.source || '',
+        automatic_sibling_discount_amount: siblingDiscount ? (siblingDiscount.discountPence / 100).toFixed(2) : '0.00',
         stripe_coupon_id: stripeCouponId,
         shipping_name: shipping?.name || '',
         shipping_line1: shipping?.address?.line1 || '',

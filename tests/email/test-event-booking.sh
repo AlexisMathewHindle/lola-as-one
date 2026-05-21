@@ -65,4 +65,51 @@ curl -i --location --request POST "$API_URL" \
 
 echo ""
 echo ""
+echo "3. Admin order notification with attendee object details"
+curl -i --location --request POST "$API_URL" \
+  --header "Authorization: Bearer $AUTH_TOKEN" \
+  --header "Content-Type: application/json" \
+  --data "{
+    \"template\": \"new-order-admin\",
+    \"to\": \"$TEST_EMAIL\",
+    \"data\": {
+      \"orderNumber\": \"TEST-ADMIN-002\",
+      \"customerName\": \"Test User\",
+      \"customerEmail\": \"test@example.com\",
+      \"orderTotal\": 90.00,
+      \"orderItems\": [
+        {
+          \"name\": \"Watercolor Landscapes Workshop\",
+          \"quantity\": 2,
+          \"price\": 90.00,
+          \"type\": \"event\",
+          \"attendees\": [
+            {
+              \"firstName\": \"Ada\",
+              \"lastName\": \"Lovelace\",
+              \"email\": \"ada@example.com\",
+              \"phone\": \"07123456789\",
+              \"allergies\": \"None\",
+              \"notes\": \"No notes\"
+            },
+            {
+              \"firstName\": \"Grace\",
+              \"lastName\": \"Hopper\",
+              \"email\": \"grace@example.com\",
+              \"phone\": \"07987654321\",
+              \"allergies\": \"Nuts\",
+              \"notes\": \"Prefers front row\"
+            }
+          ],
+          \"eventDate\": \"Saturday, June 20, 2026\",
+          \"eventTime\": \"10:00 AM - 1:00 PM\"
+        }
+      ],
+      \"hasEvents\": true,
+      \"hasPhysicalProducts\": false
+    }
+  }"
+
+echo ""
+echo ""
 echo "✅ Test complete!"

@@ -441,9 +441,9 @@ serve(async (req) => {
         const vatAmount = totalAmount * 0.20 / 1.20
         const couponId = metadata.coupon_id || null
         const couponCode = metadata.discount_code || ''
-        const discountLabel = couponCode
+        const discountLabel = metadata.discount_label || (couponCode
           ? `Discount (${couponCode})`
-          : 'Discount'
+          : 'Discount')
         const healthSafetyAccepted = metadataBoolean(metadata.health_safety_accepted)
         const privacyPolicyAccepted = metadataBoolean(metadata.privacy_policy_accepted)
         const newsletterOptIn = metadataBoolean(metadata.newsletter_opt_in)
@@ -948,7 +948,7 @@ serve(async (req) => {
               if (offeringEvent) {
                 return {
                   ...baseItem,
-                  attendees: item.attendees || item.quantity,
+                  attendees: Array.isArray(item.attendees) ? item.attendees : item.quantity,
                   eventDate: new Date(offeringEvent.event_date).toLocaleDateString('en-GB', {
                     weekday: 'short',
                     year: 'numeric',
@@ -1092,7 +1092,7 @@ serve(async (req) => {
                     bookingReference: `BKG-${order.order_number}-${offeringEvent.id.substring(0, 8)}`,
                     orderNumber: order.order_number,
                     pricePaid: item.price * item.quantity,
-                    attendees: item.attendees || undefined,
+                    attendees: Array.isArray(item.attendees) ? item.attendees : undefined,
                   },
                   metadata: {
                     orderNumber: order.order_number,

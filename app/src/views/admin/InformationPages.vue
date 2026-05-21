@@ -4,7 +4,7 @@
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Information Pages</h1>
         <p class="mt-1 text-sm text-gray-600">
-          Edit the CMS-backed footer information pages, including workshop FAQs, privacy, and terms.
+          Edit the CMS-backed information pages, including About, workshop FAQs, privacy, and terms.
         </p>
       </div>
 
@@ -177,6 +177,7 @@
 <script setup>
 import { onMounted, reactive, ref, watch } from 'vue'
 import RichTextEditor from '../../components/shared/RichTextEditor.vue'
+import { infoPageDefaultsFor } from '../../constants/infoPageDefaults'
 import {
   getAdminPageWithSectionsByKey,
   saveSitePage,
@@ -187,12 +188,13 @@ import { useToastStore } from '../../stores/toast'
 const toastStore = useToastStore()
 
 const pageOptions = [
+  { key: 'about', label: 'About', path: '/about' },
   { key: 'workshop-faqs', label: 'Workshop FAQs', path: '/workshop-faqs' },
   { key: 'privacy-policy', label: 'Privacy Policy', path: '/privacy-policy' },
   { key: 'terms-and-conditions', label: 'Terms and Conditions', path: '/terms-and-conditions' }
 ]
 
-const selectedPageKey = ref('workshop-faqs')
+const selectedPageKey = ref('about')
 const loading = ref(true)
 const saving = ref(false)
 const error = ref(null)
@@ -214,16 +216,18 @@ const form = reactive({
 const sectionKeyForPage = (pageKey) => `${pageKey.replace(/-/g, '_')}_content`
 
 const resetForm = (page, section) => {
+  const defaults = infoPageDefaultsFor(selectedPageKey.value)
+
   form.pageId = page?.id || ''
   form.path = page?.path || ''
-  form.title = page?.title || ''
+  form.title = page?.title || defaults?.title || ''
   form.seoTitle = page?.seo_title || ''
-  form.seoDescription = page?.seo_description || ''
+  form.seoDescription = page?.seo_description || defaults?.summary || ''
   form.isPublished = page?.status === 'published'
   form.showInNavigation = page?.show_in_navigation !== false
   form.sectionKey = section?.section_key || sectionKeyForPage(selectedPageKey.value)
-  form.sectionTitle = section?.config_json?.title || page?.title || ''
-  form.bodyHtml = section?.config_json?.body_html || ''
+  form.sectionTitle = section?.config_json?.title || defaults?.sectionTitle || page?.title || ''
+  form.bodyHtml = section?.config_json?.body_html || defaults?.bodyHtml || ''
 }
 
 const loadPage = async () => {
