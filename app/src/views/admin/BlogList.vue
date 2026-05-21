@@ -81,7 +81,7 @@
 
       <!-- Desktop Table View -->
       <div v-else class="overflow-x-auto">
-        <table class="hidden lg:table min-w-full divide-y divide-gray-200">
+        <table class="hidden xl:table min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
               <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -156,7 +156,7 @@
         </table>
 
         <!-- Mobile Card View -->
-        <div class="lg:hidden divide-y divide-gray-200">
+        <div class="xl:hidden divide-y divide-gray-200">
           <div
             v-for="post in filteredPosts"
             :key="post.id"
@@ -326,4 +326,3 @@ onMounted(() => {
   fetchPosts()
 })
 </script>
-

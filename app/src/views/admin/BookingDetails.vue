@@ -119,7 +119,23 @@
             </div>
             <div>
               <p class="text-sm font-medium text-gray-600">Order Number</p>
-              <p class="text-sm text-gray-900">#{{ booking.orders?.order_number || 'N/A' }}</p>
+              <router-link
+                v-if="booking.orders?.id"
+                :to="`/admin/orders/${booking.orders.id}`"
+                class="text-sm text-primary-600 hover:text-primary-800 font-medium"
+              >
+                #{{ booking.orders.order_number }}
+              </router-link>
+              <p v-else class="text-sm text-gray-900">N/A</p>
+            </div>
+            <div v-if="booking.orders?.status">
+              <p class="text-sm font-medium text-gray-600">Order Status</p>
+              <span
+                class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                :class="getOrderStatusClass(booking.orders.status)"
+              >
+                {{ booking.orders.status }}
+              </span>
             </div>
             <div>
               <p class="text-sm font-medium text-gray-600">Booking ID</p>
@@ -255,7 +271,14 @@ const fetchBooking = async () => {
       .from('bookings')
       .select(`
         *,
-        orders(order_number),
+        orders(
+          id,
+          order_number,
+          status,
+          stripe_checkout_session_id,
+          stripe_payment_intent_id,
+          total_gbp
+        ),
         offering_events(
           *,
           offerings(title)
@@ -333,6 +356,17 @@ const getStatusClass = (status) => {
     confirmed: 'bg-success-100 text-success-800',
     cancelled: 'bg-red-100 text-red-800',
     no_show: 'bg-warning-100 text-warning-800'
+  }
+  return classes[status] || 'bg-gray-100 text-gray-800'
+}
+
+const getOrderStatusClass = (status) => {
+  const classes = {
+    pending: 'bg-yellow-100 text-yellow-800',
+    paid: 'bg-blue-100 text-blue-800',
+    fulfilled: 'bg-green-100 text-green-800',
+    cancelled: 'bg-gray-100 text-gray-800',
+    refunded: 'bg-red-100 text-red-800'
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
 }

@@ -24,13 +24,28 @@
           <font-awesome-icon icon="filter" class="w-4 h-4 text-gray-500 mr-2" />
           <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Filters</h3>
         </div>
-        <button
-          v-if="hasActiveFilters"
-          @click="clearFilters"
-          class="text-sm text-primary-600 hover:text-primary-800 font-medium transition-colors"
-        >
-          Clear Filters
-        </button>
+        <div class="flex items-center gap-3">
+          <button
+            v-if="canSortByEventDate"
+            type="button"
+            @click="toggleEventDateSort"
+            class="lg:hidden inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-700"
+            :class="eventDateSortActive ? 'border-primary-300 text-primary-700' : ''"
+          >
+            Date
+            <font-awesome-icon
+              :icon="sortByEventDate ? 'arrow-down' : 'arrow-up'"
+              class="w-3 h-3"
+            />
+          </button>
+          <button
+            v-if="hasActiveFilters"
+            @click="clearFilters"
+            class="text-sm text-primary-600 hover:text-primary-800 font-medium transition-colors"
+          >
+            Clear Filters
+          </button>
+        </div>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <!-- Type Filter -->
@@ -127,76 +142,87 @@
       <!-- Desktop Table View -->
       <div v-else class="overflow-x-auto">
         <table class="hidden lg:table min-w-full divide-y divide-gray-200">
+          <colgroup>
+            <col class="w-[48%]" />
+            <col class="w-[15%]" />
+            <col class="w-[14%]" />
+            <col class="w-[11%]" />
+            <col class="w-[12%]" />
+          </colgroup>
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Type
-              </th>
-              <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Title
-              </th>
-              <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Category
-              </th>
-              <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Price
+              <th class="px-3 xl:px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Offering
               </th>
               <th
-                class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                class="px-3 xl:px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
                 :class="{ 'cursor-pointer hover:bg-gray-100 transition-colors': canSortByEventDate }"
                 @click="toggleEventDateSort"
               >
                 <div class="flex items-center space-x-1">
-                  <span>Details</span>
+                  <span>Date</span>
                   <font-awesome-icon
                     v-if="canSortByEventDate"
                     :icon="sortByEventDate ? 'arrow-down' : 'arrow-up'"
-                    class="w-3 h-3 text-primary-600"
+                    class="w-3 h-3"
+                    :class="eventDateSortActive ? 'text-primary-600' : 'text-gray-400'"
                   />
                 </div>
               </th>
-              <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th class="px-3 xl:px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Bookings
+              </th>
+              <th class="px-3 xl:px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Status
               </th>
-              <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th class="px-3 xl:px-4 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="offering in filteredOfferings" :key="offering.id" class="hover:bg-gray-50 transition-colors">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="text-2xl">{{ getTypeIcon(offering.type) }}</span>
+              <td class="px-3 xl:px-4 py-4">
+                <div class="flex items-start gap-3">
+                  <span class="mt-0.5 shrink-0 text-2xl">{{ getTypeIcon(offering.type) }}</span>
+                  <div class="min-w-0">
+                    <div class="text-sm font-semibold text-gray-900">{{ offering.title }}</div>
+                    <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                      <span class="font-medium text-gray-600">{{ getTypeLabel(offering.type) }}</span>
+                      <span>{{ offering.slug }}</span>
+                      <span class="font-medium text-gray-700">{{ formatPrice(offering) }}</span>
+                    </div>
+                  </div>
+                </div>
               </td>
-              <td class="px-6 py-4">
-                <div class="text-sm font-semibold text-gray-900">{{ offering.title }}</div>
-                <div class="text-xs text-gray-500 mt-0.5">{{ offering.slug }}</div>
+              <td class="px-3 xl:px-4 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">{{ getOfferingDateLabel(offering) }}</div>
+                <div v-if="getOfferingTimeLabel(offering)" class="text-xs text-gray-500 mt-0.5">
+                  {{ getOfferingTimeLabel(offering) }}
+                </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-600">{{ getOfferingCategory(offering) }}</div>
+              <td class="px-3 xl:px-4 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">{{ getOfferingBookingsLabel(offering) }}</div>
+                <div v-if="offering.type === 'event'" class="text-xs text-gray-500 mt-0.5">
+                  spaces booked
+                </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">{{ formatPrice(offering) }}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-600">{{ getOfferingDetails(offering) }}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-3 xl:px-4 py-4 whitespace-nowrap">
                 <span
-                  class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                  class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
                   :class="getStatusClass(offering.status)"
                 >
                   {{ offering.status }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div class="flex items-center justify-end space-x-3">
-                  <!-- View Attendees button for events -->
+              <td class="relative px-3 xl:px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <div class="flex items-center justify-end gap-3">
                   <router-link
                     v-if="offering.type === 'event' && getEventId(offering)"
                     :to="`/admin/events/${getEventId(offering)}`"
                     class="text-blue-600 hover:text-blue-800 transition-colors"
                     title="View Attendees"
+                    @click="closeActionMenu"
                   >
                     <font-awesome-icon icon="users" class="w-4 h-4" />
                   </router-link>
@@ -204,22 +230,53 @@
                     :to="`/admin/offerings/${offering.id}/edit`"
                     class="text-primary-600 hover:text-primary-800 transition-colors"
                     title="Edit"
+                    @click="closeActionMenu"
                   >
                     <font-awesome-icon icon="edit" class="w-4 h-4" />
                   </router-link>
+                  <button
+                    type="button"
+                    class="text-gray-500 transition-colors hover:text-gray-800"
+                    :aria-expanded="openActionMenuId === offering.id"
+                    :aria-label="`More actions for ${offering.title}`"
+                    @click="toggleActionMenu(offering.id)"
+                  >
+                    <font-awesome-icon icon="ellipsis-vertical" class="w-4 h-4" />
+                  </button>
+                </div>
+                <div
+                  v-if="openActionMenuId === offering.id"
+                  class="absolute right-3 top-12 z-30 w-36 rounded-lg border border-gray-200 bg-white py-1 text-left shadow-lg"
+                >
                   <router-link
                     :to="{ name: 'AdminOfferingsNew', query: { duplicate: offering.id } }"
-                    class="text-gray-600 hover:text-gray-800 transition-colors"
-                    title="Duplicate"
+                    class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    @click="closeActionMenu"
                   >
-                    <font-awesome-icon icon="copy" class="w-4 h-4" />
+                    <font-awesome-icon icon="copy" class="w-3.5 h-3.5 text-gray-500" />
+                    Duplicate
                   </router-link>
                   <button
-                    @click="deleteOffering(offering)"
-                    class="text-red-600 hover:text-red-800 transition-colors"
-                    title="Delete"
+                    v-if="canArchiveOffering(offering)"
+                    type="button"
+                    @click="archiveOffering(offering)"
+                    :disabled="isArchivingOffering(offering.id)"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-sm text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <font-awesome-icon icon="trash" class="w-4 h-4" />
+                    <font-awesome-icon
+                      :icon="isArchivingOffering(offering.id) ? 'spinner' : 'archive'"
+                      :class="{ 'animate-spin': isArchivingOffering(offering.id) }"
+                      class="w-3.5 h-3.5"
+                    />
+                    Archive
+                  </button>
+                  <button
+                    type="button"
+                    @click="deleteOffering(offering)"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
+                  >
+                    <font-awesome-icon icon="trash" class="w-3.5 h-3.5" />
+                    Delete
                   </button>
                 </div>
               </td>
@@ -232,14 +289,16 @@
           <div
             v-for="offering in filteredOfferings"
             :key="offering.id"
-            class="p-4 hover:bg-gray-50 transition-colors"
+            class="relative p-4 hover:bg-gray-50 transition-colors"
           >
             <div class="flex items-start justify-between mb-3">
               <div class="flex items-center space-x-3">
                 <span class="text-2xl">{{ getTypeIcon(offering.type) }}</span>
                 <div>
                   <h3 class="text-sm font-semibold text-gray-900">{{ offering.title }}</h3>
-                  <p class="text-xs text-gray-500 mt-0.5">{{ offering.slug }}</p>
+                  <p class="text-xs text-gray-500 mt-0.5">
+                    {{ getTypeLabel(offering.type) }} - {{ offering.slug }}
+                  </p>
                 </div>
               </div>
               <span
@@ -255,12 +314,20 @@
                 <span class="ml-1 font-medium text-gray-900">{{ formatPrice(offering) }}</span>
               </div>
               <div>
-                <span class="text-gray-500">Details:</span>
-                <span class="ml-1 text-gray-600">{{ getOfferingDetails(offering) }}</span>
+                <span class="text-gray-500">Date:</span>
+                <span class="ml-1 text-gray-600">{{ getOfferingDateLabel(offering) }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Bookings:</span>
+                <span class="ml-1 text-gray-600">{{ getOfferingBookingsLabel(offering) }}</span>
               </div>
               <div>
                 <span class="text-gray-500">Category:</span>
                 <span class="ml-1 text-gray-600">{{ getOfferingCategory(offering) }}</span>
+              </div>
+              <div v-if="offering.type !== 'event'" class="col-span-2">
+                <span class="text-gray-500">Details:</span>
+                <span class="ml-1 text-gray-600">{{ getOfferingDetails(offering) }}</span>
               </div>
             </div>
             <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100">
@@ -269,6 +336,7 @@
                 v-if="offering.type === 'event' && getEventId(offering)"
                 :to="`/admin/events/${getEventId(offering)}`"
                 class="flex-1 min-w-32 inline-flex items-center justify-center px-3 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
+                @click="closeActionMenu"
               >
                 <font-awesome-icon icon="users" class="w-4 h-4 mr-2" />
                 Attendees
@@ -276,20 +344,52 @@
               <router-link
                 :to="`/admin/offerings/${offering.id}/edit`"
                 class="flex-1 min-w-32 inline-flex items-center justify-center px-3 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors text-sm font-medium"
+                @click="closeActionMenu"
               >
                 <font-awesome-icon icon="edit" class="w-4 h-4 mr-2" />
                 Edit
               </router-link>
+              <button
+                type="button"
+                class="flex-1 min-w-32 inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                :aria-expanded="openActionMenuId === offering.id"
+                :aria-label="`More actions for ${offering.title}`"
+                @click="toggleActionMenu(offering.id)"
+              >
+                <font-awesome-icon icon="ellipsis-vertical" class="w-4 h-4 mr-2" />
+                More
+              </button>
+            </div>
+            <div
+              v-if="openActionMenuId === offering.id"
+              class="absolute bottom-16 right-4 z-30 grid w-44 grid-cols-1 gap-2 rounded-lg border border-gray-200 bg-white p-2 shadow-lg"
+            >
               <router-link
                 :to="{ name: 'AdminOfferingsNew', query: { duplicate: offering.id } }"
-                class="flex-1 min-w-32 inline-flex items-center justify-center px-3 py-2 border border-gray-500 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                class="inline-flex items-center justify-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                @click="closeActionMenu"
               >
                 <font-awesome-icon icon="copy" class="w-4 h-4 mr-2" />
                 Duplicate
               </router-link>
               <button
+                v-if="canArchiveOffering(offering)"
+                type="button"
+                @click="archiveOffering(offering)"
+                :disabled="isArchivingOffering(offering.id)"
+                class="inline-flex items-center justify-center rounded-lg border border-amber-600 px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <font-awesome-icon
+                  :icon="isArchivingOffering(offering.id) ? 'spinner' : 'archive'"
+                  :class="{ 'animate-spin': isArchivingOffering(offering.id) }"
+                  class="w-4 h-4 mr-2"
+                />
+                Archive
+              </button>
+              <button
+                type="button"
                 @click="deleteOffering(offering)"
-                class="flex-1 min-w-32 inline-flex items-center justify-center px-3 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+                class="inline-flex items-center justify-center rounded-lg border border-red-600 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
               >
                 <font-awesome-icon icon="trash" class="w-4 h-4 mr-2" />
                 Delete
@@ -310,6 +410,8 @@ import { useToastStore } from '../../stores/toast'
 const toastStore = useToastStore()
 const offerings = ref([])
 const loading = ref(true)
+const archivingOfferingIds = ref(new Set())
+const openActionMenuId = ref(null)
 
 const filters = ref({
   type: '',
@@ -319,11 +421,13 @@ const filters = ref({
   eventDateTo: ''
 })
 
-const sortByEventDate = ref(false)
+const sortByEventDate = ref(true)
+const eventDateSortActive = ref(false)
 
 // Watch for type filter changes to auto-enable descending sort for events
 watch(() => filters.value.type, (newType) => {
   if (newType === 'event') {
+    eventDateSortActive.value = true
     sortByEventDate.value = true
   }
 })
@@ -394,9 +498,7 @@ const filteredOfferings = computed(() => {
     // Filter by date range
     if (filters.value.eventDateFrom || filters.value.eventDateTo) {
       filtered = filtered.filter(offering => {
-        const event = Array.isArray(offering.offering_events)
-          ? offering.offering_events[0]
-          : offering.offering_events
+        const event = getOfferingPrimaryEvent(offering)
 
         if (!event?.event_date) return false
 
@@ -417,21 +519,22 @@ const filteredOfferings = computed(() => {
         return true
       })
     }
+  }
 
-    // Sort by event date (always sort events by date descending)
-    filtered = filtered.sort((a, b) => {
-      const eventA = Array.isArray(a.offering_events) ? a.offering_events[0] : a.offering_events
-      const eventB = Array.isArray(b.offering_events) ? b.offering_events[0] : b.offering_events
+  if (eventDateSortActive.value) {
+    filtered = [...filtered].sort((a, b) => {
+      const eventDateA = getOfferingEventDateValue(a)
+      const eventDateB = getOfferingEventDateValue(b)
 
-      if (!eventA?.event_date) return 1
-      if (!eventB?.event_date) return -1
-
-      // Sort descending (newest first) if sortByEventDate is true, otherwise ascending
-      if (sortByEventDate.value) {
-        return new Date(eventB.event_date) - new Date(eventA.event_date)
-      } else {
-        return new Date(eventA.event_date) - new Date(eventB.event_date)
+      if (eventDateA === null && eventDateB === null) {
+        return a.title.localeCompare(b.title)
       }
+      if (eventDateA === null) return 1
+      if (eventDateB === null) return -1
+
+      return sortByEventDate.value
+        ? eventDateB - eventDateA
+        : eventDateA - eventDateB
     })
   }
 
@@ -441,7 +544,7 @@ const filteredOfferings = computed(() => {
 // Check if any filters are active
 const hasActiveFilters = computed(() => {
   return !!(filters.value.type || filters.value.status || filters.value.search ||
-            filters.value.eventDateFrom || filters.value.eventDateTo)
+            filters.value.eventDateFrom || filters.value.eventDateTo || eventDateSortActive.value)
 })
 
 // Clear all filters
@@ -451,17 +554,24 @@ const clearFilters = () => {
   filters.value.search = ''
   filters.value.eventDateFrom = ''
   filters.value.eventDateTo = ''
-  sortByEventDate.value = false
+  eventDateSortActive.value = false
+  sortByEventDate.value = true
 }
 
-// Check if we should show the sort option for Details column
+// Check if we should show the sort option for Date column
 const canSortByEventDate = computed(() => {
-  return filters.value.type === 'event'
+  return offerings.value.some(offering => getOfferingEventDateValue(offering) !== null)
 })
 
 // Toggle sort by event date
 const toggleEventDateSort = () => {
   if (canSortByEventDate.value) {
+    if (!eventDateSortActive.value) {
+      eventDateSortActive.value = true
+      sortByEventDate.value = true
+      return
+    }
+
     sortByEventDate.value = !sortByEventDate.value
   }
 }
@@ -474,6 +584,24 @@ const getTypeIcon = (type) => {
     product_digital: '💾'
   }
   return icons[type] || '📄'
+}
+
+const getTypeLabel = (type) => {
+  const labels = {
+    event: 'Event',
+    product_physical: 'Physical product',
+    subscription: 'Subscription',
+    product_digital: 'Digital product'
+  }
+  return labels[type] || 'Offering'
+}
+
+const toggleActionMenu = (offeringId) => {
+  openActionMenuId.value = openActionMenuId.value === offeringId ? null : offeringId
+}
+
+const closeActionMenu = () => {
+  openActionMenuId.value = null
 }
 
 const formatPrice = (offering) => {
@@ -519,21 +647,80 @@ const formatDate = (dateString) => {
   return `${day}/${month}/${year}`
 }
 
+const getOfferingPrimaryEvent = (offering) => {
+  if (offering.type !== 'event' || !offering.offering_events) {
+    return null
+  }
+
+  return Array.isArray(offering.offering_events)
+    ? offering.offering_events[0] || null
+    : offering.offering_events
+}
+
+const getOfferingEventDateValue = (offering) => {
+  const event = getOfferingPrimaryEvent(offering)
+  if (!event?.event_date) {
+    return null
+  }
+
+  const eventDate = String(event.event_date).slice(0, 10)
+  const eventTime = normalizeTimeString(event.event_start_time) || '00:00'
+  const timestamp = new Date(`${eventDate}T${eventTime}:00`).getTime()
+
+  return Number.isNaN(timestamp) ? null : timestamp
+}
+
+const getOfferingDateLabel = (offering) => {
+  const event = getOfferingPrimaryEvent(offering)
+  return event?.event_date ? formatDate(event.event_date) : '—'
+}
+
+const getOfferingTimeLabel = (offering) => {
+  const event = getOfferingPrimaryEvent(offering)
+  const startTime = normalizeTimeString(event?.event_start_time)
+  const endTime = normalizeTimeString(event?.event_end_time)
+
+  if (startTime && endTime) {
+    return `${startTime}-${endTime}`
+  }
+
+  return startTime || ''
+}
+
+const getOfferingCapacity = (offering) => {
+  const event = getOfferingPrimaryEvent(offering)
+  if (!event) {
+    return null
+  }
+
+  const capacity = Array.isArray(event.capacity)
+    ? event.capacity[0]
+    : event.capacity
+
+  return {
+    booked: capacity?.spaces_booked ?? event.current_bookings ?? 0,
+    total: capacity?.total_capacity ?? event.max_capacity ?? 0
+  }
+}
+
+const getOfferingBookingsLabel = (offering) => {
+  const capacity = getOfferingCapacity(offering)
+  if (!capacity) {
+    return '—'
+  }
+
+  return capacity.total > 0
+    ? `${capacity.booked}/${capacity.total}`
+    : `${capacity.booked} booked`
+}
+
 const getOfferingDetails = (offering) => {
   // Handle event offerings
-  if (offering.type === 'event' && offering.offering_events) {
-    const event = Array.isArray(offering.offering_events)
-      ? offering.offering_events[0]
-      : offering.offering_events
-    if (event) {
-      const capacity = Array.isArray(event.capacity)
-        ? event.capacity[0]
-        : event.capacity
-      const booked = capacity?.spaces_booked ?? event.current_bookings ?? 0
-      const maxCapacity = capacity?.total_capacity ?? event.max_capacity ?? 0
-      const formattedDate = formatDate(event.event_date)
-      return `${formattedDate} • ${booked}/${maxCapacity} booked`
-    }
+  if (offering.type === 'event' && getOfferingPrimaryEvent(offering)) {
+    const bookingsLabel = getOfferingBookingsLabel(offering)
+    return bookingsLabel.endsWith('booked')
+      ? `${getOfferingDateLabel(offering)} • ${bookingsLabel}`
+      : `${getOfferingDateLabel(offering)} • ${bookingsLabel} booked`
   }
 
   // Handle physical product offerings
@@ -581,6 +768,82 @@ const getOfferingCategory = (offering) => {
   return uniqueNames.length ? uniqueNames.join(', ') : '—'
 }
 
+const getOfferingEvents = (offering) => {
+  if (!offering.offering_events) {
+    return []
+  }
+
+  return Array.isArray(offering.offering_events)
+    ? offering.offering_events.filter(Boolean)
+    : [offering.offering_events]
+}
+
+const getLocalDateString = (date = new Date()) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const getLocalTimeString = (date = new Date()) => {
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+const normalizeTimeString = (timeString) => {
+  if (!timeString) {
+    return null
+  }
+
+  return String(timeString).slice(0, 5)
+}
+
+const isEventPassed = (event) => {
+  if (!event?.event_date) {
+    return false
+  }
+
+  const eventDate = String(event.event_date).slice(0, 10)
+  const today = getLocalDateString()
+
+  if (eventDate < today) {
+    return true
+  }
+
+  if (eventDate > today) {
+    return false
+  }
+
+  const eventEndTime = normalizeTimeString(event.event_end_time || event.event_start_time)
+  return !!eventEndTime && eventEndTime <= getLocalTimeString()
+}
+
+const canArchiveOffering = (offering) => {
+  if (offering.status === 'archived' || offering.type !== 'event') {
+    return false
+  }
+
+  const events = getOfferingEvents(offering)
+  return events.length > 0 && events.every(event => isEventPassed(event))
+}
+
+const isArchivingOffering = (offeringId) => {
+  return archivingOfferingIds.value.has(offeringId)
+}
+
+const setOfferingArchiving = (offeringId, isArchiving) => {
+  const nextIds = new Set(archivingOfferingIds.value)
+
+  if (isArchiving) {
+    nextIds.add(offeringId)
+  } else {
+    nextIds.delete(offeringId)
+  }
+
+  archivingOfferingIds.value = nextIds
+}
+
 const getEventId = (offering) => {
   if (offering.type === 'event' && offering.offering_events) {
     const event = Array.isArray(offering.offering_events)
@@ -601,7 +864,45 @@ const getStatusClass = (status) => {
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
 
+const archiveOffering = async (offering) => {
+  if (!canArchiveOffering(offering) || isArchivingOffering(offering.id)) {
+    return
+  }
+
+  closeActionMenu()
+
+  if (!confirm(`Archive "${offering.title}"? It will no longer appear as a published offering.`)) {
+    return
+  }
+
+  try {
+    setOfferingArchiving(offering.id, true)
+
+    const { error } = await supabase
+      .from('offerings')
+      .update({ status: 'archived' })
+      .eq('id', offering.id)
+
+    if (error) throw error
+
+    offerings.value = offerings.value.map(item =>
+      item.id === offering.id
+        ? { ...item, status: 'archived' }
+        : item
+    )
+
+    toastStore.success(`Archived "${offering.title}"`)
+  } catch (error) {
+    console.error('Error archiving offering:', error)
+    toastStore.error('Failed to archive offering')
+  } finally {
+    setOfferingArchiving(offering.id, false)
+  }
+}
+
 const deleteOffering = async (offering) => {
+  closeActionMenu()
+
   if (!confirm(`Are you sure you want to delete "${offering.title}"?`)) {
     return
   }

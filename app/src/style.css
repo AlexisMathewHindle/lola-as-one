@@ -216,6 +216,27 @@ h6 {
   background: #f9f8f6;
 }
 
+.admin-content .overflow-x-auto {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.admin-content .overflow-x-auto > table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+}
+
+.admin-content .overflow-x-auto th,
+.admin-content .overflow-x-auto td {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-content .overflow-x-auto :is(th, td).whitespace-nowrap {
+  white-space: normal;
+}
+
 @media (min-width: 640px) {
   :where(.section-shell) {
     padding-inline: 1.5rem;

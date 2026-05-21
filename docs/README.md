@@ -1,7 +1,7 @@
 # Lola As One — CMS Documentation
 
 **Project:** Simple CMS for selling boxes and booking events
-**Last Updated:** 2026-05-19
+**Last Updated:** 2026-05-20
 **Status:** Historical epic index plus current platform planning baseline.
 
 ---
@@ -12,6 +12,21 @@
 **Status:** Current
 
 Use this as the immediate production execution epic. It scopes the events-first launch around public event discovery, event booking checkout, Stripe, webhook-created bookings, customer/admin emails, waitlists, reminders, admin operations, deployment, and go/no-go checks.
+
+### [Events Pre-Launch Checklist](./events-pre-launch-checklist.md) ⭐
+**Status:** Current
+
+Use this as the go/no-go checklist before taking events public. It consolidates data, CMS, public UX, checkout, Stripe, email, admin operations, deployment, rollback, Google Analytics, and launch smoke-test checks.
+
+### [Production Go-Live Checklist](./production-go-live-checklist.md) ⭐
+**Status:** Current
+
+Use this as the final cutover checklist for launching the new `app/` on `https://www.lotsoflovelyart.com`. It covers Netlify domain/DNS, Stripe live mode, Supabase secrets/functions, Resend/email, GA4, admin operations, URL handling, security, monitoring, rollback, and launch-day smoke tests.
+
+### [Google Analytics Readiness](./google-analytics-readiness.md) ⭐
+**Status:** Current
+
+Use this to implement and verify GA4 for the new `app/` launch. Current code search found no GA/GTM runtime wiring in `app/`, so analytics remains pending implementation and production configuration.
 
 ### [Events Data And CMS Readiness](./events-data-cms-readiness.md) ⭐
 **Status:** Current
@@ -54,11 +69,28 @@ Supporting current evidence:
 
 Use this as the fourth events launch workstream. It verifies Stripe session return URLs, webhook signature rejection, idempotency, order/item/booking/attendee persistence, capacity consistency, success-page recovery, and post-payment email side effects.
 
-Current status: sandbox-complete as of 2026-05-19. The completed `cs_test_...` proof created the expected order, order item, booking, attendee row, success-page recovery, capacity consistency, Stripe event log, and order-linked sent email logs. Capacity double-counting was found, fixed, deployed, and the affected proof event row was repaired. Email proof is green after setting `FUNCTIONS_GATEWAY_JWT` for protected function-to-function gateway auth. Replay/idempotency proof is green: duplicate Stripe event delivery and duplicate Checkout Session delivery did not create duplicate business rows, capacity changes, or email sends. Stripe remains in sandbox/test mode; sandbox proof booking cleanup/capacity reconciliation, live Stripe keys, live webhook endpoint signing secret, production app return URL, and live-mode proof are required before production launch.
+Current status: sandbox-complete and cleaned up as of 2026-05-19. The completed `cs_test_...` proof created the expected order, order item, booking, attendee row, success-page recovery, capacity consistency, Stripe event log, and order-linked sent email logs. Capacity double-counting was found, fixed, deployed, and the affected proof event row was repaired. Email proof is green after setting `FUNCTIONS_GATEWAY_JWT` for protected function-to-function gateway auth. Replay/idempotency proof is green: duplicate Stripe event delivery and duplicate Checkout Session delivery did not create duplicate business rows, capacity changes, or email sends. Sandbox proof cleanup is green: 9 proof bookings/orders were cancelled and 9 event spaces were restored with 0 capacity drift. Stripe remains in sandbox/test mode; live Stripe keys, live webhook endpoint signing secret, production app return URL, and live-mode proof are required before production launch.
 
 Supporting current evidence:
 - [Stripe Payment And Webhook Proof Evidence](./stripe-payment-webhook-proof-evidence.md)
 - [Stripe Replay And Idempotency Proof Evidence](./stripe-replay-idempotency-proof-evidence.md)
+- [Stripe Sandbox Proof Cleanup Evidence](./stripe-sandbox-proof-cleanup-evidence.md)
+
+### [Email Confirmations And Notifications Readiness](./email-confirmations-notifications-readiness.md) ⭐
+**Status:** Current, deferred
+
+Use this when the missing email variables and sender/domain configuration are available. Sandbox order-linked sent logs are proven, but production email operations, reminders, and waitlist notifications are not ready to mark green yet.
+
+### [Admin Booking Operations Readiness](./admin-booking-operations-readiness.md) ⭐
+**Status:** Current
+
+Use this as the admin operations readiness workstream for event launch. Current automated audit status is green as of 2026-05-19 after applying missing production schema and backfilling seven future attendee rows. The non-destructive staff browser proof is green across mobile and desktop/tablet viewports, and the cancellation/refund runbook is current. A short final smoke check on the actual venue device remains before the first live event.
+
+Supporting current evidence:
+- [Admin Booking Operations Readiness Evidence](./admin-booking-operations-readiness-evidence.md)
+- [Admin Booking Attendee Backfill Evidence](./admin-booking-attendee-backfill-evidence.md)
+- [Admin Booking Staff Browser Proof](./admin-booking-staff-browser-proof.md)
+- [Admin Booking Cancellation And Refund Runbook](./admin-booking-cancellation-refund-runbook.md)
 
 ### [Production Roadmap](./production-roadmap.md) ⭐
 **Status:** Current

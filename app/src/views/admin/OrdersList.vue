@@ -257,12 +257,7 @@ const fetchOrders = async () => {
 
     if (fetchError) throw fetchError
 
-    // Filter to only include orders that have at least one physical product item
-    const physicalOrders = (data || []).filter(order =>
-      order.order_items && order.order_items.some(item => item.item_type === 'product_physical')
-    )
-
-    orders.value = physicalOrders
+    orders.value = data || []
   } catch (err) {
     console.error('Error fetching orders:', err)
     error.value = 'Failed to load orders. Please try again.'

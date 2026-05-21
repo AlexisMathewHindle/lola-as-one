@@ -302,12 +302,13 @@ import WorkshopContentAdult from '../components/workshops/WorkshopContentAdult.v
 import WorkshopContentDefault from '../components/workshops/WorkshopContentDefault.vue'
 import WorkshopContentSingleSeries from '../components/workshops/WorkshopContentSingleSeries.vue'
 import {
+  getWorkshopBookingPath,
   getWorkshopAgeLabel,
   isAdultWorkshopLayout,
   isEnquiryOnlyWorkshop as usesEnquiryOnlyLayout,
-  isSingleSeriesWorkshopLayout
+  isSingleSeriesWorkshopLayout,
+  shouldUseCategoryWorkshopListing
 } from '../utils/workshopDisplay'
-import { getTermData } from '../utils/termFormatters'
 import { getTermCourseKey } from '../utils/termGroups'
 
 const route = useRoute()
@@ -376,6 +377,11 @@ const fetchWorkshop = async () => {
     }
 
     workshop.value = data
+
+    if (shouldUseCategoryWorkshopListing(data)) {
+      await router.replace(getWorkshopBookingPath(data))
+      return
+    }
 
     if (isSingleSeriesWorkshopLayout(data)) {
       await fetchSingleSeriesSessions()
@@ -465,9 +471,7 @@ const fetchSingleSeriesSessions = async () => {
 
     if (fetchError) throw fetchError
 
-    const selectedTermData = getTermData(workshop.value.offering || {})
     const selectedCourseKey = getTermCourseKey(workshop.value)
-    const hasLegacyCourseIdentifier = Boolean(workshop.value.offering?.metadata?.event_id)
 
     const sameSeriesSessions = (data || []).filter((session) => {
       if (workshop.value.category_id && session.category_id !== workshop.value.category_id) {
@@ -478,20 +482,7 @@ const fetchSingleSeriesSessions = async () => {
         return false
       }
 
-      if (getTermCourseKey(session) === selectedCourseKey) {
-        return true
-      }
-
-      if (hasLegacyCourseIdentifier) {
-        return false
-      }
-
-      const sessionTermData = getTermData(session.offering || {})
-      return (
-        sessionTermData.season === selectedTermData.season &&
-        sessionTermData.half === selectedTermData.half &&
-        String(sessionTermData.year || '') === String(selectedTermData.year || '')
-      )
+      return getTermCourseKey(session) === selectedCourseKey
     })
 
     if (sameSeriesSessions.length > 0) {
@@ -776,7 +767,7 @@ const formatTime = (timeString) => {
 }
 
 const goToWorkshop = (relatedWorkshop) => {
-  router.push(`/workshops/${relatedWorkshop.offering.slug}`)
+  router.push(getWorkshopBookingPath(relatedWorkshop))
 }
 
 const getSessionSpacesAvailable = (session) => {

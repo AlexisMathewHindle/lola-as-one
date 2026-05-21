@@ -88,3 +88,18 @@ export function isSingleSeriesWorkshopLayout(workshop) {
 export function isEnquiryOnlyWorkshop(workshop) {
   return getWorkshopLayoutKey(workshop) === 'enquiry_only'
 }
+
+export function shouldUseCategoryWorkshopListing(workshop) {
+  return Boolean(workshop?.category?.slug) &&
+    !isAdultWorkshopLayout(workshop) &&
+    !isEnquiryOnlyWorkshop(workshop)
+}
+
+export function getWorkshopBookingPath(workshop) {
+  if (shouldUseCategoryWorkshopListing(workshop)) {
+    return `/category/${workshop.category.slug}`
+  }
+
+  const offeringSlug = workshop?.offering?.slug
+  return offeringSlug ? `/workshops/${offeringSlug}` : '/workshops'
+}

@@ -115,7 +115,7 @@
 
     <!-- Main Content -->
     <div class="flex-1">
-      <main class="p-4 sm:p-6 lg:ml-64 lg:p-8 xl:ml-[17rem]">
+      <main class="admin-content p-4 sm:p-6 lg:ml-64 lg:p-8 xl:ml-[17rem]">
         <router-view />
       </main>
     </div>

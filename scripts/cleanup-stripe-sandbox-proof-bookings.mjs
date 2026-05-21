@@ -8,6 +8,7 @@ const root = process.cwd()
 const auditDate = process.env.AUDIT_DATE || new Date().toISOString().slice(0, 10)
 const evidencePath = resolve(root, 'docs/stripe-sandbox-proof-cleanup-evidence.md')
 const confirmed = process.env.CONFIRM_STRIPE_SANDBOX_CLEANUP === '1'
+const writeDryRunEvidence = process.env.WRITE_STRIPE_SANDBOX_CLEANUP_DRY_RUN_EVIDENCE === '1'
 const includeAllTestSessions = process.env.STRIPE_SANDBOX_CLEANUP_ALL_TEST_SESSIONS === '1'
 const explicitSessionIds = (process.env.STRIPE_SANDBOX_CLEANUP_SESSION_IDS || '')
   .split(',')
@@ -512,14 +513,22 @@ const results = [
     : failed('Capacity consistency before cleanup', beforeDrift.map((row) => row.offering_event_id).join(', '), 'Pre-cleanup capacity drift found.')
 ]
 
-const { failures, status } = await writeEvidence({
-  beforeOrders,
-  afterOrders,
-  beforeCapacity,
-  afterCapacity,
-  cleanupResult,
-  results
-})
+let failures = results.filter((result) => result.status === 'failed')
+let status = failures.length > 0 ? 'blocked' : 'dry-run ready'
+
+if (confirmed || writeDryRunEvidence || !existsSync(evidencePath)) {
+  const evidenceResult = await writeEvidence({
+    beforeOrders,
+    afterOrders,
+    beforeCapacity,
+    afterCapacity,
+    cleanupResult,
+    results
+  })
+
+  failures = evidenceResult.failures
+  status = evidenceResult.status
+}
 
 console.log(`Stripe sandbox proof cleanup audit complete: ${failures.length} failed; status ${status}`)
 

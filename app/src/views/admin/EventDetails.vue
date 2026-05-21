@@ -150,7 +150,14 @@
                   <div class="text-xs text-gray-500">{{ booking.customer_email }}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">#{{ booking.order.order_number }}</div>
+                  <router-link
+                    v-if="booking.order?.id"
+                    :to="`/admin/orders/${booking.order.id}`"
+                    class="text-sm text-primary-600 hover:text-primary-800 font-medium"
+                  >
+                    #{{ booking.order.order_number }}
+                  </router-link>
+                  <div v-else class="text-sm text-gray-900">N/A</div>
                 </td>
                 <td class="px-6 py-4">
                   <div class="text-sm text-gray-900 mb-1">
@@ -277,7 +284,7 @@ const fetchBookings = async () => {
       .from('bookings')
       .select(`
         *,
-        order:orders(order_number),
+        order:orders(id, order_number, status),
         booking_attendees(*)
       `)
       .eq('offering_event_id', eventId)
@@ -346,4 +353,3 @@ onMounted(async () => {
   await fetchBookings()
 })
 </script>
-

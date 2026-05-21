@@ -246,17 +246,26 @@ function extractLegacyEventSuffix(
     return null;
   }
 
-  return normalizedEventId.replace(/^[a-z]{2}\d{2}_/, "") || normalizedEventId;
+  return (
+    normalizedEventId.replace(/^[a-z]{2}\d{2}[-_]/, "") || normalizedEventId
+  );
 }
 
 function buildTermCourseKey(event: SupabaseEvent): string {
-  const legacyEventSuffix = extractLegacyEventSuffix(
-    event.offering.metadata?.event_id
+  const metadata = event.offering.metadata || {};
+  const categoryKey = toBundleKeyPart(
+    event.category?.id || event.category_id || event.offering.id || "term"
   );
+  const legacyEventSuffix = extractLegacyEventSuffix(metadata.event_id);
+  const explicitSeriesKey =
+    metadata.term_course_key ||
+    metadata.course_key ||
+    metadata.series_key ||
+    metadata.event_series_id;
 
   return [
-    toBundleKeyPart(event.category?.id || event.category_id || "term"),
-    toBundleKeyPart(legacyEventSuffix || event.offering.title),
+    categoryKey,
+    toBundleKeyPart(legacyEventSuffix || explicitSeriesKey || "term-series"),
   ].join("__");
 }
 
@@ -307,31 +316,6 @@ function groupTransformedTermEvents(events: any[]): Record<string, any[]> {
     if (!event.term_season || !event.term_half || !groupKey) {
       return;
     }
-
-    if (!termGroups[groupKey]) {
-      termGroups[groupKey] = [];
-    }
-
-    termGroups[groupKey].push(event);
-  });
-
-  return applyBundleStock(termGroups);
-}
-
-function groupCategoryTermEvents(events: any[]): Record<string, any[]> {
-  const termGroups: Record<string, any[]> = {};
-
-  events.forEach((event) => {
-    if (!event.term_season || !event.term_half) {
-      return;
-    }
-
-    const groupKey = [
-      toBundleKeyPart(event.category_id || event.category || "term"),
-      toBundleKeyPart(event.term_season),
-      toBundleKeyPart(event.term_half),
-      toBundleKeyPart(event.term_year || "unknown"),
-    ].join("__");
 
     if (!termGroups[groupKey]) {
       termGroups[groupKey] = [];
@@ -1090,7 +1074,7 @@ export async function fetchEventsByCategoryGroupedByTerm(
     }
 
     return {
-      termGroups: groupCategoryTermEvents(termEvents),
+      termGroups: groupTransformedTermEvents(termEvents),
       singleEvents,
     };
   } catch (error) {

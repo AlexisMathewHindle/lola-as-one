@@ -82,7 +82,7 @@
           </div>
 
           <div v-else class="overflow-x-auto">
-            <table class="hidden min-w-full divide-y divide-gray-200 lg:table">
+            <table class="hidden min-w-full divide-y divide-gray-200 xl:table">
               <thead class="bg-gray-50">
                 <tr>
                   <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
@@ -166,7 +166,7 @@
               </tbody>
             </table>
 
-            <div class="divide-y divide-gray-200 lg:hidden">
+            <div class="divide-y divide-gray-200 xl:hidden">
               <article
                 v-for="coupon in filteredCoupons"
                 :key="coupon.id"

@@ -33,21 +33,22 @@ export function extractLegacyEventSuffix(eventId) {
     return null
   }
 
-  return normalizedEventId.replace(/^[a-z]{2}\d{2}_/, '') || normalizedEventId
+  return normalizedEventId.replace(/^[a-z]{2}\d{2}[-_]/, '') || normalizedEventId
 }
 
 export function getTermCourseKey(event) {
-  const legacyEventId =
-    event?.offering?.metadata?.event_id ||
-    event?.offering?.slug ||
-    event?.offering?.id ||
-    event?.offering_id ||
-    event?.id
-  const legacyEventSuffix = extractLegacyEventSuffix(legacyEventId)
+  const metadata = event?.offering?.metadata || {}
+  const categoryKey = toTermKeyPart(event?.category?.id || event?.category_id || 'term')
+  const legacyEventSuffix = extractLegacyEventSuffix(metadata.event_id)
+  const explicitSeriesKey =
+    metadata.term_course_key ||
+    metadata.course_key ||
+    metadata.series_key ||
+    metadata.event_series_id
 
   return [
-    toTermKeyPart(event?.category?.id || event?.category_id || 'term'),
-    toTermKeyPart(legacyEventSuffix || event?.offering?.title || 'workshop')
+    categoryKey,
+    toTermKeyPart(legacyEventSuffix || explicitSeriesKey || 'term-series')
   ].join('__')
 }
 

@@ -9,6 +9,9 @@ docs/*
 !docs/events-sql-rpc-verification.md
 !docs/admin-ui-edit-proof.md
 !docs/events-production-launch-epic.md
+!docs/events-pre-launch-checklist.md
+!docs/production-go-live-checklist.md
+!docs/google-analytics-readiness.md
 !docs/public-discovery-event-detail-flow.md
 !docs/public-discovery-event-detail-flow-evidence.md
 !docs/public-discovery-responsive-screenshots.md
@@ -16,9 +19,17 @@ docs/*
 !docs/public-discovery-legacy-route-evidence.md
 !docs/event-cart-checkout-readiness.md
 !docs/event-cart-checkout-readiness-evidence.md
+!docs/email-confirmations-notifications-readiness.md
+!docs/admin-booking-operations-readiness.md
+!docs/admin-booking-operations-readiness-evidence.md
+!docs/admin-booking-attendee-backfill-evidence.md
+!docs/admin-booking-staff-browser-proof.md
+!docs/admin-booking-cancellation-refund-runbook.md
 !docs/stripe-wallet-checkout-readiness.md
 !docs/stripe-payment-webhook-proof.md
 !docs/stripe-payment-webhook-proof-evidence.md
+!docs/stripe-replay-idempotency-proof-evidence.md
+!docs/stripe-sandbox-proof-cleanup-evidence.md
 !docs/evidence/
 !docs/evidence/public-discovery-screenshots/
 !docs/evidence/public-discovery-screenshots/*.png

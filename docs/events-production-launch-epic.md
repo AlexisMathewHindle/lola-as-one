@@ -1,8 +1,8 @@
 # Events Production Launch Epic
 
 Status: current
-Last updated: 2026-05-19
-Production phase: events and workshops first
+Last updated: 2026-05-20
+Production phase: events and workshops first on `https://www.lotsoflovelyart.com`
 
 ## Purpose
 
@@ -12,9 +12,13 @@ The launch goal is simple: a customer can find an event in `app/`, book the corr
 
 This epic should be used as the first execution slice of the wider [Production Roadmap](./production-roadmap.md).
 
+Final launch sign-off should use the [Events Pre-Launch Checklist](./events-pre-launch-checklist.md) and [Production Go-Live Checklist](./production-go-live-checklist.md). Google Analytics setup and verification is tracked in [Google Analytics Readiness](./google-analytics-readiness.md).
+
 ## Confirmed Direction
 
 - `app/` is the production launch application.
+- The customer-facing production domain is `https://www.lotsoflovelyart.com`.
+- The app is currently hosted on the Netlify `lola-as-one` site and needs domain/DNS/HTTPS cutover before launch.
 - `lola-workshops/` is not a production dependency after launch.
 - Supabase is the final source of truth for events, bookings, customers, orders, capacity, and CMS data.
 - Firebase is not required for the events production launch.
@@ -22,6 +26,7 @@ This epic should be used as the first execution slice of the wider [Production R
 - Event launch can remain guest-checkout first. Magic-link customer access can follow unless it becomes required for booking recovery or post-purchase self-service.
 - About, Contact, FAQs, policy pages, and launch-critical event content should be CMS-driven where admin control is needed.
 - Non-event products and subscriptions remain part of the wider launch roadmap, but they are not blockers for the first events production release unless shared checkout, Stripe, email, or data model code affects event bookings.
+- Google Analytics should be implemented in the new `app/` before launch or explicitly deferred with owner sign-off. Current source search found no GA/GTM runtime wiring in `app/`.
 
 ## Shipped Foundations
 
@@ -191,7 +196,7 @@ Acceptance criteria:
 Risk: critical
 Depends on: Event Cart And Checkout
 Execution doc: [Stripe Payment And Webhook Proof](./stripe-payment-webhook-proof.md)
-Current status: sandbox-complete as of 2026-05-19. Hardened `create-checkout-session`, `stripe-webhook`, and `send-email` are deployed to Supabase project `hubbjhtjyubzczxengyo`. The completed `cs_test_...` proof created the order, order item, booking, attendee row, success-page recovery, capacity consistency, Stripe event log, and order-linked sent logs for `order-confirmation`, `event-booking-confirmation`, and `new-order-admin`. Earlier blockers were fixed: the webhook no longer double-counts capacity alongside the booking trigger, and protected `send-email` gateway auth now uses `FUNCTIONS_GATEWAY_JWT`, a neutral secret containing the anon JWT. Replay/idempotency proof passed on 2026-05-19: duplicate Stripe event delivery and duplicate Checkout Session delivery did not create duplicate business rows, capacity changes, or email sends. Stripe is still in sandbox/test mode; before production go-live this must be repeated with live Stripe keys, live webhook endpoint signing secret, production app return URL, and a documented `cs_live_...` booking proof. Next focus is sandbox proof booking cleanup/capacity reconciliation so launch event capacities are not affected by test bookings.
+Current status: sandbox-complete and cleaned up as of 2026-05-19. Hardened `create-checkout-session`, `stripe-webhook`, and `send-email` are deployed to Supabase project `hubbjhtjyubzczxengyo`. The completed `cs_test_...` proof created the order, order item, booking, attendee row, success-page recovery, capacity consistency, Stripe event log, and order-linked sent logs for `order-confirmation`, `event-booking-confirmation`, and `new-order-admin`. Earlier blockers were fixed: the webhook no longer double-counts capacity alongside the booking trigger, and protected `send-email` gateway auth now uses `FUNCTIONS_GATEWAY_JWT`, a neutral secret containing the anon JWT. Replay/idempotency proof passed on 2026-05-19: duplicate Stripe event delivery and duplicate Checkout Session delivery did not create duplicate business rows, capacity changes, or email sends. Sandbox proof cleanup passed on 2026-05-19: 9 proof bookings/orders were marked cancelled and 9 event spaces were restored across 3 event capacity rows with 0 capacity drift. Stripe is still in sandbox/test mode; before production go-live this must be repeated with live Stripe keys, live webhook endpoint signing secret, production app return URL, and a documented `cs_live_...` booking proof. Email Confirmations And Notifications operational readiness is deferred until missing email variables and sender/domain configuration are available. Admin Booking Operations automated audit and staff browser proof are green; the cancellation/refund runbook is current. A short venue-device smoke check remains before the first live event.
 
 Scope:
 
@@ -222,6 +227,8 @@ Acceptance criteria:
 
 Risk: critical
 Depends on: Stripe Payment And Webhook Booking Creation
+Execution doc: [Email Confirmations And Notifications Readiness](./email-confirmations-notifications-readiness.md)
+Current status: deferred. Sandbox order-linked sent email logs are proven, but production operational readiness is blocked until the missing email variables and sender/domain configuration are available.
 
 Scope:
 
@@ -245,6 +252,8 @@ Acceptance criteria:
 
 Risk: critical
 Depends on: Stripe Payment And Webhook Booking Creation
+Execution doc: [Admin Booking Operations Readiness](./admin-booking-operations-readiness.md)
+Current status: automated audit and non-destructive staff browser proof are green as of 2026-05-19. Source/build checks are green after amending admin Orders to include event orders and adding order links from booking/event detail screens. The missing production check-in/allergy schema was applied, seven future confirmed bookings under `ORD-20260411-000810` were backfilled with attendee rows, and the production audit now has 0 P0/P1 failures. The staff browser proof covers booking search, booking detail, cancellation modal open/dismiss, event detail, check-in screen, order search, order detail, and Stripe reconciliation link across mobile and desktop/tablet viewports. Future capacity consistency is green; historical capacity drift is documented as P2 cleanup. The cancellation/refund runbook is current; refunds remain manual in Stripe until automation is built. A short smoke check on the actual venue device remains before the first live event.
 
 Scope:
 
@@ -332,6 +341,7 @@ These should be completed before announcing the event launch unless explicitly a
 - Venue staff check-in device QA.
 - Customer support runbook for failed payment, missing email, cancellation, refund, duplicate booking, and capacity mismatch.
 - Production monitoring checklist for Stripe, Supabase functions, Resend, and Netlify deploys.
+- Google Analytics setup or explicit deferral with owner sign-off.
 
 ## P2 After Events Launch
 
@@ -363,6 +373,7 @@ These can follow after events are stable:
 | Check-in | Staff can mark attendees checked in and see updated state. |
 | Waitlist | Customer can join and admin can view the waitlist entry. |
 | Legacy redirect | Old event/workshop URL lands on the correct `app/` route or useful fallback. |
+| Google Analytics | GA4 page view and booking funnel events appear in Realtime or DebugView. |
 
 ## Go/No-Go Checklist
 
@@ -373,6 +384,7 @@ These can follow after events are stable:
 | Stripe | Live-mode checkout and webhook booking creation are verified. |
 | Email | Customer and admin emails are delivered and render correctly. |
 | Admin | Booking list, booking detail, event detail, check-in, and waitlist screens are usable by staff. |
+| Analytics | Google Analytics is implemented and verified, or explicitly deferred with owner sign-off. |
 | Security | RLS and admin role access are checked for event, booking, attendee, order, and capacity tables. |
 | Deployment | Netlify, Supabase, Stripe, Resend, storage, and redirects are configured for production. |
 | Operations | Support runbook, rollback path, and monitoring checks exist. |
@@ -387,5 +399,6 @@ This epic is done when:
 - Admin receives the booking notification.
 - Staff can find and operate the booking in admin.
 - Sold-out and waitlist behavior is verified.
+- Google Analytics is verified or explicitly deferred.
 - Production secrets, redirects, RLS, and rollback steps are documented.
 - Any deferred event reminders, waitlist notifications, customer accounts, refunds, or subscriptions have explicit owner sign-off and are moved to the wider production roadmap.

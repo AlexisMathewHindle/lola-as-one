@@ -320,7 +320,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../lib/supabase'
-import { getWorkshopAgeLabel, isAdultWorkshopLayout } from '../../utils/workshopDisplay'
+import { getWorkshopAgeLabel, getWorkshopBookingPath, isAdultWorkshopLayout } from '../../utils/workshopDisplay'
 
 const props = defineProps({
   showViewToggle: {
@@ -755,7 +755,7 @@ const goToToday = () => {
 
 const goToWorkshop = (workshop) => {
   if (isPastEvent(workshop)) return
-  router.push(`/workshops/${workshop.offering.slug}`)
+  router.push(getWorkshopBookingPath(workshop))
 }
 
 watch([currentDate, viewMode], () => {
