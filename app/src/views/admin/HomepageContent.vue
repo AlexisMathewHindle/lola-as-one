@@ -18,7 +18,7 @@
           class="mr-2 h-4 w-4"
           :class="{ 'animate-spin': saving }"
         />
-        {{ saving ? 'Saving...' : 'Save Homepage' }}
+        {{ saving ? 'Saving...' : 'Save' }}
       </button>
     </div>
 

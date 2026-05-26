@@ -29,6 +29,15 @@ export const INFO_PAGE_DEFAULTS = {
       <p><a href="/workshops">Explore workshops</a> or <a href="/boxes">shop art boxes</a>.</p>
     `.trim()
   },
+  contact: {
+    title: 'Contact Lola As One',
+    summary: "Have questions about workshops, art boxes, bookings, or creative projects? We'd love to hear from you.",
+    sectionTitle: 'Contact Information',
+    bodyHtml: `
+      <p>We're here to help. Send us a message using the form, email the studio directly, or use the details below to find us.</p>
+      <p>For booking changes, please include the workshop name, date, and the booking email address so the team can help quickly.</p>
+    `.trim()
+  },
   'workshop-faqs': {
     title: 'Workshop FAQs',
     summary: 'Useful details about attending, changing, and preparing for LoLA art workshops.',

@@ -59,13 +59,7 @@
                   </p>
                 </div>
 
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div class="rounded-[1.5rem] border border-stone-200 bg-white px-5 py-4">
-                    <div class="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Price</div>
-                    <div class="mt-2 text-3xl font-semibold text-stone-900">{{ priceRangeLabel }}</div>
-                    <div class="mt-1 text-sm text-stone-500">session prices</div>
-                  </div>
-
+                <div class="max-w-md">
                   <div class="rounded-[1.5rem] border border-stone-200 bg-white px-5 py-4">
                     <div class="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Location</div>
                     <div class="mt-2 text-base font-semibold text-stone-900">{{ heroLocationName }}</div>
@@ -227,29 +221,6 @@ const quantityByEventId = computed(() => {
 
     return quantities
   }, {})
-})
-
-const priceRangeLabel = computed(() => {
-  if (workshops.value.length === 0) {
-    return '£0'
-  }
-
-  const prices = workshops.value
-    .map((workshop) => Number(workshop.price_gbp || 0))
-    .filter((price) => Number.isFinite(price))
-
-  if (prices.length === 0) {
-    return 'TBC'
-  }
-
-  const minimum = Math.min(...prices)
-  const maximum = Math.max(...prices)
-
-  if (minimum === maximum) {
-    return `£${minimum.toFixed(0)}`
-  }
-
-  return `£${minimum.toFixed(0)}-£${maximum.toFixed(0)}`
 })
 
 const uniqueLocationNames = computed(() => {

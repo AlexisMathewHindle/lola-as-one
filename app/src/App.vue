@@ -7,15 +7,16 @@ import Toast from './components/Toast.vue'
 import WorkshopTopBanner from './components/WorkshopTopBanner.vue'
 
 const route = useRoute()
-const showWorkshopTopBanner = computed(() => route.path !== '/' && !route.path.startsWith('/admin'))
+const isAdminRoute = computed(() => route.path === '/admin' || route.path.startsWith('/admin/'))
+const showWorkshopTopBanner = computed(() => route.path !== '/' && !isAdminRoute.value)
 </script>
 
 <template>
   <div id="app">
     <WorkshopTopBanner v-if="showWorkshopTopBanner" />
-    <Navigation />
+    <Navigation v-if="!isAdminRoute" />
     <router-view />
-    <Footer />
+    <Footer v-if="!isAdminRoute" />
     <Toast />
   </div>
 </template>

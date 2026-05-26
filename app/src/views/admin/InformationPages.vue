@@ -4,7 +4,7 @@
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Information Pages</h1>
         <p class="mt-1 text-sm text-gray-600">
-          Edit the CMS-backed information pages, including About, workshop FAQs, privacy, and terms.
+          Edit the CMS-backed information pages, including About, Contact, workshop FAQs, privacy, and terms.
         </p>
       </div>
 
@@ -189,6 +189,7 @@ const toastStore = useToastStore()
 
 const pageOptions = [
   { key: 'about', label: 'About', path: '/about' },
+  { key: 'contact', label: 'Contact', path: '/contact' },
   { key: 'workshop-faqs', label: 'Workshop FAQs', path: '/workshop-faqs' },
   { key: 'privacy-policy', label: 'Privacy Policy', path: '/privacy-policy' },
   { key: 'terms-and-conditions', label: 'Terms and Conditions', path: '/terms-and-conditions' }
