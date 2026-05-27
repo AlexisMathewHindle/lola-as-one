@@ -77,7 +77,29 @@ export const INFO_PAGE_DEFAULTS = {
   }
 }
 
+export const INFO_PAGE_MEDIA = {
+  about: {
+    heroImage: {
+      src: '/img/images/about_page_01.png',
+      alt: 'Lola founders outside the creative space',
+      position: 'center'
+    },
+    featureImage: {
+      src: '/img/images/about_02.png',
+      alt: 'Illustration of the Lola shopfront',
+      position: 'center'
+    },
+    closingImage: {
+      src: '/img/images/about_page_02.png',
+      alt: 'Painted paper houses and art materials on a workshop table',
+      position: 'center'
+    }
+  }
+}
+
 export const infoPageDefaultsFor = (pageKey) => {
   if (pageKey === 'faqs') return INFO_PAGE_DEFAULTS['workshop-faqs']
   return INFO_PAGE_DEFAULTS[pageKey] || null
 }
+
+export const infoPageMediaFor = (pageKey) => INFO_PAGE_MEDIA[pageKey] || null

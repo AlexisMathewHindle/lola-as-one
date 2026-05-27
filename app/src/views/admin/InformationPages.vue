@@ -117,6 +117,66 @@
             />
           </div>
 
+          <section
+            v-if="supportsPageImages"
+            class="space-y-5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-4"
+          >
+            <div>
+              <h3 class="text-base font-semibold text-gray-900">About Page Images</h3>
+              <p class="mt-1 text-sm text-gray-600">
+                These images are saved with the About page content and can be changed without a code deploy.
+              </p>
+            </div>
+
+            <div class="space-y-6">
+              <article
+                v-for="imageField in imageFields"
+                :key="imageField.key"
+                class="rounded-lg border border-gray-200 bg-white p-4"
+              >
+                <div class="mb-4">
+                  <h4 class="text-sm font-semibold text-gray-900">{{ imageField.label }}</h4>
+                  <p class="mt-1 text-xs text-gray-500">{{ imageField.description }}</p>
+                </div>
+
+                <div class="grid gap-5 lg:grid-cols-[1fr_1fr]">
+                  <ImageUploader
+                    v-model="form.images[imageField.key].src"
+                    bucket="site-images"
+                    :alt="form.images[imageField.key].alt || imageField.label"
+                  />
+
+                  <div class="space-y-4">
+                    <div>
+                      <label class="mb-2 block text-sm font-medium text-gray-700">Alt Text</label>
+                      <input
+                        v-model="form.images[imageField.key].alt"
+                        type="text"
+                        class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                    </div>
+
+                    <div>
+                      <label class="mb-2 block text-sm font-medium text-gray-700">Image Position</label>
+                      <select
+                        v-model="form.images[imageField.key].position"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option
+                          v-for="positionOption in imagePositionOptions"
+                          :key="positionOption.value"
+                          :value="positionOption.value"
+                        >
+                          {{ positionOption.label }}
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
           <div class="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
             <label class="flex items-center gap-3 text-sm text-gray-700">
               <input
@@ -175,9 +235,10 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import ImageUploader from '../../components/shared/ImageUploader.vue'
 import RichTextEditor from '../../components/shared/RichTextEditor.vue'
-import { infoPageDefaultsFor } from '../../constants/infoPageDefaults'
+import { infoPageDefaultsFor, infoPageMediaFor } from '../../constants/infoPageDefaults'
 import {
   getAdminPageWithSectionsByKey,
   saveSitePage,
@@ -201,6 +262,12 @@ const saving = ref(false)
 const error = ref(null)
 const currentPage = ref(null)
 
+const emptyImage = () => ({
+  src: '',
+  alt: '',
+  position: 'center'
+})
+
 const form = reactive({
   pageId: '',
   path: '',
@@ -211,13 +278,66 @@ const form = reactive({
   showInNavigation: true,
   sectionKey: '',
   sectionTitle: '',
-  bodyHtml: ''
+  bodyHtml: '',
+  images: {
+    heroImage: emptyImage(),
+    featureImage: emptyImage(),
+    closingImage: emptyImage()
+  }
 })
 
+const imageFields = [
+  {
+    key: 'heroImage',
+    configKey: 'hero_image',
+    label: 'Top Banner Image',
+    description: 'Full-width image shown at the top of the About page.'
+  },
+  {
+    key: 'featureImage',
+    configKey: 'feature_image',
+    label: 'Card Image',
+    description: 'Image shown in the left side of the legacy About content card.'
+  },
+  {
+    key: 'closingImage',
+    configKey: 'closing_image',
+    label: 'Bottom Banner Image',
+    description: 'Full-width image shown before the footer.'
+  }
+]
+
+const imagePositionOptions = [
+  { value: 'center', label: 'Center' },
+  { value: 'top', label: 'Top' },
+  { value: 'bottom', label: 'Bottom' },
+  { value: 'left', label: 'Left' },
+  { value: 'right', label: 'Right' },
+  { value: 'center top', label: 'Center top' },
+  { value: 'center bottom', label: 'Center bottom' }
+]
+
+const supportsPageImages = computed(() => selectedPageKey.value === 'about')
 const sectionKeyForPage = (pageKey) => `${pageKey.replace(/-/g, '_')}_content`
+
+const imageForForm = (image) => ({
+  src: image?.src || '',
+  alt: image?.alt || '',
+  position: image?.position || 'center'
+})
+
+const imageConfigForSave = (image) => ({
+  src: image.src?.trim() || '',
+  alt: image.alt?.trim() || '',
+  position: image.position || 'center'
+})
+
+const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value || {}, key)
 
 const resetForm = (page, section) => {
   const defaults = infoPageDefaultsFor(selectedPageKey.value)
+  const mediaDefaults = infoPageMediaFor(selectedPageKey.value) || {}
+  const config = section?.config_json || {}
 
   form.pageId = page?.id || ''
   form.path = page?.path || ''
@@ -229,6 +349,12 @@ const resetForm = (page, section) => {
   form.sectionKey = section?.section_key || sectionKeyForPage(selectedPageKey.value)
   form.sectionTitle = section?.config_json?.title || defaults?.sectionTitle || page?.title || ''
   form.bodyHtml = section?.config_json?.body_html || defaults?.bodyHtml || ''
+  imageFields.forEach(({ key, configKey }) => {
+    Object.assign(
+      form.images[key],
+      imageForForm(hasOwn(config, configKey) ? config[configKey] : mediaDefaults[key])
+    )
+  })
 }
 
 const loadPage = async () => {
@@ -300,7 +426,14 @@ const handleSave = async () => {
         is_enabled: true,
         config_json: {
           title: form.sectionTitle.trim(),
-          body_html: form.bodyHtml
+          body_html: form.bodyHtml,
+          ...(supportsPageImages.value
+            ? {
+                hero_image: imageConfigForSave(form.images.heroImage),
+                feature_image: imageConfigForSave(form.images.featureImage),
+                closing_image: imageConfigForSave(form.images.closingImage)
+              }
+            : {})
         }
       }
     ])
