@@ -104,7 +104,7 @@ These can follow after the events booking path is stable.
 | Check | Required evidence | Status |
 | --- | --- | --- |
 | `RESEND_API_KEY` | Production secret exists and works. | Deferred |
-| Sender domain | Production from address replaces `onboarding@resend.dev`. | Deferred |
+| Sender domain | Verified Resend sender domain and `EMAIL_FROM` configured. | Deferred |
 | Admin recipients | `ADMIN_EMAILS` confirmed. | Deferred |
 | Customer receipt | `order-confirmation` delivered and rendered. | Sandbox proven; production deferred |
 | Event confirmation | `event-booking-confirmation` delivered and rendered. | Sandbox proven; production deferred |

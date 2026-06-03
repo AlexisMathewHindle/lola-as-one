@@ -30,6 +30,7 @@ docs/*
 !docs/stripe-payment-webhook-proof-evidence.md
 !docs/stripe-replay-idempotency-proof-evidence.md
 !docs/stripe-sandbox-proof-cleanup-evidence.md
+!docs/environment-and-cutover-process.md
 !docs/evidence/
 !docs/evidence/public-discovery-screenshots/
 !docs/evidence/public-discovery-screenshots/*.png

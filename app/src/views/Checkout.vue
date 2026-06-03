@@ -446,27 +446,11 @@
               <div
                 v-for="item in cartStore.items"
                 :key="getItemKey(item)"
-                class="flex gap-4"
+                class="flex items-start justify-between gap-4 border-b border-gray-100 pb-4 last:border-b-0 last:pb-0"
               >
-                <!-- Item Image -->
-                <div class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                  <img
-                    v-if="item.image"
-                    :src="item.image"
-                    :alt="item.title"
-                    class="w-full h-full object-cover"
-                  />
-                  <div v-else class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-400 to-primary-600">
-                    <font-awesome-icon
-                      :icon="item.type === 'event' ? 'calendar' : 'box'"
-                      class="w-6 h-6 text-white"
-                    />
-                  </div>
-                </div>
-
                 <!-- Item Details -->
                 <div class="flex-1 min-w-0">
-                  <h3 class="text-sm font-semibold text-gray-900 truncate">
+                  <h3 class="text-sm font-semibold text-gray-900 leading-snug">
                     {{ item.title }}
                   </h3>
                   <p class="text-xs text-gray-500 mt-1">

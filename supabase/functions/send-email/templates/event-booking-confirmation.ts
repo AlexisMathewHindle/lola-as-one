@@ -21,9 +21,11 @@ interface EventBookingData {
   parkingInfo?: string
   cancellationPolicy?: string
   attendees?: Attendee[]
+  supportEmail?: string
 }
 
 export default function eventBookingConfirmation(data: EventBookingData) {
+  const supportEmail = data.supportEmail || 'hello@lotsoflovelyart.com'
   const html = baseLayout(`
     <h2>Your workshop is confirmed</h2>
     
@@ -100,7 +102,7 @@ export default function eventBookingConfirmation(data: EventBookingData) {
     
     <p>We'll send you a reminder email 7 days before the workshop, and another one 24 hours before.</p>
     
-    <p>If you have any questions, please contact us at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a></p>
+    <p>If you have any questions, please contact us at <a href="mailto:${supportEmail}">${supportEmail}</a></p>
     
     <p>Looking forward to creating with you!</p>
     
@@ -149,7 +151,7 @@ ${data.cancellationPolicy}
 
 We'll send you a reminder email 7 days before the workshop, and another one 24 hours before.
 
-If you have any questions, please contact us at hello@lolaasone.com
+If you have any questions, please contact us at ${supportEmail}
 
 Looking forward to creating with you!
 

@@ -15,12 +15,20 @@ Set the following environment variables in your Supabase project:
 ```bash
 # In Supabase Dashboard > Project Settings > Edge Functions
 RESEND_API_KEY=re_xxxxxxxxxxxxx
+EMAIL_FROM="Lola As One <bookings@lotsoflovelyart.com>"
+EMAIL_REPLY_TO=hello@lotsoflovelyart.com
+SUPPORT_EMAIL=hello@lotsoflovelyart.com
+ADMIN_EMAILS=hello@lotsoflovelyart.com
 ```
 
 Or use the Supabase CLI:
 
 ```bash
 supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxxx
+supabase secrets set EMAIL_FROM="Lola As One <bookings@lotsoflovelyart.com>"
+supabase secrets set EMAIL_REPLY_TO=hello@lotsoflovelyart.com
+supabase secrets set SUPPORT_EMAIL=hello@lotsoflovelyart.com
+supabase secrets set ADMIN_EMAILS=hello@lotsoflovelyart.com
 ```
 
 ### 3. Deploy the Function
@@ -132,8 +140,8 @@ It records `bookingId`, `eventId`, and `automation: event-lifecycle` in `email_l
 Recommended secrets:
 
 ```bash
-SITE_URL=https://lolaasone.com
-EVENT_FEEDBACK_URL=https://lolaasone.com/contact
+SITE_URL=https://www.lotsoflovelyart.com
+EVENT_FEEDBACK_URL=https://www.lotsoflovelyart.com/contact
 EVENT_EMAIL_TIME_ZONE=Europe/London
 EVENT_EMAIL_CRON_SECRET=your-strong-secret
 ADMIN_EMAILS=hello@lotsoflovelyart.com
@@ -169,13 +177,14 @@ curl -i --location --request POST 'http://localhost:54321/functions/v1/send-emai
 
 ## Resend Domain Setup
 
-To send emails from your custom domain (e.g., hello@lolaasone.com):
+To send emails to real customer/admin recipients, Resend must be out of testing-only mode:
 
 1. Go to Resend Dashboard > Domains
-2. Add your domain
+2. Add the approved sending domain, for example `lotsoflovelyart.com`
 3. Add the DNS records to your domain provider
 4. Verify the domain
-5. Update the `from` field in `index.ts` to use your domain
+5. Set `EMAIL_FROM` to an address on the verified domain, for example `Lola As One <bookings@lotsoflovelyart.com>`
+6. Redeploy `send-email` after setting the production secrets
 
 ## Error Handling
 

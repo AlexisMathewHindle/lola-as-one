@@ -91,13 +91,34 @@ serve(async (req) => {
       throw new Error('Missing required fields: template, to, or data')
     }
 
+    const supportEmail = Deno.env.get('SUPPORT_EMAIL') || Deno.env.get('EMAIL_REPLY_TO') || 'hello@lotsoflovelyart.com'
+    const siteUrl = Deno.env.get('SITE_URL') || Deno.env.get('APP_URL') || 'https://www.lotsoflovelyart.com'
+    const templateData = {
+      supportEmail,
+      siteUrl,
+      ...data,
+    }
+
     // Get email content based on template
     console.log('📧 Getting email content for template:', template)
-    const emailContent = await getEmailContent(template, data)
+    const emailContent = await getEmailContent(template, templateData)
     console.log('📧 Email content generated:', { subject: emailContent.subject, hasHtml: !!emailContent.html })
 
     // Send email via Resend
     console.log('📧 Sending email via Resend to:', to)
+    const fromAddress = Deno.env.get('EMAIL_FROM') || 'Lola As One <onboarding@resend.dev>'
+    const replyToAddress = Deno.env.get('EMAIL_REPLY_TO')?.trim()
+    const resendPayload: Record<string, any> = {
+      from: fromAddress,
+      to: [to],
+      subject: emailContent.subject,
+      html: emailContent.html,
+      text: emailContent.text,
+    }
+
+    if (replyToAddress) {
+      resendPayload.reply_to = replyToAddress
+    }
 
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -105,13 +126,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: 'Lola As One <onboarding@resend.dev>',
-        to: [to],
-        subject: emailContent.subject,
-        html: emailContent.html,
-        text: emailContent.text,
-      }),
+      body: JSON.stringify(resendPayload),
     })
 
     console.log('📧 Resend API response status:', response.status)

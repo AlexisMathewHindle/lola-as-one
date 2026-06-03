@@ -190,14 +190,14 @@ Additional registered templates:
 
 3. **Check function logs** for error messages
 
-### Domain Not Verified Error
+### Domain Not Verified Or Testing-Only Error
 
-If you see "domain is not verified" error, the function is using `hello@lolaasone.com`. 
+If Resend returns a domain verification or testing-only error, verify the sending domain and set the production sender secrets:
 
-The code has been updated to use `onboarding@resend.dev` for testing. Check:
-```typescript
-// supabase/functions/send-email/index.ts
-from: 'Lola As One <onboarding@resend.dev>'
+```bash
+supabase secrets set EMAIL_FROM="Lola As One <bookings@lotsoflovelyart.com>"
+supabase secrets set EMAIL_REPLY_TO=hello@lotsoflovelyart.com
+supabase secrets set SUPPORT_EMAIL=hello@lotsoflovelyart.com
 ```
 
 ### Invalid JWT Error
@@ -210,7 +210,7 @@ AUTH_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiw
 ## Next Steps
 
 1. ✅ Test all email templates locally
-2. 🔄 Verify domain on Resend (optional)
+2. 🔄 Verify sending domain on Resend
 3. 🔄 Deploy to production: `supabase functions deploy send-email`
-4. 🔄 Set production secrets: `supabase secrets set RESEND_API_KEY=your_key`
+4. 🔄 Set production secrets: `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO`, `SUPPORT_EMAIL`, and `ADMIN_EMAILS`
 5. 🔄 Integrate email triggers in application code

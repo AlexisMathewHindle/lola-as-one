@@ -25,26 +25,35 @@ This guide will walk you through setting up Resend for the Lola As One email not
 1. Go to your Supabase project dashboard
 2. Navigate to **Project Settings** > **Edge Functions**
 3. Scroll to **Secrets**
-4. Add a new secret:
+4. Add these secrets:
    - Name: `RESEND_API_KEY`
    - Value: Your Resend API key (e.g., `re_xxxxxxxxxxxxx`)
+   - Name: `EMAIL_FROM`
+   - Value: `Lola As One <bookings@lotsoflovelyart.com>`
+   - Name: `EMAIL_REPLY_TO`
+   - Value: `hello@lotsoflovelyart.com`
+   - Name: `SUPPORT_EMAIL`
+   - Value: `hello@lotsoflovelyart.com`
 5. Click **Save**
 
 ### Option B: Using Supabase CLI
 
 ```bash
 supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxxx
+supabase secrets set EMAIL_FROM="Lola As One <bookings@lotsoflovelyart.com>"
+supabase secrets set EMAIL_REPLY_TO=hello@lotsoflovelyart.com
+supabase secrets set SUPPORT_EMAIL=hello@lotsoflovelyart.com
 ```
 
-## Step 4: Set Up Your Domain (Optional but Recommended)
+## Step 4: Set Up Your Domain (Required For Customer Email)
 
-By default, Resend sends emails from `onboarding@resend.dev`. To send from your own domain (e.g., `hello@lolaasone.com`):
+Resend test mode can only send to the account owner address. To send customer/admin emails, verify the approved sending domain and use that domain in `EMAIL_FROM`.
 
 ### 4.1 Add Your Domain
 
 1. In Resend dashboard, go to **Domains**
 2. Click **Add Domain**
-3. Enter your domain (e.g., `lolaasone.com`)
+3. Enter your domain (e.g., `lotsoflovelyart.com`)
 4. Click **Add**
 
 ### 4.2 Configure DNS Records
@@ -67,7 +76,7 @@ Value: [provided by Resend]
 
 Type: TXT
 Name: _dmarc
-Value: v=DMARC1; p=none; rua=mailto:dmarc@lolaasone.com
+Value: v=DMARC1; p=none; rua=mailto:dmarc@lotsoflovelyart.com
 ```
 
 ### 4.3 Add DNS Records to Your Domain Provider
@@ -83,12 +92,12 @@ Value: v=DMARC1; p=none; rua=mailto:dmarc@lolaasone.com
 2. Wait for DNS propagation (can take up to 48 hours, usually much faster)
 3. Once verified, you'll see a green checkmark
 
-### 4.5 Update the Email Function
+### 4.5 Set the Sender Secret
 
-Once your domain is verified, update the `from` field in `supabase/functions/send-email/index.ts`:
+Once your domain is verified, set `EMAIL_FROM` to an address on that domain:
 
-```typescript
-from: 'Lola As One <hello@lolaasone.com>',
+```bash
+supabase secrets set EMAIL_FROM="Lola As One <bookings@lotsoflovelyart.com>"
 ```
 
 ## Step 5: Deploy the Email Function
@@ -214,4 +223,3 @@ For most small businesses, the free tier is sufficient to start.
 - **Resend Documentation:** https://resend.com/docs
 - **Resend Support:** support@resend.com
 - **Supabase Edge Functions:** https://supabase.com/docs/guides/functions
-

@@ -89,6 +89,9 @@ Evidence required:
   - `STRIPE_WEBHOOK_SECRET`
   - `CHECKOUT_APP_URL` or `APP_URL`
   - `RESEND_API_KEY`
+  - `EMAIL_FROM`
+  - `EMAIL_REPLY_TO`
+  - `SUPPORT_EMAIL`
   - `ADMIN_EMAILS`
   - `FUNCTIONS_GATEWAY_JWT`
 - Redeploy Supabase Edge Functions after secret changes:
@@ -200,6 +203,9 @@ Evidence required:
 - Configure DNS records for email sending: SPF, DKIM, and DMARC as required by the provider.
 - Set production `RESEND_API_KEY` in Supabase secrets.
 - Confirm from address and reply-to address.
+- Set Supabase Edge Function `EMAIL_FROM` to a sender on the verified domain.
+- Set Supabase Edge Function `EMAIL_REPLY_TO` to the launch support inbox.
+- Set Supabase Edge Function `SUPPORT_EMAIL` to the customer support inbox used inside templates.
 - Confirm `ADMIN_EMAILS` launch recipients.
 - Confirm customer order confirmation sends in production.
 - Confirm event booking confirmation sends in production.

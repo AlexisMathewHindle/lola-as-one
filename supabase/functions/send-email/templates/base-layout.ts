@@ -1,5 +1,11 @@
 // Base email layout for all templates
+function getSupportEmail(): string {
+  const denoEnv = (globalThis as any).Deno?.env
+  return denoEnv?.get('SUPPORT_EMAIL') || denoEnv?.get('EMAIL_REPLY_TO') || 'hello@lotsoflovelyart.com'
+}
+
 export function baseLayout(content: string): string {
+  const supportEmail = getSupportEmail()
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -175,7 +181,7 @@ export function baseLayout(content: string): string {
       <div class="social-links">
         <a href="https://instagram.com/lolaasone">Instagram</a> |
         <a href="https://facebook.com/lolaasone">Facebook</a> |
-        <a href="mailto:hello@lolaasone.com">Contact Us</a>
+        <a href="mailto:${supportEmail}">Contact Us</a>
       </div>
       <p style="font-size: 12px; color: #7a6d61; margin-top: 20px;">
         You're receiving this email because you made a purchase or signed up for updates from Lola As One.
@@ -189,6 +195,7 @@ export function baseLayout(content: string): string {
 
 // Plain text version generator
 export function plainTextLayout(content: string): string {
+  const supportEmail = getSupportEmail()
   return `
 LOLA AS ONE
 ===========
@@ -200,6 +207,6 @@ Lola As One
 Creative workshops and art-led goods in the UK
 Instagram: https://instagram.com/lolaasone
 Facebook: https://facebook.com/lolaasone
-Email: hello@lolaasone.com
+Email: ${supportEmail}
   `.trim()
 }

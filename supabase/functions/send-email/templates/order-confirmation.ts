@@ -21,9 +21,11 @@ interface OrderConfirmationData {
   }
   paymentMethod: string
   estimatedDelivery?: string
+  supportEmail?: string
 }
 
 export default function orderConfirmation(data: OrderConfirmationData) {
+  const supportEmail = data.supportEmail || 'hello@lotsoflovelyart.com'
   const html = baseLayout(`
     <h2>Thank you for your order</h2>
     
@@ -90,7 +92,7 @@ export default function orderConfirmation(data: OrderConfirmationData) {
     
     <p><strong>Payment Method:</strong> ${data.paymentMethod}</p>
     
-    <p>If you have any questions about your order, please don't hesitate to contact us at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a></p>
+    <p>If you have any questions about your order, please don't hesitate to contact us at <a href="mailto:${supportEmail}">${supportEmail}</a></p>
     
     <p>Thank you for supporting Lola As One!</p>
     
@@ -127,7 +129,7 @@ ${data.estimatedDelivery ? `Estimated Delivery: ${data.estimatedDelivery}` : ''}
 
 Payment Method: ${data.paymentMethod}
 
-If you have any questions about your order, please contact us at hello@lolaasone.com
+If you have any questions about your order, please contact us at ${supportEmail}
 
 Thank you for supporting Lola As One!
 

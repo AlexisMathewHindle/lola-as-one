@@ -42,12 +42,16 @@ This is the **recommended approach** because:
 4. **Set required secrets** in Supabase Dashboard:
    - Go to: https://supabase.com/dashboard/project/hubbjhtjyubzczxengyo/settings/functions
    - Add these secrets:
-     - `STRIPE_SECRET_KEY` = `sk_test_51SyCXJQ14lclFxHap3LJR8Yv9BWGwOj5O7HuyGVipRjQBTwc3anYRp4JpDzEhavTvQIRUKG9sqKA0DeGM6oUdB3k008xiZCvno`
-     - `STRIPE_WEBHOOK_SECRET` = `whsec_a8e0b6e5603efb9ee2d1f9379626ce0b261967280c549b9a9d46b3af364b77e3`
+     - `STRIPE_SECRET_KEY` = `sk_test_...`
+     - `STRIPE_WEBHOOK_SECRET` = `whsec_...`
      - `SUPABASE_URL` = `https://hubbjhtjyubzczxengyo.supabase.co`
      - `SUPABASE_SERVICE_ROLE_KEY` = (get from Project Settings > API)
      - `APP_URL` = `http://localhost:5173`
-     - `RESEND_API_KEY` = `re_5MmreNvU_E2nuqf5LSnJc7AnrFeNT7w6S`
+     - `RESEND_API_KEY` = `re_...`
+     - `EMAIL_FROM` = `Lola As One <bookings@lotsoflovelyart.com>`
+     - `EMAIL_REPLY_TO` = `hello@lotsoflovelyart.com`
+     - `SUPPORT_EMAIL` = `hello@lotsoflovelyart.com`
+     - `ADMIN_EMAILS` = `hello@lotsoflovelyart.com`
 
 5. **Deploy Edge Functions**:
    ```bash
@@ -120,6 +124,10 @@ Set these in Supabase Dashboard > Project Settings > Edge Functions > Secrets:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `APP_URL`
 - `RESEND_API_KEY`
+- `EMAIL_FROM`
+- `EMAIL_REPLY_TO`
+- `SUPPORT_EMAIL`
+- `ADMIN_EMAILS`
 
 ## Troubleshooting
 
@@ -143,4 +151,3 @@ Set these in Supabase Dashboard > Project Settings > Edge Functions > Secrets:
 2. Restart your Vue dev server
 3. Test the checkout flow
 4. Check for any errors in the browser console or Supabase logs
-

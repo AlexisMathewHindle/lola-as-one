@@ -1,15 +1,15 @@
 # Email Confirmations And Notifications Readiness
 
 Status: current
-Last updated: 2026-05-19
+Last updated: 2026-06-02
 Parent epic: [Events Production Launch Epic](./events-production-launch-epic.md)
 Risk: critical
 Depends on: [Stripe Payment And Webhook Proof](./stripe-payment-webhook-proof.md)
-Current execution status: deferred until the missing production email variables and sender/domain configuration are available.
+Current execution status: blocked until the Resend production sender domain is verified and production email variables are available.
 
 ## Decision
 
-This workstream is intentionally paused for now. Sandbox Stripe proof already confirmed that the webhook can create order-linked `email_logs` rows with `status = 'sent'` for:
+This workstream is blocked on sender-domain configuration. Sandbox Stripe proof already confirmed that the webhook can create order-linked `email_logs` rows with `status = 'sent'` for:
 
 - `order-confirmation`
 - `event-booking-confirmation`
@@ -17,10 +17,15 @@ This workstream is intentionally paused for now. Sandbox Stripe proof already co
 
 That proves the event checkout email code path in sandbox. It does not yet prove production email operations, sender reputation, reminder scheduling, or waitlist notification readiness.
 
+Current production-like log evidence from 2026-05-26 and 2026-05-27 shows `order-confirmation`, `event-booking-confirmation`, and `new-order-admin` attempts failing for non-owner recipients with Resend `403 validation_error`: Resend only allows test sends to the account owner address until a domain is verified and the `from` address uses that domain. Admin sends to the owner email succeeded, which confirms the API key/function path works for permitted recipients.
+
 ## Missing Before This Can Go Green
 
 - Production `RESEND_API_KEY` must be confirmed in Supabase Edge Function secrets.
-- Production sender domain and from address must be approved. The current `send-email` implementation sends from `Lola As One <onboarding@resend.dev>`, which is not a production sender.
+- Production sender domain and from address must be approved and verified in Resend.
+- `EMAIL_FROM` must be set in Supabase Edge Function secrets to an address on the verified sending domain.
+- `EMAIL_REPLY_TO` should be set to the launch support inbox.
+- `SUPPORT_EMAIL` should be set to the customer support inbox rendered inside templates.
 - Launch admin recipients must be confirmed through `ADMIN_EMAILS`.
 - Event reminder scheduler ownership must be confirmed, including `EVENT_EMAIL_CRON_SECRET`.
 - Event email runtime URLs should be confirmed where used, including `SITE_URL`, `EVENT_FEEDBACK_URL`, and `EVENT_EMAIL_TIME_ZONE`.
@@ -46,6 +51,6 @@ That proves the event checkout email code path in sandbox. It does not yet prove
 
 ## Current Next Action
 
-Do not continue this workstream until the missing variables and sender/domain decisions are available.
+Verify the production sending domain in Resend, set `EMAIL_FROM`, `EMAIL_REPLY_TO`, `SUPPORT_EMAIL`, and `ADMIN_EMAILS`, redeploy `send-email`, then rerun a real checkout/email proof against the launch environment.
 
 Continue the events launch with [Admin Booking Operations](./events-production-launch-epic.md#6-admin-booking-operations).
