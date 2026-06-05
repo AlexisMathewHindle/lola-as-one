@@ -91,8 +91,8 @@ serve(async (req) => {
       throw new Error('Missing required fields: template, to, or data')
     }
 
-    const supportEmail = Deno.env.get('SUPPORT_EMAIL') || Deno.env.get('EMAIL_REPLY_TO') || 'hello@lotsoflovelyart.com'
-    const siteUrl = Deno.env.get('SITE_URL') || Deno.env.get('APP_URL') || 'https://www.lotsoflovelyart.com'
+    const supportEmail = Deno.env.get('SUPPORT_EMAIL') || Deno.env.get('EMAIL_REPLY_TO') || 'hello@lolacreativespace.com'
+    const siteUrl = Deno.env.get('SITE_URL') || Deno.env.get('APP_URL') || 'https://lolacreativespace.com'
     const templateData = {
       supportEmail,
       siteUrl,

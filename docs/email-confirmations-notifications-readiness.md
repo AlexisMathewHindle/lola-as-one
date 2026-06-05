@@ -1,15 +1,15 @@
 # Email Confirmations And Notifications Readiness
 
 Status: current
-Last updated: 2026-06-02
+Last updated: 2026-06-05
 Parent epic: [Events Production Launch Epic](./events-production-launch-epic.md)
 Risk: critical
 Depends on: [Stripe Payment And Webhook Proof](./stripe-payment-webhook-proof.md)
-Current execution status: blocked until the Resend production sender domain is verified and production email variables are available.
+Current execution status: Resend domain verification is complete for `lolacreativespace.com`; production email secrets, deployment, and delivery proof remain.
 
 ## Decision
 
-This workstream is blocked on sender-domain configuration. Sandbox Stripe proof already confirmed that the webhook can create order-linked `email_logs` rows with `status = 'sent'` for:
+This workstream is unblocked from the Resend domain side. Sandbox Stripe proof already confirmed that the webhook can create order-linked `email_logs` rows with `status = 'sent'` for:
 
 - `order-confirmation`
 - `event-booking-confirmation`
@@ -22,7 +22,7 @@ Current production-like log evidence from 2026-05-26 and 2026-05-27 shows `order
 ## Missing Before This Can Go Green
 
 - Production `RESEND_API_KEY` must be confirmed in Supabase Edge Function secrets.
-- Production sender domain and from address must be approved and verified in Resend.
+- Production sender domain `lolacreativespace.com` has been verified in Resend.
 - `EMAIL_FROM` must be set in Supabase Edge Function secrets to an address on the verified sending domain.
 - `EMAIL_REPLY_TO` should be set to the launch support inbox.
 - `SUPPORT_EMAIL` should be set to the customer support inbox rendered inside templates.
@@ -51,6 +51,39 @@ Current production-like log evidence from 2026-05-26 and 2026-05-27 shows `order
 
 ## Current Next Action
 
-Verify the production sending domain in Resend, set `EMAIL_FROM`, `EMAIL_REPLY_TO`, `SUPPORT_EMAIL`, and `ADMIN_EMAILS`, redeploy `send-email`, then rerun a real checkout/email proof against the launch environment.
+Confirm the launch inbox values, authenticate Supabase CLI or use the Supabase Dashboard, set the `lolacreativespace.com` email secrets, redeploy `send-email`, then rerun a real checkout/email proof against the launch environment.
 
 Continue the events launch with [Admin Booking Operations](./events-production-launch-epic.md#6-admin-booking-operations).
+
+## Rollout Log
+
+| Order | Step | Status | Evidence / notes |
+| --- | --- | --- | --- |
+| 1 | Verify Resend sending domain `lolacreativespace.com` | Done | Confirmed by launch owner on 2026-06-05. |
+| 2 | Align repository email defaults and setup docs to `lolacreativespace.com` | Done | `send-email` fallback values, function env example, and email setup docs updated to use `hello@lolacreativespace.com` and `https://lolacreativespace.com`. |
+| 3 | Run local syntax/build checks | Done | `bash -n scripts/set-supabase-secrets.sh` and `bash -n scripts/set-email-go-live-secrets.sh` passed; `npm run build` in `app/` passed on 2026-06-05. |
+| 4 | Confirm sender/admin/support inboxes | Pending | Proposed values: `EMAIL_FROM="Lola As One <hello@lolacreativespace.com>"`, `EMAIL_REPLY_TO=hello@lolacreativespace.com`, `SUPPORT_EMAIL=hello@lolacreativespace.com`, `ADMIN_EMAILS=hello@lolacreativespace.com`. |
+| 5 | Set Supabase Edge Function email secrets | Done | Launch owner confirmed all required secrets were added manually in Supabase Dashboard on 2026-06-05. |
+| 6 | Deploy `send-email` | Done | Launch owner confirmed `send-email` was deployed on 2026-06-05 after using the project-local Supabase CLI. |
+| 7 | Deploy checkout/webhook functions if URL or Stripe settings change | Pending | Required for checkout cutover to `https://lolacreativespace.com`; optional for email-only fix. |
+| 8 | Direct email proof to non-owner recipient | Pending | Proof helpers prepared at `scripts/proof-send-email.mjs` and `scripts/proof-email-templates.mjs`. Must produce `email_logs.status = sent` and Resend accepted/delivered status. |
+| 9 | Checkout email proof | Pending | Must prove customer order confirmation, customer event booking confirmation, and admin new-order email. |
+| 10 | Decide event reminder and waitlist notification ownership | Pending | Schedule now or explicitly defer/manual with owner sign-off. |
+
+## Email Proof Commands
+
+Run these from the repo root after `send-email` has been deployed.
+
+Core launch proof, covering the emails used by event checkout:
+
+```bash
+TEST_EMAIL=your-test-inbox@example.com EMAIL_TEST_SCOPE=core node scripts/proof-email-templates.mjs
+```
+
+Full registered-template proof, covering every template wired in `send-email`:
+
+```bash
+TEST_EMAIL=your-test-inbox@example.com EMAIL_TEST_SCOPE=all node scripts/proof-email-templates.mjs
+```
+
+The full proof sends 45 emails to the target inbox. Use a real inbox on an address you control, and check both Supabase `email_logs` and the Resend dashboard after the run.

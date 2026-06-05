@@ -20,6 +20,24 @@ This directory contains test scripts for all email templates in the Lola As One 
 
 ## Test Scripts
 
+### Production / Deployed Function Proof
+
+Use this after `send-email` has been deployed to Supabase. It invokes the deployed Edge Function through Supabase and checks matching `email_logs` rows using a proof run ID.
+
+Core launch proof, covering the checkout emails:
+
+```bash
+TEST_EMAIL=your-test-inbox@example.com EMAIL_TEST_SCOPE=core node scripts/proof-email-templates.mjs
+```
+
+Full registered-template proof:
+
+```bash
+TEST_EMAIL=your-test-inbox@example.com EMAIL_TEST_SCOPE=all node scripts/proof-email-templates.mjs
+```
+
+`EMAIL_TEST_SCOPE=all` sends 45 emails to the target inbox.
+
 ### Master Test Script
 
 **Location:** `test-email-templates.sh` (in project root)
@@ -195,9 +213,9 @@ Additional registered templates:
 If Resend returns a domain verification or testing-only error, verify the sending domain and set the production sender secrets:
 
 ```bash
-supabase secrets set EMAIL_FROM="Lola As One <bookings@lotsoflovelyart.com>"
-supabase secrets set EMAIL_REPLY_TO=hello@lotsoflovelyart.com
-supabase secrets set SUPPORT_EMAIL=hello@lotsoflovelyart.com
+supabase secrets set EMAIL_FROM="Lola As One <hello@lolacreativespace.com>"
+supabase secrets set EMAIL_REPLY_TO=hello@lolacreativespace.com
+supabase secrets set SUPPORT_EMAIL=hello@lolacreativespace.com
 ```
 
 ### Invalid JWT Error

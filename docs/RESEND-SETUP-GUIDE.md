@@ -29,20 +29,20 @@ This guide will walk you through setting up Resend for the Lola As One email not
    - Name: `RESEND_API_KEY`
    - Value: Your Resend API key (e.g., `re_xxxxxxxxxxxxx`)
    - Name: `EMAIL_FROM`
-   - Value: `Lola As One <bookings@lotsoflovelyart.com>`
+   - Value: `Lola As One <hello@lolacreativespace.com>`
    - Name: `EMAIL_REPLY_TO`
-   - Value: `hello@lotsoflovelyart.com`
+   - Value: `hello@lolacreativespace.com`
    - Name: `SUPPORT_EMAIL`
-   - Value: `hello@lotsoflovelyart.com`
+   - Value: `hello@lolacreativespace.com`
 5. Click **Save**
 
 ### Option B: Using Supabase CLI
 
 ```bash
 supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxxx
-supabase secrets set EMAIL_FROM="Lola As One <bookings@lotsoflovelyart.com>"
-supabase secrets set EMAIL_REPLY_TO=hello@lotsoflovelyart.com
-supabase secrets set SUPPORT_EMAIL=hello@lotsoflovelyart.com
+supabase secrets set EMAIL_FROM="Lola As One <hello@lolacreativespace.com>"
+supabase secrets set EMAIL_REPLY_TO=hello@lolacreativespace.com
+supabase secrets set SUPPORT_EMAIL=hello@lolacreativespace.com
 ```
 
 ## Step 4: Set Up Your Domain (Required For Customer Email)
@@ -53,7 +53,7 @@ Resend test mode can only send to the account owner address. To send customer/ad
 
 1. In Resend dashboard, go to **Domains**
 2. Click **Add Domain**
-3. Enter your domain (e.g., `lotsoflovelyart.com`)
+3. Enter your domain (e.g., `lolacreativespace.com`)
 4. Click **Add**
 
 ### 4.2 Configure DNS Records
@@ -76,7 +76,7 @@ Value: [provided by Resend]
 
 Type: TXT
 Name: _dmarc
-Value: v=DMARC1; p=none; rua=mailto:dmarc@lotsoflovelyart.com
+Value: v=DMARC1; p=none; rua=mailto:dmarc@lolacreativespace.com
 ```
 
 ### 4.3 Add DNS Records to Your Domain Provider
@@ -97,7 +97,7 @@ Value: v=DMARC1; p=none; rua=mailto:dmarc@lotsoflovelyart.com
 Once your domain is verified, set `EMAIL_FROM` to an address on that domain:
 
 ```bash
-supabase secrets set EMAIL_FROM="Lola As One <bookings@lotsoflovelyart.com>"
+supabase secrets set EMAIL_FROM="Lola As One <hello@lolacreativespace.com>"
 ```
 
 ## Step 5: Deploy the Email Function

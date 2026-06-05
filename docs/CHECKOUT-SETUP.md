@@ -48,10 +48,10 @@ This is the **recommended approach** because:
      - `SUPABASE_SERVICE_ROLE_KEY` = (get from Project Settings > API)
      - `APP_URL` = `http://localhost:5173`
      - `RESEND_API_KEY` = `re_...`
-     - `EMAIL_FROM` = `Lola As One <bookings@lotsoflovelyart.com>`
-     - `EMAIL_REPLY_TO` = `hello@lotsoflovelyart.com`
-     - `SUPPORT_EMAIL` = `hello@lotsoflovelyart.com`
-     - `ADMIN_EMAILS` = `hello@lotsoflovelyart.com`
+     - `EMAIL_FROM` = `Lola As One <hello@lolacreativespace.com>`
+     - `EMAIL_REPLY_TO` = `hello@lolacreativespace.com`
+     - `SUPPORT_EMAIL` = `hello@lolacreativespace.com`
+     - `ADMIN_EMAILS` = `hello@lolacreativespace.com`
 
 5. **Deploy Edge Functions**:
    ```bash

@@ -6,9 +6,11 @@ interface OrderDeliveredData {
   deliveryDate: string
   deliveredItems: Array<{ name: string; quantity: number }>
   reviewLink?: string
+  supportEmail?: string
 }
 
 export default function orderDelivered(data: OrderDeliveredData) {
+  const supportEmail = data.supportEmail || 'hello@lolacreativespace.com'
   const itemText = data.deliveredItems.map((item) => `${item.name} x${item.quantity}`).join('\n')
 
   const html = baseLayout(`
@@ -35,7 +37,7 @@ export default function orderDelivered(data: OrderDeliveredData) {
       </div>
     ` : ''}
 
-    <p>If anything is missing or damaged, email us at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a>.</p>
+    <p>If anything is missing or damaged, email us at <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
 
     <p>With love,<br>The Lola As One Team</p>
   `)
@@ -52,7 +54,7 @@ ${itemText}
 
 ${data.reviewLink ? `Leave a review:\n${data.reviewLink}` : ''}
 
-If anything is missing or damaged, email us at hello@lolaasone.com.
+If anything is missing or damaged, email us at ${supportEmail}.
 
 With love,
 The Lola As One Team
