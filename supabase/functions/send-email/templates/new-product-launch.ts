@@ -40,7 +40,7 @@ ${data.productLink}
   `)
 
   return {
-    subject: `New at Lola As One: ${data.productName}`,
+    subject: `New at Lots of Lovely Art: ${data.productName}`,
     html,
     text,
   }

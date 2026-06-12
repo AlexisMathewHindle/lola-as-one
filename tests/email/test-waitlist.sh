@@ -27,7 +27,7 @@ curl -s --location --request POST "$API_URL" \
       \"spacesAvailable\": 2,
       \"price\": 65.00,
       \"expiryTime\": \"February 7, 2026 at 10:00 AM\",
-      \"bookingLink\": \"https://lolaasone.com/events/advanced-watercolor?waitlist=true\"
+      \"bookingLink\": \"https://www.lotsoflovelyart.com/events/advanced-watercolor?waitlist=true\"
     }
   }" | grep -q '"success":true' && echo "✅ Success" || echo "❌ Failed"
 
@@ -44,11 +44,11 @@ curl -s --location --request POST "$API_URL" \
     \"data\": {
       \"customerName\": \"Test User\",
       \"productName\": \"Limited Edition Watercolor Set\",
-      \"productImage\": \"https://lolaasone.com/images/watercolor-set.jpg\",
+      \"productImage\": \"https://www.lotsoflovelyart.com/images/watercolor-set.jpg\",
       \"price\": 89.99,
       \"stockQuantity\": 5,
       \"expiryTime\": \"February 8, 2026 at 10:00 AM\",
-      \"productLink\": \"https://lolaasone.com/products/limited-watercolor-set\"
+      \"productLink\": \"https://www.lotsoflovelyart.com/products/limited-watercolor-set\"
     }
   }" | grep -q '"success":true' && echo "✅ Success" || echo "❌ Failed"
 

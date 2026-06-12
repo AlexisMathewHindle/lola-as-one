@@ -9,7 +9,7 @@ export default function passwordReset(data: PasswordResetData) {
   const html = baseLayout(`
     <h2>Reset your password</h2>
     
-    <p>We received a request to reset your password for your Lola As One account.</p>
+    <p>We received a request to reset your password for your Lots of Lovely Art account.</p>
     
     <p>Click the button below to create a new password:</p>
     
@@ -27,15 +27,15 @@ export default function passwordReset(data: PasswordResetData) {
       If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
     </div>
     
-    <p style="margin-top: 30px;">If you have any concerns, please contact us at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a></p>
+    <p style="margin-top: 30px;">If you have any concerns, please contact us at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a></p>
     
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
 Reset Your Password
 
-We received a request to reset your password for your Lola As One account.
+We received a request to reset your password for your Lots of Lovely Art account.
 
 Click this link to create a new password:
 ${data.resetLink}
@@ -45,14 +45,14 @@ This link will expire in ${data.expiryMinutes} minutes
 DIDN'T REQUEST THIS?
 If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
 
-If you have any concerns, please contact us at hello@lolaasone.com
+If you have any concerns, please contact us at hello@lotsoflovelyart.com
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {
-    subject: 'Reset Your Password - Lola As One',
+    subject: 'Reset Your Password - Lots of Lovely Art',
     html,
     text,
   }

@@ -99,6 +99,27 @@ function setMetadataValue(metadata: Record<string, string>, key: string, value: 
   })
 }
 
+function normalizeDateOnly(value: unknown): string {
+  const date = String(value || '').trim()
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return ''
+  }
+
+  const [year, month, day] = date.split('-').map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return ''
+  }
+
+  return date
+}
+
 function buildItemMetadata(item: any) {
   return {
     id: item.id || item.offering_id,
@@ -120,6 +141,7 @@ function buildAttendeeMetadata(attendee: any) {
     lastName: String(attendee.lastName || '').trim(),
     email: String(attendee.email || '').trim(),
     phone: String(attendee.phone || '').trim(),
+    dateOfBirth: normalizeDateOnly(attendee.dateOfBirth || attendee.date_of_birth || attendee.dob),
     allergies: String(attendee.allergies || '').trim().slice(0, MAX_ATTENDEE_ALLERGIES_LENGTH),
     notes: String(attendee.notes || '').trim(),
   }
@@ -483,6 +505,41 @@ serve(async (req) => {
       throw new Error('Please agree to the Privacy Policy before continuing.')
     }
 
+    if (hasEventItems) {
+      const todayDate = new Date().toISOString().slice(0, 10)
+
+      items.forEach((item: any) => {
+        if (item.type !== 'event') {
+          return
+        }
+
+        const quantity = Number(item.quantity || 0)
+        const attendees = Array.isArray(item.attendees) ? item.attendees : []
+
+        if (attendees.length < quantity) {
+          throw new Error(`Please add attendee details for ${item.title || 'this workshop'}.`)
+        }
+
+        attendees.slice(0, quantity).forEach((attendee: any, index: number) => {
+          const firstName = String(attendee.firstName || '').trim()
+          const lastName = String(attendee.lastName || '').trim()
+          const dateOfBirth = normalizeDateOnly(attendee.dateOfBirth || attendee.date_of_birth || attendee.dob)
+
+          if (!firstName || !lastName) {
+            throw new Error(`Please add attendee ${index + 1}'s name for ${item.title || 'this workshop'}.`)
+          }
+
+          if (!dateOfBirth) {
+            throw new Error(`Please add a valid date of birth for attendee ${index + 1} on ${item.title || 'this workshop'}.`)
+          }
+
+          if (dateOfBirth > todayDate) {
+            throw new Error(`Date of birth cannot be in the future for attendee ${index + 1} on ${item.title || 'this workshop'}.`)
+          }
+        })
+      })
+    }
+
     // Calculate totals
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     const hasPhysicalItems = items.some(item => item.type === 'product_physical')
@@ -543,7 +600,7 @@ serve(async (req) => {
           console.log(`🔍 Looking up event by event_id: ${item.event_id}`)
           const result = await supabase
             .from('offering_events')
-            .select('id, max_capacity, current_bookings, offering_id')
+            .select('id, max_capacity, available_spaces, current_bookings, offering_id')
             .eq('id', item.event_id)
             .single()
           offeringEvent = result.data
@@ -554,7 +611,7 @@ serve(async (req) => {
           console.log(`🔍 Looking up event by offering_id: ${item.id || item.offering_id}`)
           const result = await supabase
             .from('offering_events')
-            .select('id, max_capacity, current_bookings, offering_id')
+            .select('id, max_capacity, available_spaces, current_bookings, offering_id')
             .eq('offering_id', item.id || item.offering_id)
             .limit(1)
             .single()
@@ -583,11 +640,13 @@ serve(async (req) => {
 
         // Use event_capacity if it exists, otherwise fall back to offering_events
         let availableSpaces
-        if (capacity && !capacityError) {
-          availableSpaces = capacity.spaces_available
+        if (capacity && !capacityError && capacity.spaces_available !== null && capacity.spaces_available !== undefined) {
+          availableSpaces = Number(capacity.spaces_available)
         } else {
-          // Fallback: calculate from offering_events
-          availableSpaces = offeringEvent.max_capacity - offeringEvent.current_bookings
+          // Fallback: respect explicit inventory control before physical capacity.
+          const sellableCapacity = offeringEvent.available_spaces ?? offeringEvent.max_capacity ?? 0
+          const currentBookings = offeringEvent.current_bookings ?? 0
+          availableSpaces = Math.max(Number(sellableCapacity) - Number(currentBookings), 0)
         }
 
         console.log(`Event capacity check for ${item.title}:`, {
@@ -596,6 +655,7 @@ serve(async (req) => {
           event_id: item.event_id,
           offering_event_id: offeringEvent.id,
           max_capacity: offeringEvent.max_capacity,
+          sellable_capacity: offeringEvent.available_spaces,
           current_bookings: offeringEvent.current_bookings,
           available_spaces: availableSpaces,
           requested_quantity: item.quantity

@@ -16,7 +16,7 @@ export default function productReviewRequest(data: ProductReviewRequestData) {
 
     <p>Hi ${data.customerName},</p>
 
-    <p>We hope you are enjoying your recent Lola As One order.</p>
+    <p>We hope you are enjoying your recent Lots of Lovely Art order.</p>
 
     <div class="info-box">
       <strong>Order number:</strong> ${data.orderNumber}<br>
@@ -31,7 +31,7 @@ export default function productReviewRequest(data: ProductReviewRequestData) {
       <a href="${data.reviewLink}" class="button">Leave a Review</a>
     </div>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -39,7 +39,7 @@ How was your purchase?
 
 Hi ${data.customerName},
 
-We hope you are enjoying your recent Lola As One order.
+We hope you are enjoying your recent Lots of Lovely Art order.
 
 Order number: ${data.orderNumber}
 Items: ${products}
@@ -50,11 +50,11 @@ Leave a review:
 ${data.reviewLink}
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {
-    subject: `Review Your Lola As One Order ${data.orderNumber}`,
+    subject: `Review Your Lots of Lovely Art Order ${data.orderNumber}`,
     html,
     text,
   }

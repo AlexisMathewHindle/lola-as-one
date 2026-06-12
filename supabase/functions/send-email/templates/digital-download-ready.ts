@@ -46,11 +46,11 @@ export default function digitalDownloadReady(data: DigitalDownloadData) {
       <li>If you have trouble downloading, try a different browser</li>
     </ol>
     
-    <p>If you need a new download link after expiry, please contact us at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a> with your order number.</p>
+    <p>If you need a new download link after expiry, please contact us at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a> with your order number.</p>
     
     <p>Enjoy your purchase!</p>
     
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -76,12 +76,12 @@ DOWNLOAD INSTRUCTIONS
 2. Save the files to your computer
 3. If you have trouble downloading, try a different browser
 
-If you need a new download link after expiry, please contact us at hello@lolaasone.com with your order number.
+If you need a new download link after expiry, please contact us at hello@lotsoflovelyart.com with your order number.
 
 Enjoy your purchase!
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

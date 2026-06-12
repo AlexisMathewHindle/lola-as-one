@@ -41,11 +41,11 @@ export default function waitlistProductAvailable(data: WaitlistProductData) {
     
     <p style="margin-top: 30px;">Don't miss out! This is a limited restock, and once it's gone, it's gone.</p>
     
-    <p>If you have any questions, please contact us at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a></p>
+    <p>If you have any questions, please contact us at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a></p>
     
     <p>Happy shopping!</p>
     
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -68,12 +68,12 @@ ${data.productLink}
 
 Don't miss out! This is a limited restock, and once it's gone, it's gone.
 
-If you have any questions, please contact us at hello@lolaasone.com
+If you have any questions, please contact us at hello@lotsoflovelyart.com
 
 Happy shopping!
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

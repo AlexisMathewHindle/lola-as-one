@@ -10,7 +10,7 @@ interface OrderDeliveredData {
 }
 
 export default function orderDelivered(data: OrderDeliveredData) {
-  const supportEmail = data.supportEmail || 'hello@lolacreativespace.com'
+  const supportEmail = data.supportEmail || 'hello@lotsoflovelyart.com'
   const itemText = data.deliveredItems.map((item) => `${item.name} x${item.quantity}`).join('\n')
 
   const html = baseLayout(`
@@ -39,7 +39,7 @@ export default function orderDelivered(data: OrderDeliveredData) {
 
     <p>If anything is missing or damaged, email us at <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -57,7 +57,7 @@ ${data.reviewLink ? `Leave a review:\n${data.reviewLink}` : ''}
 If anything is missing or damaged, email us at ${supportEmail}.
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

@@ -90,9 +90,9 @@ send_test_email "event-booking-confirmation" '{
     "cancellationPolicy": "Free cancellation up to 48 hours before the event. Cancellations within 48 hours are non-refundable."
 }'
 
-# Test 3: New Order Admin
-echo "3️⃣  New Order Admin"
-send_test_email "new-order-admin" '{
+# Test 3: Event Booking Admin
+echo "3️⃣  Event Booking Admin"
+send_test_email "event-booking-admin" '{
     "orderNumber": "TEST-ADMIN-001",
     "customerName": "Test User",
     "customerEmail": "test@example.com",
@@ -143,13 +143,13 @@ send_test_email "subscription-payment-failed" '{
     "failedAmount": 29.99,
     "failureReason": "Insufficient funds",
     "retryDate": "February 18, 2026",
-    "updatePaymentLink": "https://lolaasone.com/account/payment"
+    "updatePaymentLink": "https://www.lotsoflovelyart.com/account/payment"
 }'
 
 # Test 7: Password Reset
 echo "7️⃣  Password Reset"
 send_test_email "password-reset" '{
-    "resetLink": "https://lolaasone.com/reset-password?token=test123456",
+    "resetLink": "https://www.lotsoflovelyart.com/reset-password?token=test123456",
     "expiryMinutes": 60
 }'
 
@@ -184,13 +184,13 @@ send_test_email "digital-download-ready" '{
     "downloadLinks": [
         {
             "name": "Watercolor Techniques PDF",
-            "url": "https://lolaasone.com/downloads/watercolor-ebook.pdf",
+            "url": "https://www.lotsoflovelyart.com/downloads/watercolor-ebook.pdf",
             "format": "PDF",
             "size": "15 MB"
         },
         {
             "name": "Bonus Video Tutorial",
-            "url": "https://lolaasone.com/downloads/tutorial.mp4",
+            "url": "https://www.lotsoflovelyart.com/downloads/tutorial.mp4",
             "format": "MP4",
             "size": "250 MB"
         }
@@ -246,8 +246,8 @@ send_test_email "event-feedback-request" '{
     "eventName": "Watercolor Landscapes Workshop",
     "eventDate": "Tuesday, May 12, 2026",
     "bookingReference": "BOOK-12345",
-    "feedbackLink": "https://lolaasone.com/feedback?booking=BOOK-12345",
-    "photoShareLink": "https://lolaasone.com/share-photos?booking=BOOK-12345"
+    "feedbackLink": "https://www.lotsoflovelyart.com/feedback?booking=BOOK-12345",
+    "photoShareLink": "https://www.lotsoflovelyart.com/share-photos?booking=BOOK-12345"
 }'
 
 # Test 15: Waitlist - Event Available
@@ -261,7 +261,7 @@ send_test_email "waitlist-event-available" '{
     "spacesAvailable": 2,
     "price": 65.00,
     "expiryTime": "February 7, 2026 at 10:00 AM",
-    "bookingLink": "https://lolaasone.com/events/advanced-watercolor?waitlist=true"
+    "bookingLink": "https://www.lotsoflovelyart.com/events/advanced-watercolor?waitlist=true"
 }'
 
 # Test 16: Waitlist - Product Available
@@ -269,11 +269,11 @@ echo "1️⃣6️⃣  Waitlist - Product Available"
 send_test_email "waitlist-product-available" '{
     "customerName": "Test User",
     "productName": "Limited Edition Watercolor Set",
-    "productImage": "https://lolaasone.com/images/watercolor-set.jpg",
+    "productImage": "https://www.lotsoflovelyart.com/images/watercolor-set.jpg",
     "price": 89.99,
     "stockQuantity": 5,
     "expiryTime": "February 8, 2026 at 10:00 AM",
-    "productLink": "https://lolaasone.com/products/limited-watercolor-set"
+    "productLink": "https://www.lotsoflovelyart.com/products/limited-watercolor-set"
 }'
 
 echo ""

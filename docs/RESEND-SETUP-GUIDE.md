@@ -1,6 +1,6 @@
 # Resend Email Service Setup Guide
 
-This guide will walk you through setting up Resend for the Lola As One email notification system.
+This guide will walk you through setting up Resend for the Lots of Lovely Art email notification system.
 
 ## Step 1: Create Resend Account
 
@@ -13,7 +13,7 @@ This guide will walk you through setting up Resend for the Lola As One email not
 1. Log in to your Resend dashboard
 2. Go to **API Keys** in the sidebar
 3. Click **Create API Key**
-4. Give it a name (e.g., "Lola As One Production")
+4. Give it a name (e.g., "Lots of Lovely Art Production")
 5. Select **Full Access** permissions
 6. Copy the API key (it starts with `re_`)
 7. **Important:** Save this key securely - you won't be able to see it again!
@@ -29,21 +29,23 @@ This guide will walk you through setting up Resend for the Lola As One email not
    - Name: `RESEND_API_KEY`
    - Value: Your Resend API key (e.g., `re_xxxxxxxxxxxxx`)
    - Name: `EMAIL_FROM`
-   - Value: `Lola As One <hello@lolacreativespace.com>`
+   - Value: `Lots of Lovely Art <hello@lotsoflovelyart.com>`
    - Name: `EMAIL_REPLY_TO`
-   - Value: `hello@lolacreativespace.com`
+   - Value: `hello@lotsoflovelyart.com`
    - Name: `SUPPORT_EMAIL`
-   - Value: `hello@lolacreativespace.com`
+   - Value: `hello@lotsoflovelyart.com`
 5. Click **Save**
 
 ### Option B: Using Supabase CLI
 
 ```bash
 supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxxx
-supabase secrets set EMAIL_FROM="Lola As One <hello@lolacreativespace.com>"
-supabase secrets set EMAIL_REPLY_TO=hello@lolacreativespace.com
-supabase secrets set SUPPORT_EMAIL=hello@lolacreativespace.com
+supabase secrets set EMAIL_FROM="Lots of Lovely Art <hello@lotsoflovelyart.com>"
+supabase secrets set EMAIL_REPLY_TO=hello@lotsoflovelyart.com
+supabase secrets set SUPPORT_EMAIL=hello@lotsoflovelyart.com
 ```
+
+Keep `EMAIL_FROM` on a verified sending domain. Customer replies are controlled separately by `EMAIL_REPLY_TO`, and visible support links in the templates are controlled by `SUPPORT_EMAIL`.
 
 ## Step 4: Set Up Your Domain (Required For Customer Email)
 
@@ -53,7 +55,7 @@ Resend test mode can only send to the account owner address. To send customer/ad
 
 1. In Resend dashboard, go to **Domains**
 2. Click **Add Domain**
-3. Enter your domain (e.g., `lolacreativespace.com`)
+3. Enter your sending domain (e.g., `lotsoflovelyart.com`)
 4. Click **Add**
 
 ### 4.2 Configure DNS Records
@@ -76,7 +78,7 @@ Value: [provided by Resend]
 
 Type: TXT
 Name: _dmarc
-Value: v=DMARC1; p=none; rua=mailto:dmarc@lolacreativespace.com
+Value: v=DMARC1; p=none; rua=mailto:dmarc@lotsoflovelyart.com
 ```
 
 ### 4.3 Add DNS Records to Your Domain Provider
@@ -97,7 +99,9 @@ Value: v=DMARC1; p=none; rua=mailto:dmarc@lolacreativespace.com
 Once your domain is verified, set `EMAIL_FROM` to an address on that domain:
 
 ```bash
-supabase secrets set EMAIL_FROM="Lola As One <hello@lolacreativespace.com>"
+supabase secrets set EMAIL_FROM="Lots of Lovely Art <hello@lotsoflovelyart.com>"
+supabase secrets set EMAIL_REPLY_TO=hello@lotsoflovelyart.com
+supabase secrets set SUPPORT_EMAIL=hello@lotsoflovelyart.com
 ```
 
 ## Step 5: Deploy the Email Function

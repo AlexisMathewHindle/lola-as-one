@@ -65,7 +65,7 @@ curl -s --location --request POST "$API_URL" \
       \"failedAmount\": 29.99,
       \"failureReason\": \"Insufficient funds\",
       \"retryDate\": \"February 18, 2026\",
-      \"updatePaymentLink\": \"https://lolaasone.com/account/payment\"
+      \"updatePaymentLink\": \"https://www.lotsoflovelyart.com/account/payment\"
     }
   }" | grep -q '"success":true' && echo "✅ Success" || echo "❌ Failed"
 

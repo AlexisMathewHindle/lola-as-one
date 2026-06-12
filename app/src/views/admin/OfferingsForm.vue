@@ -781,6 +781,9 @@ const saveTypeSpecificData = async (offeringId) => {
 }
 
 const saveEventData = async (offeringId) => {
+  const availableSpaces = typeSpecificData.value.available_spaces ?? typeSpecificData.value.max_capacity
+  const currentBookings = typeSpecificData.value.current_bookings ?? 0
+
   const eventData = {
     offering_id: offeringId,
     event_date: typeSpecificData.value.event_date,
@@ -791,8 +794,8 @@ const saveEventData = async (offeringId) => {
     location_city: typeSpecificData.value.location_city || null,
     location_postcode: typeSpecificData.value.location_postcode || null,
     max_capacity: typeSpecificData.value.max_capacity,
-    available_spaces: typeSpecificData.value.available_spaces || typeSpecificData.value.max_capacity,
-    current_bookings: typeSpecificData.value.current_bookings || 0,
+    available_spaces: availableSpaces,
+    current_bookings: currentBookings,
     price_gbp: typeSpecificData.value.price_gbp,
     vat_rate: 20.00,
     waitlist_enabled: typeSpecificData.value.waitlist_enabled ?? false,
@@ -840,7 +843,6 @@ const saveEventData = async (offeringId) => {
 
   // Sync event_capacity table with available_spaces
   // The event_capacity table is the source of truth for real-time capacity tracking
-  const availableSpaces = typeSpecificData.value.available_spaces || typeSpecificData.value.max_capacity
 
   console.log('🔄 Syncing event_capacity for event:', eventId)
   console.log('📊 Available spaces to set:', availableSpaces)

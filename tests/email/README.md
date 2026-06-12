@@ -1,6 +1,6 @@
 # Email Template Testing
 
-This directory contains test scripts for all email templates in the Lola As One email notification system.
+This directory contains test scripts for all email templates in the Lots of Lovely Art email notification system.
 
 ## Prerequisites
 
@@ -88,7 +88,7 @@ chmod +x tests/email/test-event-booking.sh
 
 Tests:
 - Event Booking Confirmation
-- New Order Admin notification with event booking details
+- Event Booking Admin notification with booking details
 
 ```bash
 chmod +x tests/email/test-event-reminders.sh
@@ -172,9 +172,10 @@ Check the terminal where `supabase functions serve` is running for real-time log
 
 | Template | Purpose | Key Data Fields |
 |----------|---------|----------------|
-| `order-confirmation` | Sent after successful order | orderNumber, orderItems, total |
+| `order-confirmation` | Sent after successful product-only order | orderNumber, orderItems, total |
 | `event-booking-confirmation` | Sent after booking a workshop | eventName, eventDate, bookingReference |
-| `new-order-admin` | Sent to admins after a new order/event booking | orderNumber, customerEmail, orderItems |
+| `event-booking-admin` | Sent to admins after a new workshop booking | orderNumber, customerEmail, orderItems |
+| `new-order-admin` | Sent to admins after a product-only order | orderNumber, customerEmail, orderItems |
 | `subscription-activated` | Sent when subscription starts | subscriptionName, pricePerCycle |
 | `subscription-renewal-success` | Sent after successful renewal | amountCharged, nextBillingDate |
 | `subscription-payment-failed` | Sent when payment fails | failedAmount, updatePaymentLink |
@@ -213,9 +214,10 @@ Additional registered templates:
 If Resend returns a domain verification or testing-only error, verify the sending domain and set the production sender secrets:
 
 ```bash
-supabase secrets set EMAIL_FROM="Lola As One <hello@lolacreativespace.com>"
-supabase secrets set EMAIL_REPLY_TO=hello@lolacreativespace.com
-supabase secrets set SUPPORT_EMAIL=hello@lolacreativespace.com
+supabase secrets set EMAIL_FROM="Lots of Lovely Art <hello@lotsoflovelyart.com>"
+supabase secrets set WORKSHOP_CONFIRMATION_EMAIL_FROM="Lots of Lovely Art <hello@lotsoflovelyart.com>"
+supabase secrets set EMAIL_REPLY_TO=hello@lotsoflovelyart.com
+supabase secrets set SUPPORT_EMAIL=hello@lotsoflovelyart.com
 ```
 
 ### Invalid JWT Error
@@ -230,5 +232,5 @@ AUTH_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiw
 1. ✅ Test all email templates locally
 2. 🔄 Verify sending domain on Resend
 3. 🔄 Deploy to production: `supabase functions deploy send-email`
-4. 🔄 Set production secrets: `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO`, `SUPPORT_EMAIL`, and `ADMIN_EMAILS`
+4. 🔄 Set production secrets: `RESEND_API_KEY`, `EMAIL_FROM`, `WORKSHOP_CONFIRMATION_EMAIL_FROM`, `EMAIL_REPLY_TO`, `SUPPORT_EMAIL`, and `ADMIN_EMAILS`
 5. 🔄 Integrate email triggers in application code

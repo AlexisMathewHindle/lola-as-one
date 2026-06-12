@@ -47,6 +47,7 @@
         :session-quantities="seriesSessionQuantities"
         @increment-term="incrementTermGroup"
         @decrement-term="decrementTermGroup"
+        @join-waitlist="openWaitlistModal"
       />
 
       <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -124,7 +125,7 @@
 
             <!-- Sold Out / Waitlist -->
             <div v-else-if="isSoldOut">
-              <div v-if="workshop.waitlist_enabled" class="space-y-4">
+              <div v-if="isWaitlistAvailable" class="space-y-4">
                 <div class="bg-warning-50 border border-warning-200 rounded-lg p-4">
                   <div class="flex items-center mb-2">
                     <font-awesome-icon icon="exclamation-circle" class="w-5 h-5 text-warning-600 mr-2" />
@@ -135,10 +136,10 @@
                   </p>
                 </div>
                 <button
-                  @click="showWaitlistModal = true"
+                  @click="openWaitlistModal(workshop)"
                   class="w-full px-6 py-3 bg-warning-600 text-white font-semibold rounded-lg hover:bg-warning-700 transition-colors"
                 >
-                  Join Waitlist ({{ capacity.waitlist_count }} waiting)
+                  {{ waitlistButtonLabel }}
                 </button>
               </div>
               <div v-else class="bg-gray-100 border border-gray-300 rounded-lg p-4 text-center">
@@ -297,8 +298,8 @@
     <!-- Waitlist Modal -->
     <JoinEventWaitlistModal
       v-model="showWaitlistModal"
-      :event-id="workshop?.id"
-      :event-title="workshop?.offering?.title || ''"
+      :event-id="waitlistModalEventId"
+      :event-title="waitlistModalEventTitle"
       @success="handleWaitlistSuccess"
     />
   </div>
@@ -340,6 +341,7 @@ const loading = ref(true)
 const error = ref(null)
 const submitting = ref(false)
 const showWaitlistModal = ref(false)
+const selectedWaitlistEvent = ref(null)
 const enquiryEmail = 'hello@lolaasone.com'
 
 // Booking form
@@ -428,13 +430,16 @@ const fetchCapacity = async () => {
 
     if (fetchError) {
       console.error('Error fetching capacity:', fetchError)
+      const fallbackTotalCapacity = Number(workshop.value.available_spaces ?? workshop.value.max_capacity ?? 0)
+      const fallbackSpacesBooked = Number(workshop.value.current_bookings ?? 0)
+
       // Set default capacity if not found
       capacity.value = {
-        total_capacity: workshop.value.max_capacity || 0,
-        spaces_booked: 0,
+        total_capacity: fallbackTotalCapacity,
+        spaces_booked: fallbackSpacesBooked,
         spaces_reserved: 0,
-        spaces_available: workshop.value.max_capacity || 0,
-        waitlist_enabled: false,
+        spaces_available: Math.max(fallbackTotalCapacity - fallbackSpacesBooked, 0),
+        waitlist_enabled: workshop.value.waitlist_enabled ?? false,
         waitlist_count: 0
       }
     } else {
@@ -655,6 +660,30 @@ const isSoldOut = computed(() => {
   return capacity.value.spaces_available <= 0
 })
 
+const isWaitlistAvailable = computed(() => {
+  if (!capacity.value && !workshop.value) return false
+  return Boolean(capacity.value?.waitlist_enabled ?? workshop.value?.waitlist_enabled)
+})
+
+const waitlistButtonLabel = computed(() => {
+  const waitlistCount = Number(capacity.value?.waitlist_count ?? 0)
+
+  if (waitlistCount <= 0) {
+    return 'Join Waitlist'
+  }
+
+  const waitingLabel = waitlistCount === 1 ? '1 waiting' : `${waitlistCount} waiting`
+  return `Join Waitlist (${waitingLabel})`
+})
+
+const waitlistModalEventId = computed(() => selectedWaitlistEvent.value?.id || workshop.value?.id || '')
+
+const waitlistModalEventTitle = computed(() => (
+  selectedWaitlistEvent.value?.offering?.title ||
+  workshop.value?.offering?.title ||
+  ''
+))
+
 const maxAttendees = computed(() => {
   if (!capacity.value) return 1
   return Math.min(10, capacity.value.spaces_available)
@@ -701,7 +730,7 @@ const capacityPercentage = computed(() => {
 const capacityText = computed(() => {
   if (!capacity.value) return ''
 
-  if (capacity.value.spaces_available === 0) {
+  if (capacity.value.spaces_available <= 0) {
     return 'Sold Out'
   } else if (capacity.value.spaces_available <= 3) {
     return `Only ${capacity.value.spaces_available} spots left!`
@@ -713,7 +742,7 @@ const capacityText = computed(() => {
 const capacityTextClass = computed(() => {
   if (!capacity.value) return 'text-gray-600'
 
-  if (capacity.value.spaces_available === 0) {
+  if (capacity.value.spaces_available <= 0) {
     return 'text-red-600'
   } else if (capacity.value.spaces_available <= 3) {
     return 'text-warning-600'
@@ -724,6 +753,7 @@ const capacityTextClass = computed(() => {
 
 const capacityBarClass = computed(() => {
   if (!capacity.value) return 'bg-gray-400'
+  if (capacity.value.spaces_available <= 0) return 'bg-red-500'
 
   const percentage = capacityPercentage.value
 
@@ -794,11 +824,13 @@ const getSessionSpacesAvailable = (session) => {
     return capacityRecord.spaces_available
   }
 
-  if (
-    typeof session.max_capacity === 'number' &&
-    typeof session.current_bookings === 'number'
-  ) {
-    return Math.max(session.max_capacity - session.current_bookings, 0)
+  const sellableCapacity = typeof session.available_spaces === 'number'
+    ? session.available_spaces
+    : session.max_capacity
+
+  if (typeof sellableCapacity === 'number') {
+    const currentBookings = typeof session.current_bookings === 'number' ? session.current_bookings : 0
+    return Math.max(sellableCapacity - currentBookings, 0)
   }
 
   return null
@@ -970,6 +1002,11 @@ const decrementTermGroup = (termGroup) => {
   termGroup.sessions.forEach(decrementSeriesSession)
 }
 
+const openWaitlistModal = (event = workshop.value) => {
+  selectedWaitlistEvent.value = event || workshop.value
+  showWaitlistModal.value = true
+}
+
 // Handle booking submission
 const handleBooking = async () => {
   try {
@@ -1007,8 +1044,12 @@ const handleBooking = async () => {
 // Handle waitlist success
 const handleWaitlistSuccess = async (data) => {
   console.log('Successfully joined waitlist:', data)
-  // Refresh capacity to update waitlist count
-  await fetchCapacity()
+
+  if (isSingleSeriesLayout.value) {
+    await fetchSingleSeriesSessions()
+  } else {
+    await fetchCapacity()
+  }
 }
 
 // Initialize

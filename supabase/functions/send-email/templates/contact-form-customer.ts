@@ -30,11 +30,11 @@ export default function contactFormCustomer(data: ContactFormCustomerData) {
     
     <p>If you need immediate assistance, you can also reach us at:</p>
     <ul>
-      <li>Email: <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a></li>
-      <li>Instagram: <a href="https://instagram.com/lolaasone">@lolaasone</a></li>
+      <li>Email: <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a></li>
+      <li>Instagram: <a href="https://www.instagram.com/lotsoflovelyart/">@lotsoflovelyart</a></li>
     </ul>
     
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -53,11 +53,11 @@ Subject: ${data.subject}
 ${data.message}
 
 If you need immediate assistance, you can also reach us at:
-- Email: hello@lolaasone.com
-- Instagram: @lolaasone
+- Email: hello@lotsoflovelyart.com
+- Instagram: @lotsoflovelyart
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

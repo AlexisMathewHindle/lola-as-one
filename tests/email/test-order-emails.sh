@@ -82,13 +82,13 @@ curl -s --location --request POST "$API_URL" \
       \"downloadLinks\": [
         {
           \"name\": \"Watercolor Techniques PDF\",
-          \"url\": \"https://lolaasone.com/downloads/watercolor-ebook.pdf\",
+          \"url\": \"https://www.lotsoflovelyart.com/downloads/watercolor-ebook.pdf\",
           \"format\": \"PDF\",
           \"size\": \"15 MB\"
         },
         {
           \"name\": \"Bonus Video Tutorial\",
-          \"url\": \"https://lolaasone.com/downloads/tutorial.mp4\",
+          \"url\": \"https://www.lotsoflovelyart.com/downloads/tutorial.mp4\",
           \"format\": \"MP4\",
           \"size\": \"250 MB\"
         }

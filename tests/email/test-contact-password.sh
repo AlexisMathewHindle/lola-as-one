@@ -19,7 +19,7 @@ curl -s --location --request POST "$API_URL" \
     \"template\": \"password-reset\",
     \"to\": \"$TEST_EMAIL\",
     \"data\": {
-      \"resetLink\": \"https://lolaasone.com/reset-password?token=test123456\",
+      \"resetLink\": \"https://www.lotsoflovelyart.com/reset-password?token=test123456\",
       \"expiryMinutes\": 60
     }
   }" | grep -q '"success":true' && echo "✅ Success" || echo "❌ Failed"

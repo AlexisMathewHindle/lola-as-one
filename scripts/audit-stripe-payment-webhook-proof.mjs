@@ -161,7 +161,8 @@ function sourceChecks() {
       ? passed('Booking-trigger capacity decrement', 'Webhook creates bookings; the database trigger updates capacity once and mirrors current_bookings.')
       : failed('Booking-trigger capacity decrement', 'Capacity should be updated once by the confirmed-booking trigger, not separately by the webhook.', 'Webhook RPC or trigger mirror check failed.'),
     webhookSource.includes("template: 'order-confirmation'") &&
-      webhookSource.includes("template: 'new-order-admin'") &&
+      webhookSource.includes("'new-order-admin'") &&
+      webhookSource.includes("'event-booking-admin'") &&
       webhookSource.includes("template: 'event-booking-confirmation'") &&
       webhookSource.includes('stripeCheckoutSessionId: session.id') &&
       webhookSource.includes('invokeSendEmail') &&
@@ -169,8 +170,8 @@ function sourceChecks() {
       webhookSource.includes("Deno.env.get('FUNCTIONS_GATEWAY_JWT') || serviceRoleKey") &&
       webhookSource.includes('FUNCTIONS_BASE_URL') &&
       webhookSource.includes('logEmailFailure')
-      ? passed('Webhook email side effects', 'Customer receipt, admin notification, event confirmation email calls, gateway JWT invocation, fallback failure logging, and order-linked email metadata are present.')
-      : failed('Webhook email side effects', 'Webhook should invoke receipt, admin, and event confirmation templates.', 'Missing expected email call.'),
+      ? passed('Webhook email side effects', 'Product receipt, event customer/admin email calls, gateway JWT invocation, fallback failure logging, and order-linked email metadata are present.')
+      : failed('Webhook email side effects', 'Webhook should invoke product receipt and event customer/admin templates.', 'Missing expected email call.'),
     sendEmailSource.includes("status: 'failed'") &&
       sendEmailSource.includes('error_message') &&
       sendEmailSource.includes("from('email_logs')")
@@ -426,7 +427,7 @@ async function liveSessionChecks(sessionId) {
   if (emailError) {
     results.push(failed('Payment session email logs', order.order_number, emailError.message))
   } else {
-    const expectedTemplates = ['order-confirmation', 'event-booking-confirmation', 'new-order-admin']
+    const expectedTemplates = ['event-booking-confirmation', 'event-booking-admin']
     const orderLinkedEmails = (emails || []).filter((email) => {
       const metadata = email.metadata || {}
       return metadata.orderNumber === order.order_number ||

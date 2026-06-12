@@ -269,13 +269,16 @@ const fetchCapacity = async () => {
     capacity.value = data
   } catch (err) {
     console.error('Error fetching capacity:', err)
+    const fallbackTotalCapacity = Number(event.value?.available_spaces ?? event.value?.max_capacity ?? 0)
+    const fallbackSpacesBooked = Number(event.value?.current_bookings ?? 0)
+
     // Set default capacity if not found
     capacity.value = {
-      total_capacity: event.value?.max_capacity || 0,
-      spaces_booked: 0,
+      total_capacity: fallbackTotalCapacity,
+      spaces_booked: fallbackSpacesBooked,
       spaces_reserved: 0,
-      spaces_available: event.value?.max_capacity || 0,
-      waitlist_enabled: false,
+      spaces_available: Math.max(fallbackTotalCapacity - fallbackSpacesBooked, 0),
+      waitlist_enabled: event.value?.waitlist_enabled ?? false,
       waitlist_count: 0
     }
   }

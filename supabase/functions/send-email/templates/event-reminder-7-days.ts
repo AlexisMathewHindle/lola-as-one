@@ -59,11 +59,11 @@ export default function eventReminder7Days(data: EventReminder7DaysData) {
     
     <p>We'll send you another reminder 24 hours before the workshop.</p>
     
-    <p>If you have any questions or need to make changes to your booking, please contact us at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a></p>
+    <p>If you have any questions or need to make changes to your booking, please contact us at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a></p>
     
     <p>Looking forward to seeing you!</p>
     
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -92,12 +92,12 @@ ${data.parkingInfo}
 
 We'll send you another reminder 24 hours before the workshop.
 
-If you have any questions or need to make changes to your booking, please contact us at hello@lolaasone.com
+If you have any questions or need to make changes to your booking, please contact us at hello@lotsoflovelyart.com
 
 Looking forward to seeing you!
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

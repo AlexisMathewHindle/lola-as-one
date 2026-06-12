@@ -34,6 +34,10 @@ function isMissingAttendeeAllergiesColumnError(error: any): boolean {
   return isMissingColumnError(error, ['allergies'])
 }
 
+function isMissingAttendeeDateOfBirthColumnError(error: any): boolean {
+  return isMissingColumnError(error, ['date_of_birth'])
+}
+
 function metadataBoolean(value: unknown): boolean {
   return value === true || value === 'true' || value === '1'
 }
@@ -61,6 +65,53 @@ function buildAttendeeNotes(attendee: any, includeAllergies = false): string | n
 
   const combined = parts.filter(Boolean).join('\n')
   return combined || null
+}
+
+function normalizeAttendeeDateOfBirth(attendee: any): string | null {
+  const date = String(attendee.dateOfBirth || attendee.date_of_birth || attendee.dob || '').trim()
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return null
+  }
+
+  const [year, month, day] = date.split('-').map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null
+  }
+
+  return date
+}
+
+function buildBookingAttendeeInsert(
+  bookingId: string,
+  attendee: any,
+  includeAllergiesColumn: boolean,
+  includeDateOfBirthColumn: boolean,
+) {
+  const row: Record<string, unknown> = {
+    booking_id: bookingId,
+    first_name: attendee.firstName,
+    last_name: attendee.lastName,
+    email: attendee.email || null,
+    phone: attendee.phone || null,
+    notes: buildAttendeeNotes(attendee, !includeAllergiesColumn),
+  }
+
+  if (includeAllergiesColumn) {
+    row.allergies = attendee.allergies || null
+  }
+
+  if (includeDateOfBirthColumn) {
+    row.date_of_birth = normalizeAttendeeDateOfBirth(attendee)
+  }
+
+  return row
 }
 
 function getAdminEmails(): string[] {
@@ -629,6 +680,8 @@ serve(async (req) => {
 
         console.log('Created order:', order.order_number)
 
+        const eventBookingEmailItems: any[] = []
+
         // Create order items and update inventory/capacity
         for (const item of items) {
           // Create order item and get the ID back
@@ -731,41 +784,53 @@ serve(async (req) => {
               console.error('❌ Error creating booking:', bookingError)
             } else {
               console.log('✅ Created booking for event')
+              eventBookingEmailItems.push({
+                item,
+                booking,
+                offeringEventId,
+              })
 
               // Create booking_attendees records if attendee details are provided
               if (item.attendees && Array.isArray(item.attendees) && item.attendees.length > 0) {
                 console.log(`👥 Creating ${item.attendees.length} attendee records...`)
 
-                const attendeesToInsert = item.attendees.map((attendee: any) => ({
-                  booking_id: booking.id,
-                  first_name: attendee.firstName,
-                  last_name: attendee.lastName,
-                  email: attendee.email || null,
-                  phone: attendee.phone || null,
-                  allergies: attendee.allergies || null,
-                  notes: buildAttendeeNotes(attendee),
-                }))
+                let includeAllergiesColumn = true
+                let includeDateOfBirthColumn = true
+                let attendeesError: any = null
 
-                let { error: attendeesError } = await supabase
-                  .from('booking_attendees')
-                  .insert(attendeesToInsert)
+                for (let attempt = 0; attempt < 3; attempt += 1) {
+                  const attendeesToInsert = item.attendees.map((attendee: any) =>
+                    buildBookingAttendeeInsert(
+                      booking.id,
+                      attendee,
+                      includeAllergiesColumn,
+                      includeDateOfBirthColumn,
+                    )
+                  )
 
-                if (attendeesError && isMissingAttendeeAllergiesColumnError(attendeesError)) {
-                  console.warn('⚠️ booking_attendees.allergies is not available; retrying attendee insert with allergies in notes')
-                  const fallbackAttendeesToInsert = item.attendees.map((attendee: any) => ({
-                    booking_id: booking.id,
-                    first_name: attendee.firstName,
-                    last_name: attendee.lastName,
-                    email: attendee.email || null,
-                    phone: attendee.phone || null,
-                    notes: buildAttendeeNotes(attendee, true),
-                  }))
-
-                  const retryResult = await supabase
+                  const insertResult = await supabase
                     .from('booking_attendees')
-                    .insert(fallbackAttendeesToInsert)
+                    .insert(attendeesToInsert)
 
-                  attendeesError = retryResult.error
+                  attendeesError = insertResult.error
+
+                  if (!attendeesError) {
+                    break
+                  }
+
+                  if (includeAllergiesColumn && isMissingAttendeeAllergiesColumnError(attendeesError)) {
+                    console.warn('⚠️ booking_attendees.allergies is not available; retrying attendee insert with allergies in notes')
+                    includeAllergiesColumn = false
+                    continue
+                  }
+
+                  if (includeDateOfBirthColumn && isMissingAttendeeDateOfBirthColumnError(attendeesError)) {
+                    console.warn('⚠️ booking_attendees.date_of_birth is not available; retrying attendee insert without date of birth')
+                    includeDateOfBirthColumn = false
+                    continue
+                  }
+
+                  break
                 }
 
                 if (attendeesError) {
@@ -855,60 +920,66 @@ serve(async (req) => {
 
         console.log('📧 Email sending logic:', { hasEvents, hasProducts, hasPhysicalProducts })
 
-        // Send order confirmation email (serves as receipt) for ALL orders
-        try {
-          console.log('📧 Sending order confirmation/receipt email')
-          const emailResponse = await invokeSendEmail(
-            supabaseUrl,
-            supabaseServiceKey,
-            {
-              template: 'order-confirmation',
-              to: metadata.customer_email,
-              data: {
-                orderNumber: order.order_number,
-                customerName: `${metadata.customer_first_name} ${metadata.customer_last_name}`,
-                orderItems: emailOrderItems,
-                subtotal: subtotalAmount,
-                shipping: shippingAmount,
-                vat: vatAmount,
-                total: totalAmount,
-                shippingAddress: metadata.shipping_line1 ? {
-                  line1: metadata.shipping_line1,
-                  line2: metadata.shipping_line2 || undefined,
-                  city: metadata.shipping_city,
-                  postcode: metadata.shipping_postal_code,
-                  country: metadata.shipping_country || 'GB',
-                } : undefined,
-                paymentMethod: 'Card ending in ****',
-                estimatedDelivery: undefined, // TODO: Calculate based on shipping method
-                hasEvents: hasEvents,
-                hasProducts: hasProducts,
+        // Product-only checkouts get the normal order confirmation. Event checkouts
+        // use event-booking-confirmation instead so customers do not receive a
+        // generic order email for a workshop booking.
+        if (!hasEvents) {
+          try {
+            console.log('📧 Sending order confirmation/receipt email')
+            const emailResponse = await invokeSendEmail(
+              supabaseUrl,
+              supabaseServiceKey,
+              {
+                template: 'order-confirmation',
+                to: metadata.customer_email,
+                data: {
+                  orderNumber: order.order_number,
+                  customerName: `${metadata.customer_first_name} ${metadata.customer_last_name}`,
+                  orderItems: emailOrderItems,
+                  subtotal: subtotalAmount,
+                  shipping: shippingAmount,
+                  vat: vatAmount,
+                  total: totalAmount,
+                  shippingAddress: metadata.shipping_line1 ? {
+                    line1: metadata.shipping_line1,
+                    line2: metadata.shipping_line2 || undefined,
+                    city: metadata.shipping_city,
+                    postcode: metadata.shipping_postal_code,
+                    country: metadata.shipping_country || 'GB',
+                  } : undefined,
+                  paymentMethod: 'Card ending in ****',
+                  estimatedDelivery: undefined, // TODO: Calculate based on shipping method
+                  hasEvents: hasEvents,
+                  hasProducts: hasProducts,
+                },
+                metadata: {
+                  orderNumber: order.order_number,
+                  stripeCheckoutSessionId: session.id,
+                },
               },
-              metadata: {
-                orderNumber: order.order_number,
-                stripeCheckoutSessionId: session.id,
-              },
-            },
-          )
+            )
 
-          if (emailResponse.error) {
-            console.error('❌ Email function returned error:', emailResponse.error)
-            await logEmailFailure(supabase, {
-              template: 'order-confirmation',
-              to: metadata.customer_email,
-              metadata: {
-                orderNumber: order.order_number,
-                stripeCheckoutSessionId: session.id,
-              },
-            }, emailResponse.error)
-          } else {
-            console.log('✅ Order confirmation/receipt email sent successfully')
-            console.log('Email response:', JSON.stringify(emailResponse.data, null, 2))
+            if (emailResponse.error) {
+              console.error('❌ Email function returned error:', emailResponse.error)
+              await logEmailFailure(supabase, {
+                template: 'order-confirmation',
+                to: metadata.customer_email,
+                metadata: {
+                  orderNumber: order.order_number,
+                  stripeCheckoutSessionId: session.id,
+                },
+              }, emailResponse.error)
+            } else {
+              console.log('✅ Order confirmation/receipt email sent successfully')
+              console.log('Email response:', JSON.stringify(emailResponse.data, null, 2))
+            }
+          } catch (emailError) {
+            console.error('❌ Error sending order confirmation email:', emailError)
+            console.error('Email error details:', JSON.stringify(emailError, null, 2))
+            // Don't throw - email failure shouldn't fail the webhook
           }
-        } catch (emailError) {
-          console.error('❌ Error sending order confirmation email:', emailError)
-          console.error('Email error details:', JSON.stringify(emailError, null, 2))
-          // Don't throw - email failure shouldn't fail the webhook
+        } else {
+          console.log('📧 Skipping order confirmation email because event booking emails will be sent')
         }
 
         // Send admin notification email
@@ -927,18 +998,26 @@ serve(async (req) => {
             // Add event-specific details
             if (item.type === 'event') {
               let offeringEvent
+              const eventBooking = eventBookingEmailItems.find((entry) => entry.item === item)
 
-              if (item.event_id) {
+              if (eventBooking?.offeringEventId) {
                 const result = await supabase
                   .from('offering_events')
-                  .select('event_date, event_start_time')
+                  .select('id, event_date, event_start_time, location_name, location_address, location_city, location_postcode')
+                  .eq('id', eventBooking.offeringEventId)
+                  .single()
+                offeringEvent = result.data
+              } else if (item.event_id) {
+                const result = await supabase
+                  .from('offering_events')
+                  .select('id, event_date, event_start_time, location_name, location_address, location_city, location_postcode')
                   .eq('id', item.event_id)
                   .single()
                 offeringEvent = result.data
               } else {
                 const result = await supabase
                   .from('offering_events')
-                  .select('event_date, event_start_time')
+                  .select('id, event_date, event_start_time, location_name, location_address, location_city, location_postcode')
                   .eq('offering_id', item.offering_id || item.id)
                   .limit(1)
                   .single()
@@ -946,6 +1025,14 @@ serve(async (req) => {
               }
 
               if (offeringEvent) {
+                const locationParts = [
+                  offeringEvent.location_name,
+                  offeringEvent.location_address,
+                  offeringEvent.location_city,
+                  offeringEvent.location_postcode,
+                ].filter(Boolean)
+                const fullLocation = locationParts.length > 0 ? locationParts.join(', ') : undefined
+
                 return {
                   ...baseItem,
                   attendees: Array.isArray(item.attendees) ? item.attendees : item.quantity,
@@ -956,6 +1043,10 @@ serve(async (req) => {
                     day: 'numeric',
                   }),
                   eventTime: offeringEvent.event_start_time,
+                  location: fullLocation,
+                  bookingReference: eventBooking?.booking?.id
+                    ? `BKG-${eventBooking.booking.id.substring(0, 8)}`
+                    : `BKG-${order.order_number}-${offeringEvent.id.substring(0, 8)}`,
                 }
               }
             }
@@ -974,40 +1065,42 @@ serve(async (req) => {
 
           const adminEmails = getAdminEmails()
 
+          const adminTemplate = hasEvents ? 'event-booking-admin' : 'new-order-admin'
+
           for (const adminEmail of adminEmails) {
             const adminEmailResponse = await invokeSendEmail(
               supabaseUrl,
               supabaseServiceKey,
               {
-                template: 'new-order-admin',
+                template: adminTemplate,
                 to: adminEmail,
                 data: {
-                orderNumber: order.order_number,
-                customerName: `${metadata.customer_first_name} ${metadata.customer_last_name}`,
-                customerEmail: metadata.customer_email,
-                orderTotal: totalAmount,
-                orderItems: enrichedItems,
-                shippingAddress: metadata.shipping_line1 ? {
-                  line1: metadata.shipping_line1,
-                  line2: metadata.shipping_line2 || undefined,
-                  city: metadata.shipping_city,
-                  postcode: metadata.shipping_postal_code,
-                  country: metadata.shipping_country || 'GB',
-                } : undefined,
-                hasEvents: hasEvents,
-                hasPhysicalProducts: hasPhysicalProducts,
+                  orderNumber: order.order_number,
+                  customerName: `${metadata.customer_first_name} ${metadata.customer_last_name}`,
+                  customerEmail: metadata.customer_email,
+                  orderTotal: totalAmount,
+                  orderItems: enrichedItems,
+                  shippingAddress: metadata.shipping_line1 ? {
+                    line1: metadata.shipping_line1,
+                    line2: metadata.shipping_line2 || undefined,
+                    city: metadata.shipping_city,
+                    postcode: metadata.shipping_postal_code,
+                    country: metadata.shipping_country || 'GB',
+                  } : undefined,
+                  hasEvents: hasEvents,
+                  hasPhysicalProducts: hasPhysicalProducts,
+                },
+                metadata: {
+                  orderNumber: order.order_number,
+                  stripeCheckoutSessionId: session.id,
+                },
               },
-              metadata: {
-                orderNumber: order.order_number,
-                stripeCheckoutSessionId: session.id,
-              },
-            },
             )
 
             if (adminEmailResponse.error) {
               console.error(`❌ Admin email function returned error for ${adminEmail}:`, adminEmailResponse.error)
               await logEmailFailure(supabase, {
-                template: 'new-order-admin',
+                template: adminTemplate,
                 to: adminEmail,
                 metadata: {
                   orderNumber: order.order_number,
@@ -1023,103 +1116,103 @@ serve(async (req) => {
           // Don't throw - email failure shouldn't fail the webhook
         }
 
-        // Send event booking confirmation emails for each event in the order
-        for (const item of items) {
-          if (item.type === 'event') {
-            try {
-              console.log('📧 Preparing event confirmation email for:', item.title)
+        // Send event booking confirmation emails for each created booking.
+        if (hasEvents && eventBookingEmailItems.length === 0) {
+          console.warn('⚠️ Event items were present, but no booking records were available for email sending')
+        }
 
-              // Look up the offering_event using event_id if available, otherwise offering_id
-              let offeringEvent
-              let eventLookupError
+        for (const eventBooking of eventBookingEmailItems) {
+          const { item, booking, offeringEventId } = eventBooking
 
-              if (item.event_id) {
-                // Direct lookup by event_id (offering_events.id)
-                const result = await supabase
-                  .from('offering_events')
-                  .select('id, event_date, event_start_time, location_name, location_address, location_city, location_postcode')
-                  .eq('id', item.event_id)
-                  .single()
-                offeringEvent = result.data
-                eventLookupError = result.error
-              } else {
-                // Fallback: lookup by offering_id
-                const result = await supabase
-                  .from('offering_events')
-                  .select('id, event_date, event_start_time, location_name, location_address, location_city, location_postcode')
-                  .eq('offering_id', item.id || item.offering_id)
-                  .limit(1)
-                  .single()
-                offeringEvent = result.data
-                eventLookupError = result.error
-              }
+          try {
+            console.log('📧 Preparing event confirmation email for:', item.title)
 
-              if (eventLookupError || !offeringEvent) {
-                console.error('❌ Error looking up event for email:', eventLookupError)
-                continue
-              }
+            const { data: offeringEvent, error: eventLookupError } = await supabase
+              .from('offering_events')
+              .select('id, event_date, event_start_time, location_name, location_address, location_city, location_postcode')
+              .eq('id', offeringEventId)
+              .single()
 
-              console.log('📧 Sending event confirmation email...')
-              console.log('📧 Attendee details present:', Array.isArray(item.attendees) && item.attendees.length > 0)
-
-              // Build full location string
-              const locationParts = [
-                offeringEvent.location_name,
-                offeringEvent.location_address,
-                offeringEvent.location_city,
-                offeringEvent.location_postcode
-              ].filter(Boolean)
-              const fullLocation = locationParts.length > 0 ? locationParts.join(', ') : 'TBA'
-
-              const emailResponse = await invokeSendEmail(
-                supabaseUrl,
-                supabaseServiceKey,
-                {
-                  template: 'event-booking-confirmation',
-                  to: metadata.customer_email,
-                  data: {
-                    customerName: `${metadata.customer_first_name} ${metadata.customer_last_name}`,
-                    eventName: item.title,
-                    eventDate: new Date(offeringEvent.event_date).toLocaleDateString('en-GB', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    }),
-                    eventTime: offeringEvent.event_start_time || item.eventTime,
-                    location: fullLocation,
-                    numberOfAttendees: item.quantity,
-                    bookingReference: `BKG-${order.order_number}-${offeringEvent.id.substring(0, 8)}`,
-                    orderNumber: order.order_number,
-                    pricePaid: item.price * item.quantity,
-                    attendees: Array.isArray(item.attendees) ? item.attendees : undefined,
-                  },
-                  metadata: {
-                    orderNumber: order.order_number,
-                    stripeCheckoutSessionId: session.id,
-                    offeringEventId: offeringEvent.id,
-                  },
-                },
-              )
-
-              if (emailResponse.error) {
-                console.error('❌ Email function returned error:', emailResponse.error)
-                await logEmailFailure(supabase, {
-                  template: 'event-booking-confirmation',
-                  to: metadata.customer_email,
-                  metadata: {
-                    orderNumber: order.order_number,
-                    stripeCheckoutSessionId: session.id,
-                    offeringEventId: offeringEvent.id,
-                  },
-                }, emailResponse.error)
-              } else {
-                console.log('✅ Event booking confirmation email sent for:', item.title)
-              }
-            } catch (emailError) {
-              console.error('❌ Error sending event booking email:', emailError)
-              // Don't throw - email failure shouldn't fail the webhook
+            if (eventLookupError || !offeringEvent) {
+              console.error('❌ Error looking up event for email:', eventLookupError)
+              continue
             }
+
+            console.log('📧 Sending event confirmation email...')
+            console.log('📧 Attendee details present:', Array.isArray(item.attendees) && item.attendees.length > 0)
+
+            const locationParts = [
+              offeringEvent.location_name,
+              offeringEvent.location_address,
+              offeringEvent.location_city,
+              offeringEvent.location_postcode,
+            ].filter(Boolean)
+            const fullLocation = locationParts.length > 0 ? locationParts.join(', ') : 'TBA'
+            const bookingReference = `BKG-${booking.id.substring(0, 8)}`
+
+            const emailResponse = await invokeSendEmail(
+              supabaseUrl,
+              supabaseServiceKey,
+              {
+                template: 'event-booking-confirmation',
+                to: metadata.customer_email,
+                data: {
+                  customerName: `${metadata.customer_first_name} ${metadata.customer_last_name}`,
+                  eventName: item.title,
+                  eventDate: new Date(offeringEvent.event_date).toLocaleDateString('en-GB', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  }),
+                  eventTime: offeringEvent.event_start_time || item.eventTime,
+                  location: fullLocation,
+                  numberOfAttendees: item.quantity,
+                  bookingReference,
+                  orderNumber: order.order_number,
+                  pricePaid: item.price * item.quantity,
+                  orderItems: emailOrderItems,
+                  subtotal: subtotalAmount,
+                  shipping: shippingAmount,
+                  vat: vatAmount,
+                  total: totalAmount,
+                  shippingAddress: metadata.shipping_line1 ? {
+                    line1: metadata.shipping_line1,
+                    line2: metadata.shipping_line2 || undefined,
+                    city: metadata.shipping_city,
+                    postcode: metadata.shipping_postal_code,
+                    country: metadata.shipping_country || 'GB',
+                  } : undefined,
+                  paymentMethod: 'Card ending in ****',
+                  attendees: Array.isArray(item.attendees) ? item.attendees : undefined,
+                },
+                metadata: {
+                  orderNumber: order.order_number,
+                  stripeCheckoutSessionId: session.id,
+                  bookingId: booking.id,
+                  offeringEventId: offeringEvent.id,
+                },
+              },
+            )
+
+            if (emailResponse.error) {
+              console.error('❌ Email function returned error:', emailResponse.error)
+              await logEmailFailure(supabase, {
+                template: 'event-booking-confirmation',
+                to: metadata.customer_email,
+                metadata: {
+                  orderNumber: order.order_number,
+                  stripeCheckoutSessionId: session.id,
+                  bookingId: booking.id,
+                  offeringEventId: offeringEvent.id,
+                },
+              }, emailResponse.error)
+            } else {
+              console.log('✅ Event booking confirmation email sent for:', item.title)
+            }
+          } catch (emailError) {
+            console.error('❌ Error sending event booking email:', emailError)
+            // Don't throw - email failure shouldn't fail the webhook
           }
         }
 

@@ -163,7 +163,7 @@ export default function newOrderAdmin(data: NewOrderAdminData) {
     </div>
     
     <p class="muted" style="margin-top: 30px;">
-      This is an automated notification from your Lola As One e-commerce system.
+      This is an automated notification from your Lots of Lovely Art e-commerce system.
     </p>
   `)
 
@@ -205,7 +205,7 @@ Customer order confirmation email has been sent
 View in Admin Panel:
 https://hubbjhtjyubzczxengyo.supabase.co/project/hubbjhtjyubzczxengyo
 
-This is an automated notification from your Lola As One e-commerce system.
+This is an automated notification from your Lots of Lovely Art e-commerce system.
   `)
 
   return {

@@ -9,11 +9,11 @@ interface WelcomeEmailData {
 }
 
 export default function welcomeEmail(data: WelcomeEmailData) {
-  const accountLink = data.accountLink || 'https://lolaasone.com/account'
-  const browseLink = data.browseLink || 'https://lolaasone.com'
+  const accountLink = data.accountLink || 'https://www.lotsoflovelyart.com/account'
+  const browseLink = data.browseLink || 'https://www.lotsoflovelyart.com'
 
   const html = baseLayout(`
-    <h2>Welcome to Lola As One</h2>
+    <h2>Welcome to Lots of Lovely Art</h2>
 
     <p>Hi ${data.customerName},</p>
 
@@ -27,11 +27,11 @@ export default function welcomeEmail(data: WelcomeEmailData) {
     <p><a href="${accountLink}" class="button">View Account</a></p>
     <p><a href="${browseLink}">Browse workshops and products</a></p>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
-Welcome to Lola As One
+Welcome to Lots of Lovely Art
 
 Hi ${data.customerName},
 
@@ -47,11 +47,11 @@ Browse:
 ${browseLink}
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {
-    subject: 'Welcome to Lola As One',
+    subject: 'Welcome to Lots of Lovely Art',
     html,
     text,
   }

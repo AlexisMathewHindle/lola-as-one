@@ -28,7 +28,7 @@ export default function downloadLinkExpiringSoon(data: DownloadLinkExpiringSoonD
 
     <p>If you need a fresh link after expiry, email us with your order number.</p>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -45,7 +45,7 @@ ${data.downloadLink}
 If you need a fresh link after expiry, email us with your order number.
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

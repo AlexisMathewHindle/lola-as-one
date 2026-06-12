@@ -10,7 +10,7 @@ interface BirthdayAnniversaryEmailData {
 }
 
 export default function birthdayAnniversaryEmail(data: BirthdayAnniversaryEmailData) {
-  const browseLink = data.browseLink || 'https://lolaasone.com'
+  const browseLink = data.browseLink || 'https://www.lotsoflovelyart.com'
   const title = data.occasion === 'birthday' ? 'A little birthday note from us' : 'Thank you for another year with us'
 
   const html = baseLayout(`
@@ -18,7 +18,7 @@ export default function birthdayAnniversaryEmail(data: BirthdayAnniversaryEmailD
 
     <p>Hi ${data.customerName},</p>
 
-    <p>${data.message || (data.occasion === 'birthday' ? 'Wishing you a creative and joyful birthday.' : 'Thank you for being part of the Lola As One community.')}</p>
+    <p>${data.message || (data.occasion === 'birthday' ? 'Wishing you a creative and joyful birthday.' : 'Thank you for being part of the Lots of Lovely Art community.')}</p>
 
     ${data.offerCode || data.offerValidUntil ? `
       <div class="info-box success-box">
@@ -28,10 +28,10 @@ export default function birthdayAnniversaryEmail(data: BirthdayAnniversaryEmailD
     ` : ''}
 
     <div style="text-align: center;">
-      <a href="${browseLink}" class="button">Browse Lola As One</a>
+      <a href="${browseLink}" class="button">Browse Lots of Lovely Art</a>
     </div>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -39,16 +39,16 @@ ${title}
 
 Hi ${data.customerName},
 
-${data.message || (data.occasion === 'birthday' ? 'Wishing you a creative and joyful birthday.' : 'Thank you for being part of the Lola As One community.')}
+${data.message || (data.occasion === 'birthday' ? 'Wishing you a creative and joyful birthday.' : 'Thank you for being part of the Lots of Lovely Art community.')}
 
 ${data.offerCode ? `Offer code: ${data.offerCode}` : ''}
 ${data.offerValidUntil ? `Valid until: ${data.offerValidUntil}` : ''}
 
-Browse Lola As One:
+Browse Lots of Lovely Art:
 ${browseLink}
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

@@ -40,11 +40,11 @@ export default function waitlistEventAvailable(data: WaitlistEventData) {
     
     <p style="margin-top: 30px;">Don't miss out on this opportunity! If you don't book within 24 hours, we'll offer the spot to the next person on the waitlist.</p>
     
-    <p>If you have any questions, please contact us at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a></p>
+    <p>If you have any questions, please contact us at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a></p>
     
     <p>Looking forward to seeing you!</p>
     
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -70,12 +70,12 @@ ${data.bookingLink}
 
 Don't miss out on this opportunity! If you don't book within 24 hours, we'll offer the spot to the next person on the waitlist.
 
-If you have any questions, please contact us at hello@lolaasone.com
+If you have any questions, please contact us at hello@lotsoflovelyart.com
 
 Looking forward to seeing you!
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

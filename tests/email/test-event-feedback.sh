@@ -21,8 +21,8 @@ curl -i --location --request POST "$API_URL" \
       \"eventName\": \"Watercolor Landscapes Workshop\",
       \"eventDate\": \"Tuesday, May 12, 2026\",
       \"bookingReference\": \"BOOK-12345\",
-      \"feedbackLink\": \"https://lolaasone.com/feedback?booking=BOOK-12345\",
-      \"photoShareLink\": \"https://lolaasone.com/share-photos?booking=BOOK-12345\"
+      \"feedbackLink\": \"https://www.lotsoflovelyart.com/feedback?booking=BOOK-12345\",
+      \"photoShareLink\": \"https://www.lotsoflovelyart.com/share-photos?booking=BOOK-12345\"
     }
   }"
 

@@ -66,7 +66,7 @@ async function testEventBookingEmail() {
       eventName: 'Candle Making Workshop',
       eventDate: 'Saturday, 15th February 2026',
       eventTime: '2:00 PM - 4:00 PM',
-      location: 'Lola As One Studio, London',
+      location: 'Lots of Lovely Art Studio, London',
       numberOfAttendees: 2,
       bookingReference: 'BKG-TEST-001',
       orderNumber: 'TEST-001',
@@ -106,11 +106,11 @@ async function testWaitlistEmail() {
       eventName: 'Pottery Workshop',
       eventDate: 'Sunday, 23rd February 2026',
       eventTime: '10:00 AM - 1:00 PM',
-      location: 'Lola As One Studio, London',
+      location: 'Lots of Lovely Art Studio, London',
       spacesAvailable: 1,
       price: 75.00,
       expiryTime: 'Tomorrow at 2:00 PM',
-      bookingLink: 'https://lolaasone.com/events/pottery-workshop',
+      bookingLink: 'https://www.lotsoflovelyart.com/events/pottery-workshop',
     },
   }
 

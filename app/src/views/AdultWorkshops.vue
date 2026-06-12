@@ -144,6 +144,17 @@
                 </div>
 
                 <div class="flex items-center justify-end gap-2 rounded-[1.25rem] border border-stone-200 bg-white px-4 py-3">
+                  <button
+                    v-if="isWaitlistAvailable(workshop)"
+                    type="button"
+                    class="inline-flex h-10 min-w-[9rem] items-center justify-center rounded-full border border-[#cf7f6c] bg-[#cf7f6c] px-4 text-sm font-semibold text-white transition-colors hover:border-[#bd6f5e] hover:bg-[#bd6f5e]"
+                    @click="openWaitlistModal(workshop)"
+                  >
+                    <font-awesome-icon icon="bell" class="mr-2 h-3.5 w-3.5" />
+                    {{ waitlistButtonLabel(workshop) }}
+                  </button>
+
+                  <template v-else>
                     <button
                       type="button"
                       class="flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-700 transition-colors hover:border-stone-400 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
@@ -165,6 +176,7 @@
                     >
                       <font-awesome-icon icon="plus" class="h-3 w-3" />
                     </button>
+                  </template>
                 </div>
               </div>
             </article>
@@ -172,6 +184,13 @@
         </section>
       </div>
     </div>
+
+    <JoinEventWaitlistModal
+      v-model="showWaitlistModal"
+      :event-id="waitlistModalEventId"
+      :event-title="waitlistModalEventTitle"
+      @success="handleWaitlistSuccess"
+    />
   </div>
 </template>
 
@@ -181,6 +200,7 @@ import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import { useCartStore } from '../stores/cart'
 import { getWorkshopAgeLabel, isAdultWorkshopLayout } from '../utils/workshopDisplay'
+import JoinEventWaitlistModal from '../components/JoinEventWaitlistModal.vue'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -188,6 +208,8 @@ const cartStore = useCartStore()
 const workshops = ref([])
 const loading = ref(true)
 const error = ref(null)
+const showWaitlistModal = ref(false)
+const selectedWaitlistWorkshop = ref(null)
 
 const heroCategory = computed(() => {
   return workshops.value.find((workshop) => workshop.category)?.category || null
@@ -326,18 +348,37 @@ const getAvailableSpaces = (workshop) => {
     return capacity.spaces_available
   }
 
-  if (
-    typeof workshop.max_capacity === 'number' &&
-    typeof workshop.current_bookings === 'number'
-  ) {
-    return Math.max(workshop.max_capacity - workshop.current_bookings, 0)
-  }
+  const sellableCapacity = typeof workshop.available_spaces === 'number'
+    ? workshop.available_spaces
+    : workshop.max_capacity
 
-  if (typeof workshop.available_spaces === 'number') {
-    return workshop.available_spaces
+  if (typeof sellableCapacity === 'number') {
+    const currentBookings = typeof workshop.current_bookings === 'number' ? workshop.current_bookings : 0
+    return Math.max(sellableCapacity - currentBookings, 0)
   }
 
   return null
+}
+
+const isSoldOut = (workshop) => {
+  const availableSpaces = getAvailableSpaces(workshop)
+  return availableSpaces !== null && availableSpaces <= 0
+}
+
+const isWaitlistAvailable = (workshop) => {
+  const capacity = getCapacity(workshop)
+  return isSoldOut(workshop) && Boolean(capacity?.waitlist_enabled ?? workshop.waitlist_enabled)
+}
+
+const waitlistButtonLabel = (workshop) => {
+  const capacity = getCapacity(workshop)
+  const waitlistCount = Number(capacity?.waitlist_count ?? 0)
+
+  if (waitlistCount <= 0) {
+    return 'Join Waitlist'
+  }
+
+  return waitlistCount === 1 ? 'Join Waitlist (1 waiting)' : `Join Waitlist (${waitlistCount} waiting)`
 }
 
 const availabilityLabel = (workshop) => {
@@ -460,6 +501,27 @@ const decrementWorkshop = (workshop) => {
   }
 
   cartStore.updateQuantity(workshop.id, currentQuantity - 1)
+}
+
+const waitlistModalEventId = computed(() => selectedWaitlistWorkshop.value?.id || '')
+
+const waitlistModalEventTitle = computed(() => selectedWaitlistWorkshop.value?.offering?.title || '')
+
+const openWaitlistModal = (workshop) => {
+  selectedWaitlistWorkshop.value = workshop
+  showWaitlistModal.value = true
+}
+
+const handleWaitlistSuccess = (entry) => {
+  const eventId = entry?.offering_event_id || selectedWaitlistWorkshop.value?.id
+  const workshop = workshops.value.find((item) => item.id === eventId)
+  const capacity = workshop ? getCapacity(workshop) : null
+
+  if (!capacity) {
+    return
+  }
+
+  capacity.waitlist_count = Number(capacity.waitlist_count ?? 0) + 1
 }
 
 const goToWorkshop = (workshop) => {

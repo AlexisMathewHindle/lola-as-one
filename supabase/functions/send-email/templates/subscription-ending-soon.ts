@@ -9,7 +9,7 @@ interface SubscriptionEndingSoonData {
 }
 
 export default function subscriptionEndingSoon(data: SubscriptionEndingSoonData) {
-  const reactivateLink = data.reactivateLink || 'https://lolaasone.com/account/subscriptions'
+  const reactivateLink = data.reactivateLink || 'https://www.lotsoflovelyart.com/account/subscriptions'
 
   const html = baseLayout(`
     <h2>Your subscription is ending soon</h2>
@@ -29,7 +29,7 @@ export default function subscriptionEndingSoon(data: SubscriptionEndingSoonData)
       <a href="${reactivateLink}" class="button">Reactivate Subscription</a>
     </div>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -46,7 +46,7 @@ Reactivate subscription:
 ${reactivateLink}
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

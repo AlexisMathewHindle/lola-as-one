@@ -52,13 +52,13 @@ export default function subscriptionActivated(data: SubscriptionActivatedData) {
       <li>View upcoming boxes</li>
     </ul>
     
-    <a href="https://lolaasone.com/account/subscriptions" class="button">Manage Subscription</a>
+    <a href="https://www.lotsoflovelyart.com/account/subscriptions" class="button">Manage Subscription</a>
     
-    <p>If you have any questions, we're here to help at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a></p>
+    <p>If you have any questions, we're here to help at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a></p>
     
     <p>Thank you for subscribing!</p>
     
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -83,14 +83,14 @@ You can manage your subscription anytime from your account dashboard:
 - Change shipping address
 - View upcoming boxes
 
-Manage your subscription: https://lolaasone.com/account/subscriptions
+Manage your subscription: https://www.lotsoflovelyart.com/account/subscriptions
 
-If you have any questions, we're here to help at hello@lolaasone.com
+If you have any questions, we're here to help at hello@lotsoflovelyart.com
 
 Thank you for subscribing!
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

@@ -271,7 +271,7 @@ const cartStore = useCartStore()
 const route = useRoute()
 const mobileMenuOpen = ref(false)
 const navigationRoot = ref(null)
-const siteName = ref('Lola As One')
+const siteName = ref('LoLA')
 
 const fallbackNavigationItems = [
   { id: 'workshops', label: 'Workshops', itemType: 'page', href: '/workshops', pageKey: 'workshops' },

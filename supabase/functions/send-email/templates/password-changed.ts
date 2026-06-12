@@ -8,7 +8,7 @@ interface PasswordChangedData {
 }
 
 export default function passwordChanged(data: PasswordChangedData) {
-  const supportEmail = data.supportEmail || 'hello@lolaasone.com'
+  const supportEmail = data.supportEmail || 'hello@lotsoflovelyart.com'
   const greeting = data.customerName ? `Hi ${data.customerName},` : 'Hello,'
 
   const html = baseLayout(`
@@ -16,7 +16,7 @@ export default function passwordChanged(data: PasswordChangedData) {
 
     <p>${greeting}</p>
 
-    <p>The password for your Lola As One account was changed on ${data.changeDateTime}.</p>
+    <p>The password for your Lots of Lovely Art account was changed on ${data.changeDateTime}.</p>
 
     <div class="info-box">
       <strong>Changed:</strong> ${data.changeDateTime}
@@ -25,7 +25,7 @@ export default function passwordChanged(data: PasswordChangedData) {
 
     <p>If you made this change, no further action is needed. If you did not, email us immediately at <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -33,18 +33,18 @@ Your password has been changed
 
 ${greeting}
 
-The password for your Lola As One account was changed on ${data.changeDateTime}.
+The password for your Lots of Lovely Art account was changed on ${data.changeDateTime}.
 
 ${data.ipAddress ? `IP address: ${data.ipAddress}` : ''}
 
 If you made this change, no further action is needed. If you did not, email us immediately at ${supportEmail}.
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {
-    subject: 'Your Lola As One Password Was Changed',
+    subject: 'Your Lots of Lovely Art Password Was Changed',
     html,
     text,
   }

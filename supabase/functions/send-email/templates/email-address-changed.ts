@@ -9,7 +9,7 @@ interface EmailAddressChangedData {
 }
 
 export default function emailAddressChanged(data: EmailAddressChangedData) {
-  const supportEmail = data.supportEmail || 'hello@lolaasone.com'
+  const supportEmail = data.supportEmail || 'hello@lotsoflovelyart.com'
   const greeting = data.customerName ? `Hi ${data.customerName},` : 'Hello,'
 
   const html = baseLayout(`
@@ -17,7 +17,7 @@ export default function emailAddressChanged(data: EmailAddressChangedData) {
 
     <p>${greeting}</p>
 
-    <p>The email address on your Lola As One account was changed.</p>
+    <p>The email address on your Lots of Lovely Art account was changed.</p>
 
     <div class="info-box">
       <strong>Old email:</strong> ${data.oldEmail}<br>
@@ -27,7 +27,7 @@ export default function emailAddressChanged(data: EmailAddressChangedData) {
 
     <p>If you did not make this change, email us immediately at <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -35,7 +35,7 @@ Your email address has been changed
 
 ${greeting}
 
-The email address on your Lola As One account was changed.
+The email address on your Lots of Lovely Art account was changed.
 
 Old email: ${data.oldEmail}
 New email: ${data.newEmail}
@@ -44,11 +44,11 @@ Changed: ${data.changeDateTime}
 If you did not make this change, email us immediately at ${supportEmail}.
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {
-    subject: 'Your Lola As One Email Address Was Changed',
+    subject: 'Your Lots of Lovely Art Email Address Was Changed',
     html,
     text,
   }

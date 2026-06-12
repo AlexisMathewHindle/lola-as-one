@@ -198,7 +198,7 @@ const normalizeOpeningTimes = (entries) => {
     .filter(entry => entry.day && entry.hours)
 }
 
-const siteName = ref('Lola As One')
+const siteName = ref('LoLA')
 const siteTagline = ref('Where creativity meets community.')
 const footerPrimaryItems = ref([...fallbackFooterPrimaryItems])
 const footerSecondaryItems = ref([...fallbackFooterSecondaryItems])

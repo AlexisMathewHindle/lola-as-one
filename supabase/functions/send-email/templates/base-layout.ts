@@ -1,18 +1,33 @@
 // Base email layout for all templates
+interface EmailLayoutOptions {
+  brandName?: string
+  plainHeader?: string
+  tagline?: string
+  footerBrand?: string
+  footerTagline?: string
+  receivingReasonBrand?: string
+}
+
 function getSupportEmail(): string {
   const denoEnv = (globalThis as any).Deno?.env
   return denoEnv?.get('SUPPORT_EMAIL') || denoEnv?.get('EMAIL_REPLY_TO') || 'hello@lotsoflovelyart.com'
 }
 
-export function baseLayout(content: string): string {
+export function baseLayout(content: string, options: EmailLayoutOptions = {}): string {
   const supportEmail = getSupportEmail()
+  const brandName = options.brandName ?? 'LoLA'
+  const tagline = options.tagline ?? 'Lots of Lovely Art'
+  const footerBrand = options.footerBrand ?? 'Lots of Lovely Art'
+  const footerTagline = options.footerTagline ?? ''
+  const receivingReasonBrand = options.receivingReasonBrand ?? 'Lots of Lovely Art'
+
   return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lola As One</title>
+  <title>${brandName}</title>
   <style>
     body {
       margin: 0;
@@ -169,22 +184,22 @@ export function baseLayout(content: string): string {
 <body>
   <div class="email-container">
     <div class="header">
-      <h1>Lola As One</h1>
-      <p>Art workshops, creative projects, and handmade moments.</p>
+      <h1>${brandName}</h1>
+      ${tagline ? `<p>${tagline}</p>` : ''}
     </div>
     <div class="content">
       ${content}
     </div>
     <div class="footer">
-      <p><strong>Lola As One</strong></p>
-      <p>Creative workshops and art-led goods in the UK</p>
+      <p><strong>${footerBrand}</strong></p>
+      ${footerTagline ? `<p>${footerTagline}</p>` : ''}
       <div class="social-links">
-        <a href="https://instagram.com/lolaasone">Instagram</a> |
-        <a href="https://facebook.com/lolaasone">Facebook</a> |
+        <a href="https://www.instagram.com/lotsoflovelyart/">Instagram</a> |
+        <a href="https://www.facebook.com/lotsoflovelyart">Facebook</a> |
         <a href="mailto:${supportEmail}">Contact Us</a>
       </div>
       <p style="font-size: 12px; color: #7a6d61; margin-top: 20px;">
-        You're receiving this email because you made a purchase or signed up for updates from Lola As One.
+        You're receiving this email because you made a purchase or signed up for updates from ${receivingReasonBrand}.
       </p>
     </div>
   </div>
@@ -194,19 +209,25 @@ export function baseLayout(content: string): string {
 }
 
 // Plain text version generator
-export function plainTextLayout(content: string): string {
+export function plainTextLayout(content: string, options: EmailLayoutOptions = {}): string {
   const supportEmail = getSupportEmail()
+  const brandName = options.brandName ?? 'LoLA'
+  const plainHeader = options.plainHeader ?? brandName
+  const tagline = options.tagline ?? 'Lots of Lovely Art'
+  const footerBrand = options.footerBrand ?? 'Lots of Lovely Art'
+  const footerTagline = options.footerTagline ?? ''
+
   return `
-LOLA AS ONE
-===========
+${plainHeader}
+${'='.repeat(plainHeader.length)}
+${tagline ? `\n${tagline}` : ''}
 
 ${content}
 
 ---
-Lola As One
-Creative workshops and art-led goods in the UK
-Instagram: https://instagram.com/lolaasone
-Facebook: https://facebook.com/lolaasone
+${footerBrand}
+${footerTagline ? `${footerTagline}\n` : ''}Instagram: https://www.instagram.com/lotsoflovelyart/
+Facebook: https://www.facebook.com/lotsoflovelyart
 Email: ${supportEmail}
   `.trim()
 }

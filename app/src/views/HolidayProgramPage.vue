@@ -56,8 +56,16 @@
         @decrement-term="decrementTermGroup"
         @increment-session="incrementSession"
         @decrement-session="decrementSession"
+        @join-waitlist="openWaitlistModal"
       />
     </div>
+
+    <JoinEventWaitlistModal
+      v-model="showWaitlistModal"
+      :event-id="waitlistModalEventId"
+      :event-title="waitlistModalEventTitle"
+      @success="handleWaitlistSuccess"
+    />
   </div>
 </template>
 
@@ -65,6 +73,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { supabase } from '../lib/supabase'
 import WorkshopContentSingleSeries from '../components/workshops/WorkshopContentSingleSeries.vue'
+import JoinEventWaitlistModal from '../components/JoinEventWaitlistModal.vue'
 import { useCartStore } from '../stores/cart'
 import { formatAgeRange } from '../utils/workshopDisplay'
 
@@ -93,6 +102,8 @@ const category = ref(null)
 const sessions = ref([])
 const loading = ref(true)
 const error = ref(null)
+const showWaitlistModal = ref(false)
+const selectedWaitlistEvent = ref(null)
 
 const fallbackTitle = computed(() => props.fallbackTitle)
 
@@ -190,6 +201,10 @@ const representativeWorkshop = computed(() => {
     category: category.value
   }
 })
+
+const waitlistModalEventId = computed(() => selectedWaitlistEvent.value?.id || '')
+
+const waitlistModalEventTitle = computed(() => selectedWaitlistEvent.value?.offering?.title || '')
 
 const sessionQuantities = computed(() => {
   return cartStore.items.reduce((quantities, item) => {
@@ -318,6 +333,18 @@ const getCapacity = (session) => {
   return session.capacity || null
 }
 
+const incrementWaitlistCount = (eventId) => {
+  const session = sessions.value.find((item) => item.id === eventId)
+  const capacity = session ? getCapacity(session) : null
+
+  if (!capacity) {
+    return
+  }
+
+  const currentCount = toFiniteNumber(capacity.waitlist_count) || 0
+  capacity.waitlist_count = currentCount + 1
+}
+
 const getAvailableSpaces = (session) => {
   const capacity = getCapacity(session)
   const capacitySpaces = toFiniteNumber(capacity?.spaces_available)
@@ -328,12 +355,13 @@ const getAvailableSpaces = (session) => {
 
   const maxCapacity = toFiniteNumber(session.max_capacity)
   const currentBookings = toFiniteNumber(session.current_bookings)
+  const sellableCapacity = toFiniteNumber(session.available_spaces) ?? maxCapacity
 
-  if (maxCapacity !== null && currentBookings !== null) {
-    return Math.max(maxCapacity - currentBookings, 0)
+  if (sellableCapacity !== null) {
+    return Math.max(sellableCapacity - (currentBookings ?? 0), 0)
   }
 
-  return toFiniteNumber(session.available_spaces)
+  return null
 }
 
 const getSessionQuantity = (session) => {
@@ -495,6 +523,15 @@ const decrementTermGroup = (termGroup) => {
   }
 
   termGroup.sessions.forEach(decrementSession)
+}
+
+const openWaitlistModal = (session) => {
+  selectedWaitlistEvent.value = session
+  showWaitlistModal.value = true
+}
+
+const handleWaitlistSuccess = (entry) => {
+  incrementWaitlistCount(entry?.offering_event_id || selectedWaitlistEvent.value?.id)
 }
 
 watch(() => props.categorySlug, () => {

@@ -36,8 +36,25 @@ const data = {
   accountCreatedDate: '5 June 2026',
   orderNumber: 'EMAIL-PROOF',
   orderItems: [
-    { name: 'Proof workshop', quantity: 1, price: 12 },
-    { name: 'Proof art kit', quantity: 2, price: 8 },
+    {
+      name: 'Proof workshop',
+      quantity: 1,
+      price: 12,
+      type: 'event',
+      eventDate: 'Saturday, 20 June 2026',
+      eventTime: '10:00 - 12:00',
+      location: 'Lola Creative Space',
+      bookingReference: 'BKG-EMAIL-PROOF',
+      attendees: [
+        {
+          firstName: 'Email',
+          lastName: 'Proof',
+          email: 'proof@example.com',
+          allergies: 'None',
+        },
+      ],
+    },
+    { name: 'Proof art kit', quantity: 2, price: 8, type: 'product_physical' },
   ],
   deliveredItems: [
     { name: 'Proof workshop', quantity: 1 },
@@ -153,7 +170,7 @@ const data = {
   preferencesLink: `${siteUrl}/newsletter/preferences`,
   unsubscribeLink: `${siteUrl}/newsletter/unsubscribe`,
   resubscribeLink: `${siteUrl}/newsletter`,
-  socialLink: 'https://instagram.com/lolaasone',
+  socialLink: 'https://www.instagram.com/lotsoflovelyart/',
   unsubscribeDate: '5 June 2026',
   subscriptionDate: '5 June 2026',
   cartItems: [
@@ -186,6 +203,7 @@ const data = {
 const coreTemplates = [
   'order-confirmation',
   'event-booking-confirmation',
+  'event-booking-admin',
   'new-order-admin',
 ]
 
@@ -195,6 +213,7 @@ const allTemplates = [
   'order-cancelled',
   'refund-processed',
   'event-booking-confirmation',
+  'event-booking-admin',
   'event-cancelled',
   'booking-cancelled',
   'subscription-activated',

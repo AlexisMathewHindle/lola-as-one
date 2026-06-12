@@ -33,9 +33,9 @@ export default function eventFeedbackRequest(data: EventFeedbackRequestData) {
       <p>If you took photos you are happy for us to see, you can share them here: <a href="${data.photoShareLink}">upload workshop photos</a>.</p>
     ` : ''}
 
-    <p class="muted">This should only take a couple of minutes. If anything needs a direct reply, email us at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a>.</p>
+    <p class="muted">This should only take a couple of minutes. If anything needs a direct reply, email us at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a>.</p>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -59,10 +59,10 @@ Share workshop photos:
 ${data.photoShareLink}
 ` : ''}
 
-If anything needs a direct reply, email us at hello@lolaasone.com.
+If anything needs a direct reply, email us at hello@lotsoflovelyart.com.
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

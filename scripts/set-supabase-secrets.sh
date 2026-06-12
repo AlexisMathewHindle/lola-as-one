@@ -83,6 +83,7 @@ set_secret "RESEND_API_KEY" "$RESEND_API_KEY"
 set_secret "EMAIL_FROM" "$EMAIL_FROM"
 
 # Set optional operational secrets when present.
+set_secret "WORKSHOP_CONFIRMATION_EMAIL_FROM" "$WORKSHOP_CONFIRMATION_EMAIL_FROM"
 set_secret "EMAIL_REPLY_TO" "$EMAIL_REPLY_TO"
 set_secret "SUPPORT_EMAIL" "$SUPPORT_EMAIL"
 set_secret "ADMIN_EMAILS" "$ADMIN_EMAILS"

@@ -44,12 +44,12 @@ export default function orderShipped(data: OrderShippedData) {
     <ol>
       <li>Check the tracking information for updates</li>
       <li>Check with neighbors or building reception</li>
-      <li>Contact us at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a></li>
+      <li>Contact us at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a></li>
     </ol>
     
     <p>Thank you for your order!</p>
     
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -74,12 +74,12 @@ WHAT TO DO IF YOUR PACKAGE DOESN'T ARRIVE
 If your package hasn't arrived by the estimated delivery date, please:
 1. Check the tracking information for updates
 2. Check with neighbors or building reception
-3. Contact us at hello@lolaasone.com
+3. Contact us at hello@lotsoflovelyart.com
 
 Thank you for your order!
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

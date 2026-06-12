@@ -25,9 +25,9 @@ export default function orderCancelled(data: OrderCancelledData) {
       ${data.refundTimeline ? `<br><strong>Refund timing:</strong> ${data.refundTimeline}` : ''}
     </div>
 
-    <p>If you have any questions, email us at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a>.</p>
+    <p>If you have any questions, email us at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a>.</p>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -42,10 +42,10 @@ ${data.cancellationReason ? `Reason: ${data.cancellationReason}` : ''}
 ${refundAmount ? `Refund amount: ${refundAmount}` : ''}
 ${data.refundTimeline ? `Refund timing: ${data.refundTimeline}` : ''}
 
-If you have any questions, email us at hello@lolaasone.com.
+If you have any questions, email us at hello@lotsoflovelyart.com.
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

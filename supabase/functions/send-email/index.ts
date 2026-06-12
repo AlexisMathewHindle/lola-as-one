@@ -8,6 +8,7 @@ type EmailTemplate =
   | 'order-cancelled'
   | 'refund-processed'
   | 'event-booking-confirmation'
+  | 'event-booking-admin'
   | 'event-cancelled'
   | 'booking-cancelled'
   | 'subscription-activated'
@@ -56,6 +57,50 @@ interface EmailRequest {
   metadata?: Record<string, any>
 }
 
+const DEFAULT_EMAIL_FROM = 'Lots of Lovely Art <hello@lotsoflovelyart.com>'
+const WORKSHOP_CONFIRMATION_EMAIL_FROM = DEFAULT_EMAIL_FROM
+const WORKSHOP_CONFIRMATION_TEMPLATES = new Set<EmailTemplate>([
+  'event-booking-confirmation',
+])
+
+function getEnvValue(name: string): string {
+  return Deno.env.get(name)?.trim() || ''
+}
+
+function usesLolaCreativeSpaceSender(fromAddress: string): boolean {
+  return fromAddress.toLowerCase().includes('@lolacreativespace.com')
+}
+
+function getConfiguredFromAddress(envNames: string[], fallback: string): string {
+  for (const envName of envNames) {
+    const configuredFrom = getEnvValue(envName)
+
+    if (!configuredFrom) {
+      continue
+    }
+
+    if (usesLolaCreativeSpaceSender(configuredFrom)) {
+      console.warn(`Ignoring ${envName} because it uses lolacreativespace.com`)
+      continue
+    }
+
+    return configuredFrom
+  }
+
+  return fallback
+}
+
+function getFromAddress(template: EmailTemplate): string {
+  if (WORKSHOP_CONFIRMATION_TEMPLATES.has(template)) {
+    return getConfiguredFromAddress(
+      ['WORKSHOP_CONFIRMATION_EMAIL_FROM', 'EVENT_EMAIL_FROM'],
+      WORKSHOP_CONFIRMATION_EMAIL_FROM,
+    )
+  }
+
+  return getConfiguredFromAddress(['EMAIL_FROM'], DEFAULT_EMAIL_FROM)
+}
+
 serve(async (req) => {
   let supabase: any = null
   let requestedTemplate = ''
@@ -91,7 +136,7 @@ serve(async (req) => {
       throw new Error('Missing required fields: template, to, or data')
     }
 
-    const supportEmail = Deno.env.get('SUPPORT_EMAIL') || Deno.env.get('EMAIL_REPLY_TO') || 'hello@lolacreativespace.com'
+    const supportEmail = Deno.env.get('SUPPORT_EMAIL') || Deno.env.get('EMAIL_REPLY_TO') || 'hello@lotsoflovelyart.com'
     const siteUrl = Deno.env.get('SITE_URL') || Deno.env.get('APP_URL') || 'https://lolacreativespace.com'
     const templateData = {
       supportEmail,
@@ -106,8 +151,8 @@ serve(async (req) => {
 
     // Send email via Resend
     console.log('📧 Sending email via Resend to:', to)
-    const fromAddress = Deno.env.get('EMAIL_FROM') || 'Lola As One <onboarding@resend.dev>'
-    const replyToAddress = Deno.env.get('EMAIL_REPLY_TO')?.trim()
+    const fromAddress = getFromAddress(template)
+    const replyToAddress = getEnvValue('EMAIL_REPLY_TO')
     const resendPayload: Record<string, any> = {
       from: fromAddress,
       to: [to],
@@ -149,6 +194,8 @@ serve(async (req) => {
       metadata: {
         ...(metadata || {}),
         subject: emailContent.subject,
+        fromAddress,
+        replyToAddress: replyToAddress || null,
       },
       sent_at: new Date().toISOString(),
     })
@@ -196,6 +243,7 @@ async function getEmailContent(template: EmailTemplate, data: Record<string, any
     'order-cancelled': await import('./templates/order-cancelled.ts'),
     'refund-processed': await import('./templates/refund-processed.ts'),
     'event-booking-confirmation': await import('./templates/event-booking-confirmation.ts'),
+    'event-booking-admin': await import('./templates/event-booking-admin.ts'),
     'event-cancelled': await import('./templates/event-cancelled.ts'),
     'booking-cancelled': await import('./templates/booking-cancelled.ts'),
     'subscription-activated': await import('./templates/subscription-activated.ts'),

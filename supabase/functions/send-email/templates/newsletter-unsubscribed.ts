@@ -11,7 +11,7 @@ export default function newsletterUnsubscribed(data: NewsletterUnsubscribedData)
   const html = baseLayout(`
     <h2>You have been unsubscribed</h2>
 
-    <p>${data.emailAddress} has been removed from Lola As One updates.</p>
+    <p>${data.emailAddress} has been removed from Lots of Lovely Art updates.</p>
 
     <div class="info-box">
       <strong>Unsubscribed:</strong> ${data.unsubscribeDate}
@@ -20,13 +20,13 @@ export default function newsletterUnsubscribed(data: NewsletterUnsubscribedData)
     ${data.resubscribeLink ? `<p>If this was a mistake, you can <a href="${data.resubscribeLink}">resubscribe here</a>.</p>` : ''}
     ${data.socialLink ? `<p>You can still keep in touch on <a href="${data.socialLink}">social media</a>.</p>` : ''}
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
 You have been unsubscribed
 
-${data.emailAddress} has been removed from Lola As One updates.
+${data.emailAddress} has been removed from Lots of Lovely Art updates.
 
 Unsubscribed: ${data.unsubscribeDate}
 
@@ -34,7 +34,7 @@ ${data.resubscribeLink ? `Resubscribe:\n${data.resubscribeLink}` : ''}
 ${data.socialLink ? `Social media:\n${data.socialLink}` : ''}
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

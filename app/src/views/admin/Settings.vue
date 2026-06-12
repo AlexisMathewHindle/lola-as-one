@@ -313,7 +313,7 @@ const cloneValue = (value) => JSON.parse(JSON.stringify(value))
 const valuesEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 
 const form = reactive({
-  siteName: 'Lots Of Lovely Art',
+  siteName: 'LoLA',
   siteTagline: 'Where creativity meets community.',
   footerIntro: 'Creative classes, workshops, art boxes and warm community moments from the Lola creative space in Newbury.',
   contactVenue: 'LoLA Lots of Lovely Art Creative Space',

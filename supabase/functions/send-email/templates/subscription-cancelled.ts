@@ -10,7 +10,7 @@ interface SubscriptionCancelledData {
 }
 
 export default function subscriptionCancelled(data: SubscriptionCancelledData) {
-  const browseLink = data.browseLink || 'https://lolaasone.com/shop'
+  const browseLink = data.browseLink || 'https://www.lotsoflovelyart.com/shop'
 
   const html = baseLayout(`
     <h2>Your subscription has been cancelled</h2>
@@ -25,13 +25,13 @@ export default function subscriptionCancelled(data: SubscriptionCancelledData) {
       ${data.cancellationReason ? `<br><strong>Reason:</strong> ${data.cancellationReason}` : ''}
     </div>
 
-    <p>Thank you for being part of Lola As One. You can still book workshops or shop one-off items anytime.</p>
+    <p>Thank you for being part of Lots of Lovely Art. You can still book workshops or shop one-off items anytime.</p>
 
     <div style="text-align: center;">
-      <a href="${browseLink}" class="button">Browse Lola As One</a>
+      <a href="${browseLink}" class="button">Browse Lots of Lovely Art</a>
     </div>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -45,11 +45,11 @@ Cancelled on: ${data.cancellationDate}
 ${data.finalBillingDate ? `Final billing date: ${data.finalBillingDate}` : ''}
 ${data.cancellationReason ? `Reason: ${data.cancellationReason}` : ''}
 
-Browse Lola As One:
+Browse Lots of Lovely Art:
 ${browseLink}
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

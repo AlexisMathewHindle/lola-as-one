@@ -13,11 +13,11 @@ export default function giftCardReceived(data: GiftCardReceivedData) {
   const amount = `£${data.amount.toFixed(2)}`
 
   const html = baseLayout(`
-    <h2>You have received a Lola As One gift card</h2>
+    <h2>You have received a Lots of Lovely Art gift card</h2>
 
     <p>Hi ${data.recipientName},</p>
 
-    <p>${data.senderName} has sent you a Lola As One gift card.</p>
+    <p>${data.senderName} has sent you a Lots of Lovely Art gift card.</p>
 
     ${data.personalMessage ? `
       <div class="info-box">
@@ -34,15 +34,15 @@ export default function giftCardReceived(data: GiftCardReceivedData) {
       <a href="${data.redemptionLink}" class="button">Use Your Gift Card</a>
     </div>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
-You have received a Lola As One gift card
+You have received a Lots of Lovely Art gift card
 
 Hi ${data.recipientName},
 
-${data.senderName} has sent you a Lola As One gift card.
+${data.senderName} has sent you a Lots of Lovely Art gift card.
 
 ${data.personalMessage || ''}
 
@@ -53,11 +53,11 @@ Use your gift card:
 ${data.redemptionLink}
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {
-    subject: `${data.senderName} Sent You a Lola As One Gift Card`,
+    subject: `${data.senderName} Sent You a Lots of Lovely Art Gift Card`,
     html,
     text,
   }

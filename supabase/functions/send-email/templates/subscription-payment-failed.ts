@@ -41,9 +41,9 @@ export default function subscriptionPaymentFailed(data: SubscriptionPaymentFaile
       <li>Incorrect billing address</li>
     </ul>
     
-    <p>If you need help or have questions, please contact us at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a></p>
+    <p>If you need help or have questions, please contact us at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a></p>
     
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -70,10 +70,10 @@ COMMON REASONS FOR PAYMENT FAILURE
 - Card declined by bank
 - Incorrect billing address
 
-If you need help or have questions, please contact us at hello@lolaasone.com
+If you need help or have questions, please contact us at hello@lotsoflovelyart.com
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

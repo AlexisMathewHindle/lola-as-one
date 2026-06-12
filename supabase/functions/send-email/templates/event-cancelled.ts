@@ -36,9 +36,9 @@ export default function eventCancelled(data: EventCancelledData) {
       </div>
     ` : ''}
 
-    <p>If you need help, email us at <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a>.</p>
+    <p>If you need help, email us at <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a>.</p>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -58,10 +58,10 @@ If a refund is due, it will be returned to your original payment method.
 
 ${data.alternativesLink ? `View other workshops:\n${data.alternativesLink}` : ''}
 
-If you need help, email us at hello@lolaasone.com.
+If you need help, email us at hello@lotsoflovelyart.com.
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

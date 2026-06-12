@@ -39,11 +39,11 @@ export default function eventReminder24Hours(data: EventReminder24HoursData) {
       <li>Bring your enthusiasm and creativity</li>
     </ul>
     
-    <p>If you have any last-minute questions or need to contact us urgently, please email <a href="mailto:hello@lolaasone.com">hello@lolaasone.com</a></p>
+    <p>If you have any last-minute questions or need to contact us urgently, please email <a href="mailto:hello@lotsoflovelyart.com">hello@lotsoflovelyart.com</a></p>
     
     <p>We can't wait to see you tomorrow!</p>
     
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -69,12 +69,12 @@ LAST-MINUTE CHECKLIST
 - Arrive 10 minutes early
 - Bring your enthusiasm and creativity
 
-If you have any last-minute questions or need to contact us urgently, please email hello@lolaasone.com
+If you have any last-minute questions or need to contact us urgently, please email hello@lotsoflovelyart.com
 
 We can't wait to see you tomorrow!
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

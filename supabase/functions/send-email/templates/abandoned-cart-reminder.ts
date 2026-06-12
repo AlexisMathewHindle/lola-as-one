@@ -16,7 +16,7 @@ export default function abandonedCartReminder(data: AbandonedCartReminderData) {
 
     <p>${greeting}</p>
 
-    <p>Your Lola As One basket is still waiting for you.</p>
+    <p>Your Lots of Lovely Art basket is still waiting for you.</p>
 
     <table class="table">
       ${data.cartItems.map((item) => `
@@ -37,7 +37,7 @@ export default function abandonedCartReminder(data: AbandonedCartReminderData) {
       <a href="${data.cartLink}" class="button">Return to Basket</a>
     </div>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -45,7 +45,7 @@ You left something in your basket
 
 ${greeting}
 
-Your Lola As One basket is still waiting for you.
+Your Lots of Lovely Art basket is still waiting for you.
 
 ${data.cartItems.map((item) => `${item.name} x${item.quantity} - £${item.price.toFixed(2)}`).join('\n')}
 Total: £${data.cartTotal.toFixed(2)}
@@ -56,11 +56,11 @@ Return to basket:
 ${data.cartLink}
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {
-    subject: 'Your Lola As One Basket Is Waiting',
+    subject: 'Your Lots of Lovely Art Basket Is Waiting',
     html,
     text,
   }

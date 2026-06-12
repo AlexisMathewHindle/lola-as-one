@@ -26,7 +26,7 @@ export default function waitlistSpotExpired(data: WaitlistSpotExpiredData) {
     ${data.rejoinLink ? `<p><a href="${data.rejoinLink}" class="button">Rejoin Waitlist</a></p>` : ''}
     ${data.alternativesLink ? `<p><a href="${data.alternativesLink}">View alternatives</a></p>` : ''}
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -41,7 +41,7 @@ ${data.rejoinLink ? `Rejoin waitlist:\n${data.rejoinLink}` : ''}
 ${data.alternativesLink ? `View alternatives:\n${data.alternativesLink}` : ''}
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

@@ -10,7 +10,7 @@ interface SubscriptionResumedData {
 }
 
 export default function subscriptionResumed(data: SubscriptionResumedData) {
-  const manageLink = data.manageSubscriptionLink || 'https://lolaasone.com/account/subscriptions'
+  const manageLink = data.manageSubscriptionLink || 'https://www.lotsoflovelyart.com/account/subscriptions'
 
   const html = baseLayout(`
     <h2>Your subscription has resumed</h2>
@@ -29,7 +29,7 @@ export default function subscriptionResumed(data: SubscriptionResumedData) {
       <a href="${manageLink}" class="button">Manage Subscription</a>
     </div>
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -47,7 +47,7 @@ Manage subscription:
 ${manageLink}
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

@@ -35,12 +35,12 @@ curl -i --location --request POST "$API_URL" \
 
 echo ""
 echo ""
-echo "2. Admin order notification for event booking"
+echo "2. Admin event booking notification"
 curl -i --location --request POST "$API_URL" \
   --header "Authorization: Bearer $AUTH_TOKEN" \
   --header "Content-Type: application/json" \
   --data "{
-    \"template\": \"new-order-admin\",
+    \"template\": \"event-booking-admin\",
     \"to\": \"$TEST_EMAIL\",
     \"data\": {
       \"orderNumber\": \"TEST-ADMIN-001\",
@@ -65,12 +65,12 @@ curl -i --location --request POST "$API_URL" \
 
 echo ""
 echo ""
-echo "3. Admin order notification with attendee object details"
+echo "3. Admin event booking notification with attendee object details"
 curl -i --location --request POST "$API_URL" \
   --header "Authorization: Bearer $AUTH_TOKEN" \
   --header "Content-Type: application/json" \
   --data "{
-    \"template\": \"new-order-admin\",
+    \"template\": \"event-booking-admin\",
     \"to\": \"$TEST_EMAIL\",
     \"data\": {
       \"orderNumber\": \"TEST-ADMIN-002\",

@@ -44,11 +44,11 @@ export default function subscriptionRenewalSuccess(data: SubscriptionRenewalData
     
     <p>Your next box will be shipped soon. We'll send you a tracking email once it's on its way!</p>
     
-    <a href="https://lolaasone.com/account/subscriptions" class="button">Manage Subscription</a>
+    <a href="https://www.lotsoflovelyart.com/account/subscriptions" class="button">Manage Subscription</a>
     
     <p>Thank you for being a valued subscriber!</p>
     
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -67,12 +67,12 @@ Payment Method: ${data.paymentMethod}
 
 Your next box will be shipped soon. We'll send you a tracking email once it's on its way!
 
-Manage your subscription: https://lolaasone.com/account/subscriptions
+Manage your subscription: https://www.lotsoflovelyart.com/account/subscriptions
 
 Thank you for being a valued subscriber!
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

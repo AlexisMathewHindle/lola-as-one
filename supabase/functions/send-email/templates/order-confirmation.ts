@@ -94,9 +94,9 @@ export default function orderConfirmation(data: OrderConfirmationData) {
     
     <p>If you have any questions about your order, please don't hesitate to contact us at <a href="mailto:${supportEmail}">${supportEmail}</a></p>
     
-    <p>Thank you for supporting Lola As One!</p>
+    <p>Thank you for supporting Lots of Lovely Art!</p>
     
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -131,10 +131,10 @@ Payment Method: ${data.paymentMethod}
 
 If you have any questions about your order, please contact us at ${supportEmail}
 
-Thank you for supporting Lola As One!
+Thank you for supporting Lots of Lovely Art!
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

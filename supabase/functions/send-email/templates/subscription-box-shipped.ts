@@ -39,7 +39,7 @@ export default function subscriptionBoxShipped(data: SubscriptionBoxShippedData)
       </div>
     ` : ''}
 
-    <p>With love,<br>The Lola As One Team</p>
+    <p>With love,<br>The LoLA Team</p>
   `)
 
   const text = plainTextLayout(`
@@ -59,7 +59,7 @@ ${data.boxContents && data.boxContents.length > 0 ? `INSIDE THIS BOX\n${data.box
 ${data.trackingUrl ? `Track your box:\n${data.trackingUrl}` : ''}
 
 With love,
-The Lola As One Team
+The LoLA Team
   `)
 
   return {

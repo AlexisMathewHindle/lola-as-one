@@ -1,10 +1,18 @@
 import { baseLayout, plainTextLayout } from './base-layout.ts'
 
+interface OrderItem {
+  name: string
+  quantity: number
+  price: number
+}
+
 interface Attendee {
-  firstName: string
-  lastName: string
+  firstName?: string
+  lastName?: string
   email?: string
+  phone?: string
   allergies?: string
+  notes?: string
 }
 
 interface EventBookingData {
@@ -17,6 +25,19 @@ interface EventBookingData {
   bookingReference: string
   orderNumber: string
   pricePaid: number
+  orderItems?: OrderItem[]
+  subtotal?: number
+  shipping?: number
+  vat?: number
+  total?: number
+  paymentMethod?: string
+  shippingAddress?: {
+    line1: string
+    line2?: string
+    city: string
+    postcode: string
+    country: string
+  }
   whatToBring?: string
   parkingInfo?: string
   cancellationPolicy?: string
@@ -24,21 +45,82 @@ interface EventBookingData {
   supportEmail?: string
 }
 
+const LOLA_LOCATION = 'LoLA Creative Space, 50B Northbrook Street Newbury RG14 1DT'
+const LOLA_LAYOUT = {
+  brandName: 'LoLA',
+  plainHeader: 'LoLA',
+  tagline: 'Lots of Lovely Art',
+  footerBrand: 'Lots of Lovely Art',
+  footerTagline: '',
+  receivingReasonBrand: 'Lots of Lovely Art',
+}
+
+function amount(value: unknown, fallback: number): number {
+  const numericValue = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(numericValue) ? numericValue : fallback
+}
+
+function formatMoney(value: number): string {
+  return `£${value.toFixed(2)}`
+}
+
+function normaliseOrderItems(data: EventBookingData): OrderItem[] {
+  const orderItems = Array.isArray(data.orderItems) ? data.orderItems : []
+  const validOrderItems = orderItems.filter((item) => item?.name)
+
+  if (validOrderItems.length > 0) {
+    return validOrderItems.map((item) => ({
+      name: item.name,
+      quantity: amount(item.quantity, 1),
+      price: amount(item.price, 0),
+    }))
+  }
+
+  return [{
+    name: data.eventName || 'Workshop booking',
+    quantity: amount(data.numberOfAttendees, 1),
+    price: amount(data.pricePaid, 0),
+  }]
+}
+
+function locationForSentence(location: string): string {
+  const trimmedLocation = location.trim()
+
+  if (!trimmedLocation || /^tba$/i.test(trimmedLocation)) {
+    return trimmedLocation || LOLA_LOCATION
+  }
+
+  return /^(the|our)\b/i.test(trimmedLocation) ? trimmedLocation : `the ${trimmedLocation}`
+}
+
+function attendeeName(attendee: Attendee, index: number): string {
+  const name = `${attendee.firstName || ''} ${attendee.lastName || ''}`.trim()
+  return name || `Attendee ${index + 1}`
+}
+
 export default function eventBookingConfirmation(data: EventBookingData) {
   const supportEmail = data.supportEmail || 'hello@lotsoflovelyart.com'
+  const orderItems = normaliseOrderItems(data)
+  const itemTotal = orderItems.reduce((sum, item) => sum + item.price, 0)
+  const subtotal = amount(data.subtotal, itemTotal)
+  const shipping = amount(data.shipping, 0)
+  const total = amount(data.total, subtotal + shipping)
+  const vat = amount(data.vat, total > 0 ? total * 0.20 / 1.20 : 0)
+  const paymentMethod = data.paymentMethod || 'Card ending in ****'
+  const location = data.location || LOLA_LOCATION
   const html = baseLayout(`
     <h2>Your workshop is confirmed</h2>
-    
+
     <p>Hi ${data.customerName},</p>
     
-    <p>We're excited to see you at <strong>${data.eventName}</strong>! Your booking has been confirmed.</p>
+    <p>Your booking for <strong>${data.eventName}</strong> is confirmed. We look forward to seeing you at ${locationForSentence(location)}.</p>
     
     <div class="info-box">
       <strong>Booking Reference:</strong> ${data.bookingReference}<br>
       <strong>Order Number:</strong> ${data.orderNumber}
     </div>
     
-    <h3>Event Details</h3>
+    <h3>Workshop Details</h3>
     <table class="table">
       <tr>
         <td><strong>Workshop</strong></td>
@@ -50,36 +132,84 @@ export default function eventBookingConfirmation(data: EventBookingData) {
       </tr>
       <tr>
         <td><strong>Time</strong></td>
-        <td>${data.eventTime}</td>
+        <td>${data.eventTime || 'TBA'}</td>
       </tr>
       <tr>
         <td><strong>Location</strong></td>
-        <td>${data.location}</td>
+        <td>${location}</td>
       </tr>
       <tr>
         <td><strong>Attendees</strong></td>
         <td>${data.numberOfAttendees}</td>
       </tr>
-      <tr>
-        <td><strong>Price Paid</strong></td>
-        <td>£${data.pricePaid.toFixed(2)}</td>
-      </tr>
     </table>
 
     ${data.attendees && data.attendees.length > 0 ? `
-      <h3>Attendee Details</h3>
+      <h3>Attendees</h3>
       <table class="table">
         ${data.attendees.map((attendee, index) => `
           <tr>
-            <td><strong>Attendee ${index + 1}</strong></td>
+            <td><strong>${attendeeName(attendee, index)}</strong></td>
             <td>
-              ${attendee.firstName} ${attendee.lastName}${attendee.email ? ` (${attendee.email})` : ''}
-              ${attendee.allergies ? `<br><span class="muted">Allergies: ${attendee.allergies}</span>` : ''}
+              ${attendee.email ? `<a href="mailto:${attendee.email}">${attendee.email}</a><br>` : ''}
+              ${attendee.phone ? `${attendee.phone}<br>` : ''}
+              ${attendee.allergies ? `<span class="muted">Allergies: ${attendee.allergies}</span>` : ''}
             </td>
           </tr>
         `).join('')}
       </table>
     ` : ''}
+
+    <h3>Payment Summary</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th style="text-align: center;">Quantity</th>
+          <th style="text-align: right;">Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${orderItems.map(item => `
+          <tr>
+            <td>${item.name}</td>
+            <td style="text-align: center;">${item.quantity}</td>
+            <td style="text-align: right;">${formatMoney(item.price)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2"><strong>Subtotal</strong></td>
+          <td style="text-align: right;">${formatMoney(subtotal)}</td>
+        </tr>
+        <tr>
+          <td colspan="2"><strong>Shipping</strong></td>
+          <td style="text-align: right;">${formatMoney(shipping)}</td>
+        </tr>
+        <tr>
+          <td colspan="2"><strong>VAT</strong></td>
+          <td style="text-align: right;">${formatMoney(vat)}</td>
+        </tr>
+        <tr style="font-size: 18px;">
+          <td colspan="2"><strong>Total</strong></td>
+          <td style="text-align: right;"><strong>${formatMoney(total)}</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    ${data.shippingAddress ? `
+      <h3>Delivery Address</h3>
+      <div class="info-box">
+        ${data.shippingAddress.line1}<br>
+        ${data.shippingAddress.line2 ? `${data.shippingAddress.line2}<br>` : ''}
+        ${data.shippingAddress.city}<br>
+        ${data.shippingAddress.postcode}<br>
+        ${data.shippingAddress.country}
+      </div>
+    ` : ''}
+
+    <p><strong>Payment Method:</strong> ${paymentMethod}</p>
 
     ${data.whatToBring ? `
       <h3>What to Bring</h3>
@@ -100,38 +230,55 @@ export default function eventBookingConfirmation(data: EventBookingData) {
       <p class="muted">${data.cancellationPolicy}</p>
     ` : ''}
     
-    <p>We'll send you a reminder email 7 days before the workshop, and another one 24 hours before.</p>
+    <p>If you have any questions about your booking, please don't hesitate to contact us at <a href="mailto:${supportEmail}">${supportEmail}</a></p>
     
-    <p>If you have any questions, please contact us at <a href="mailto:${supportEmail}">${supportEmail}</a></p>
-    
-    <p>Looking forward to creating with you!</p>
-    
-    <p>With love,<br>The Lola As One Team</p>
-  `)
+    <p>With thanks,<br>The LoLA Team</p>
+  `, LOLA_LAYOUT)
 
   const text = plainTextLayout(`
-Your workshop is confirmed!
+Your workshop is confirmed
 
 Hi ${data.customerName},
 
-We're excited to see you at ${data.eventName}! Your booking has been confirmed.
+Your booking for ${data.eventName} is confirmed. We look forward to seeing you at ${locationForSentence(location)}.
 
 Booking Reference: ${data.bookingReference}
 Order Number: ${data.orderNumber}
 
-EVENT DETAILS
+WORKSHOP DETAILS
 Workshop: ${data.eventName}
 Date: ${data.eventDate}
-Time: ${data.eventTime}
-Location: ${data.location}
+Time: ${data.eventTime || 'TBA'}
+Location: ${location}
 Attendees: ${data.numberOfAttendees}
-Price Paid: £${data.pricePaid.toFixed(2)}
 
 ${data.attendees && data.attendees.length > 0 ? `
-ATTENDEE DETAILS
-${data.attendees.map((attendee, index) =>
-  `Attendee ${index + 1}: ${attendee.firstName} ${attendee.lastName}${attendee.email ? ` (${attendee.email})` : ''}${attendee.allergies ? ` - Allergies: ${attendee.allergies}` : ''}`
-).join('\n')}
+ATTENDEES
+${data.attendees.map((attendee, index) => {
+  const contact = [attendee.email, attendee.phone].filter(Boolean).join(', ')
+  const allergies = attendee.allergies ? ` - Allergies: ${attendee.allergies}` : ''
+  return `${attendeeName(attendee, index)}${contact ? ` (${contact})` : ''}${allergies}`
+}).join('\n')}
+` : ''}
+
+PAYMENT SUMMARY
+Item | Quantity | Price
+${orderItems.map(item => `${item.name} | ${item.quantity} | ${formatMoney(item.price)}`).join('\n')}
+
+Subtotal: ${formatMoney(subtotal)}
+Shipping: ${formatMoney(shipping)}
+VAT: ${formatMoney(vat)}
+Total: ${formatMoney(total)}
+
+Payment Method: ${paymentMethod}
+
+${data.shippingAddress ? `
+DELIVERY ADDRESS
+${data.shippingAddress.line1}
+${data.shippingAddress.line2 || ''}
+${data.shippingAddress.city}
+${data.shippingAddress.postcode}
+${data.shippingAddress.country}
 ` : ''}
 
 ${data.whatToBring ? `
@@ -149,18 +296,14 @@ CANCELLATION POLICY
 ${data.cancellationPolicy}
 ` : ''}
 
-We'll send you a reminder email 7 days before the workshop, and another one 24 hours before.
+If you have any questions about your booking, please don't hesitate to contact us at ${supportEmail}
 
-If you have any questions, please contact us at ${supportEmail}
-
-Looking forward to creating with you!
-
-With love,
-The Lola As One Team
-  `)
+With thanks,
+The LoLA Team
+  `, LOLA_LAYOUT)
 
   return {
-    subject: `Workshop Confirmed: ${data.eventName}`,
+    subject: `Workshop confirmed: ${data.eventName}`,
     html,
     text,
   }

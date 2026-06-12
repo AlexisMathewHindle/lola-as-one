@@ -1,6 +1,6 @@
 # Email Notification System
 
-This Edge Function handles all email notifications for Lola As One using Resend.
+This Edge Function handles all email notifications for Lots of Lovely Art using Resend.
 
 ## Setup
 
@@ -15,20 +15,22 @@ Set the following environment variables in your Supabase project:
 ```bash
 # In Supabase Dashboard > Project Settings > Edge Functions
 RESEND_API_KEY=re_xxxxxxxxxxxxx
-EMAIL_FROM="Lola As One <hello@lolacreativespace.com>"
-EMAIL_REPLY_TO=hello@lolacreativespace.com
-SUPPORT_EMAIL=hello@lolacreativespace.com
-ADMIN_EMAILS=hello@lolacreativespace.com
+EMAIL_FROM="Lots of Lovely Art <hello@lotsoflovelyart.com>"
+WORKSHOP_CONFIRMATION_EMAIL_FROM="Lots of Lovely Art <hello@lotsoflovelyart.com>"
+EMAIL_REPLY_TO=hello@lotsoflovelyart.com
+SUPPORT_EMAIL=hello@lotsoflovelyart.com
+ADMIN_EMAILS=hello@lotsoflovelyart.com
 ```
 
 Or use the Supabase CLI:
 
 ```bash
 supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxxx
-supabase secrets set EMAIL_FROM="Lola As One <hello@lolacreativespace.com>"
-supabase secrets set EMAIL_REPLY_TO=hello@lolacreativespace.com
-supabase secrets set SUPPORT_EMAIL=hello@lolacreativespace.com
-supabase secrets set ADMIN_EMAILS=hello@lolacreativespace.com
+supabase secrets set EMAIL_FROM="Lots of Lovely Art <hello@lotsoflovelyart.com>"
+supabase secrets set WORKSHOP_CONFIRMATION_EMAIL_FROM="Lots of Lovely Art <hello@lotsoflovelyart.com>"
+supabase secrets set EMAIL_REPLY_TO=hello@lotsoflovelyart.com
+supabase secrets set SUPPORT_EMAIL=hello@lotsoflovelyart.com
+supabase secrets set ADMIN_EMAILS=hello@lotsoflovelyart.com
 ```
 
 ### 3. Deploy the Function
@@ -67,7 +69,7 @@ const { data, error } = await supabase.functions.invoke('send-email', {
 ### Templates Implemented
 
 **Orders & Purchases**
-- `order-confirmation` - Order confirmation for one-time purchases
+- `order-confirmation` - Order confirmation for product-only one-time purchases
 - `order-shipped` - Order shipped notification
 - `order-delivered` - Order delivered notification
 - `order-cancelled` - Order cancellation notification
@@ -113,7 +115,8 @@ const { data, error } = await supabase.functions.invoke('send-email', {
 - `newsletter-unsubscribed` - Newsletter unsubscribe confirmation
 
 **Admin Notifications**
-- `new-order-admin` - Admin notification for a new order or event booking
+- `event-booking-admin` - Admin notification for a new event/workshop booking
+- `new-order-admin` - Admin notification for a new product-only order
 - `low-stock-alert-admin` - Low stock admin alert
 - `event-capacity-full-admin` - Full event admin alert
 - `subscription-payment-failed-admin` - Subscription payment failure admin alert
@@ -144,7 +147,7 @@ SITE_URL=https://lolacreativespace.com
 EVENT_FEEDBACK_URL=https://lolacreativespace.com/contact
 EVENT_EMAIL_TIME_ZONE=Europe/London
 EVENT_EMAIL_CRON_SECRET=your-strong-secret
-ADMIN_EMAILS=hello@lolacreativespace.com
+ADMIN_EMAILS=hello@lotsoflovelyart.com
 ```
 
 `EVENT_FEEDBACK_URL` is optional. If it is not set, feedback links fall back to `/contact` on `SITE_URL`.
@@ -180,11 +183,13 @@ curl -i --location --request POST 'http://localhost:54321/functions/v1/send-emai
 To send emails to real customer/admin recipients, Resend must be out of testing-only mode:
 
 1. Go to Resend Dashboard > Domains
-2. Add the approved sending domain, for example `lolacreativespace.com`
+2. Add the approved sending domain, for example `lotsoflovelyart.com`
 3. Add the DNS records to your domain provider
 4. Verify the domain
-5. Set `EMAIL_FROM` to an address on the verified domain, for example `Lola As One <hello@lolacreativespace.com>`
-6. Redeploy `send-email` after setting the production secrets
+5. Set `EMAIL_FROM` to an address on the verified domain, for example `Lots of Lovely Art <hello@lotsoflovelyart.com>`
+6. Set `WORKSHOP_CONFIRMATION_EMAIL_FROM` to `Lots of Lovely Art <hello@lotsoflovelyart.com>` so workshop booking confirmations do not inherit the shop/site sender
+7. Set `EMAIL_REPLY_TO` and `SUPPORT_EMAIL` to the customer support inbox, for example `hello@lotsoflovelyart.com`
+8. Redeploy `send-email` after code/template changes; secret-only changes are picked up by the next function invocation
 
 ## Error Handling
 

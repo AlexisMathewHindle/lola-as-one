@@ -177,26 +177,38 @@
 
             <div class="flex items-center justify-end gap-3 lg:min-w-[260px]">
               <button
+                v-if="isSessionWaitlistAvailable(session)"
                 type="button"
-                class="flex h-11 w-11 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-700 transition-colors hover:border-stone-400 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
-                :disabled="sessionQuantity(session) <= 0"
-                @click="$emit('decrement-session', session)"
+                class="inline-flex h-11 min-w-[10rem] items-center justify-center rounded-full border border-[#cf7f6c] bg-[#cf7f6c] px-5 text-sm font-semibold text-white transition-colors hover:border-[#bd6f5e] hover:bg-[#bd6f5e]"
+                @click="$emit('join-waitlist', session)"
               >
-                <font-awesome-icon icon="minus" class="h-3 w-3" />
+                <font-awesome-icon icon="bell" class="mr-2 h-3.5 w-3.5" />
+                {{ waitlistButtonLabel(session) }}
               </button>
 
-              <div class="flex h-11 min-w-[3rem] items-center justify-center rounded-2xl border border-stone-200 bg-white px-4 text-lg font-semibold text-stone-900">
-                {{ sessionQuantity(session) }}
-              </div>
+              <template v-else>
+                <button
+                  type="button"
+                  class="flex h-11 w-11 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-700 transition-colors hover:border-stone-400 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  :disabled="sessionQuantity(session) <= 0"
+                  @click="$emit('decrement-session', session)"
+                >
+                  <font-awesome-icon icon="minus" class="h-3 w-3" />
+                </button>
 
-              <button
-                type="button"
-                class="flex h-11 w-11 items-center justify-center rounded-full border border-[#d7b162] bg-[#d7b162] text-white transition-colors hover:bg-[#c39a48] hover:border-[#c39a48] disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-200"
-                :disabled="isSessionIncrementDisabled(session)"
-                @click="$emit('increment-session', session)"
-              >
-                <font-awesome-icon icon="plus" class="h-3 w-3" />
-              </button>
+                <div class="flex h-11 min-w-[3rem] items-center justify-center rounded-2xl border border-stone-200 bg-white px-4 text-lg font-semibold text-stone-900">
+                  {{ sessionQuantity(session) }}
+                </div>
+
+                <button
+                  type="button"
+                  class="flex h-11 w-11 items-center justify-center rounded-full border border-[#d7b162] bg-[#d7b162] text-white transition-colors hover:bg-[#c39a48] hover:border-[#c39a48] disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-200"
+                  :disabled="isSessionIncrementDisabled(session)"
+                  @click="$emit('increment-session', session)"
+                >
+                  <font-awesome-icon icon="plus" class="h-3 w-3" />
+                </button>
+              </template>
             </div>
           </div>
         </article>
@@ -237,7 +249,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['increment-term', 'decrement-term', 'increment-session', 'decrement-session'])
+defineEmits(['increment-term', 'decrement-term', 'increment-session', 'decrement-session', 'join-waitlist'])
 
 const galleryImages = computed(() => {
   const images = []
@@ -300,14 +312,37 @@ const getSpacesAvailable = (session) => {
     return capacity.spaces_available
   }
 
-  if (
-    typeof session.max_capacity === 'number' &&
-    typeof session.current_bookings === 'number'
-  ) {
-    return Math.max(session.max_capacity - session.current_bookings, 0)
+  const sellableCapacity = typeof session.available_spaces === 'number'
+    ? session.available_spaces
+    : session.max_capacity
+
+  if (typeof sellableCapacity === 'number') {
+    const currentBookings = typeof session.current_bookings === 'number' ? session.current_bookings : 0
+    return Math.max(sellableCapacity - currentBookings, 0)
   }
 
   return null
+}
+
+const isSessionSoldOut = (session) => {
+  const spacesAvailable = getSpacesAvailable(session)
+  return spacesAvailable !== null && spacesAvailable <= 0
+}
+
+const isSessionWaitlistAvailable = (session) => {
+  const capacity = getCapacity(session)
+  return isSessionSoldOut(session) && Boolean(capacity?.waitlist_enabled ?? session.waitlist_enabled)
+}
+
+const waitlistButtonLabel = (session) => {
+  const capacity = getCapacity(session)
+  const waitlistCount = Number(capacity?.waitlist_count ?? 0)
+
+  if (waitlistCount <= 0) {
+    return 'Join Waitlist'
+  }
+
+  return waitlistCount === 1 ? 'Join Waitlist (1 waiting)' : `Join Waitlist (${waitlistCount} waiting)`
 }
 
 const sessionQuantity = (session) => props.sessionQuantities[session.id] || 0
