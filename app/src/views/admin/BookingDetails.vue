@@ -167,6 +167,9 @@
                   Name
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Age
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Email
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -184,6 +187,12 @@
               <tr v-for="attendee in attendees" :key="attendee.id" class="hover:bg-gray-50 transition-colors">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900">{{ attendee.first_name }} {{ attendee.last_name }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ formatAttendeeAge(attendee.date_of_birth, booking?.offering_events?.event_date) }}</div>
+                  <div v-if="attendee.date_of_birth" class="text-xs text-gray-500">
+                    DOB {{ formatDateOnlyForDisplay(attendee.date_of_birth) }}
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">{{ attendee.email || 'N/A' }}</div>
@@ -245,6 +254,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../../lib/supabase'
 import { useToastStore } from '../../stores/toast'
+import { formatAttendeeAge, formatDateOnlyForDisplay } from '../../utils/attendeeAge'
 
 const route = useRoute()
 const router = useRouter()

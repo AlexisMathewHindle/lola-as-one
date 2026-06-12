@@ -141,7 +141,7 @@
                     Attendee details added for this booking.
                   </span>
                   <span v-else>
-                    Attendee names will be collected at checkout for this event.
+                    Attendee details will be collected at checkout for this event.
                   </span>
                 </div>
 
@@ -319,7 +319,7 @@ const hasCompleteAttendeeDetails = (item) => {
   }
 
   return item.attendees.every(attendee =>
-    attendee?.firstName?.trim() && attendee?.lastName?.trim()
+    attendee?.firstName?.trim() && attendee?.lastName?.trim() && attendee?.dateOfBirth?.trim()
   )
 }
 

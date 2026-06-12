@@ -168,6 +168,9 @@
                     <div v-for="attendee in booking.booking_attendees" :key="attendee.id" class="text-xs text-gray-600">
                       <font-awesome-icon icon="user" class="w-3 h-3 mr-1 text-gray-400" />
                       {{ attendee.first_name }} {{ attendee.last_name }}
+                      <span class="text-gray-500">
+                        - Age {{ formatAttendeeAge(attendee.date_of_birth, event?.event_date) }}
+                      </span>
                     </div>
                   </div>
                   <div v-else class="text-xs text-gray-400 italic">
@@ -203,6 +206,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { supabase } from '../../lib/supabase'
+import { formatAttendeeAge } from '../../utils/attendeeAge'
 
 const route = useRoute()
 const eventId = route.params.id

@@ -118,7 +118,7 @@
                   Workshop Attendees
                 </h2>
                 <p class="text-sm text-gray-600 mt-1">
-                  Add the attendee names for each workshop booking so we know who is coming to which event.
+                  Add the attendee details for each workshop booking so we know who is coming to which event.
                 </p>
               </div>
               <div class="inline-flex items-center rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700">
@@ -246,6 +246,36 @@
                           {{ errors[`attendee-${booking.itemKey}-${attendeeIndex}-lastName`] }}
                         </p>
                       </div>
+                    </div>
+
+                    <div class="mt-4">
+                      <label
+                        :for="`attendee-${booking.itemKey}-${attendeeIndex}-dateOfBirth`"
+                        class="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        Date of Birth <span class="text-red-500">*</span>
+                      </label>
+                      <input
+                        :id="`attendee-${booking.itemKey}-${attendeeIndex}-dateOfBirth`"
+                        v-model="attendee.dateOfBirth"
+                        type="date"
+                        required
+                        min="1900-01-01"
+                        :max="maxAttendeeDateOfBirth"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        :class="{
+                          'border-red-500': errors[`attendee-${booking.itemKey}-${attendeeIndex}-dateOfBirth`],
+                          'bg-gray-100 text-gray-500 cursor-not-allowed': isSyncedAttendeeField(booking, attendeeIndex)
+                        }"
+                        :disabled="isSyncedAttendeeField(booking, attendeeIndex)"
+                        @input="handleAttendeeInput(booking, attendeeIndex)"
+                      />
+                      <p
+                        v-if="errors[`attendee-${booking.itemKey}-${attendeeIndex}-dateOfBirth`]"
+                        class="text-red-500 text-sm mt-1"
+                      >
+                        {{ errors[`attendee-${booking.itemKey}-${attendeeIndex}-dateOfBirth`] }}
+                      </p>
                     </div>
 
                     <div class="mt-4">
@@ -561,9 +591,11 @@ import { ref, computed, watch } from 'vue'
 import { useCartStore } from '../stores/cart'
 import { useToastStore } from '../stores/toast'
 import { supabase } from '../lib/supabase'
+import { compareDateOnly, getTodayDateString, isValidDateOnly } from '../utils/attendeeAge'
 
 const cartStore = useCartStore()
 const toastStore = useToastStore()
+const maxAttendeeDateOfBirth = getTodayDateString()
 
 // Form data
 const form = ref({
@@ -600,6 +632,7 @@ const createEmptyAttendee = (attendee = {}) => ({
   lastName: attendee.lastName || '',
   email: attendee.email || '',
   phone: attendee.phone || '',
+  dateOfBirth: attendee.dateOfBirth || attendee.date_of_birth || attendee.dob || '',
   allergies: attendee.allergies || attendee.allergy || '',
   notes: attendee.notes || ''
 })
@@ -693,6 +726,7 @@ const clearSyncedAttendeeErrors = (attendeeIndex) => {
 
     delete nextErrors[`attendee-${booking.itemKey}-${attendeeIndex}-firstName`]
     delete nextErrors[`attendee-${booking.itemKey}-${attendeeIndex}-lastName`]
+    delete nextErrors[`attendee-${booking.itemKey}-${attendeeIndex}-dateOfBirth`]
   })
 
   errors.value = nextErrors
@@ -711,6 +745,7 @@ const applyAttendeeToOtherEvents = (sourceBooking, attendeeIndex) => {
     if (attendee && booking.itemKey !== sourceBooking.itemKey) {
       attendee.firstName = sourceAttendee.firstName
       attendee.lastName = sourceAttendee.lastName
+      attendee.dateOfBirth = sourceAttendee.dateOfBirth || ''
       attendee.allergies = sourceAttendee.allergies || ''
     }
 
@@ -855,7 +890,7 @@ const validateForm = () => {
     errors.value.email = 'Please enter a valid email'
   }
 
-  // Validate attendee names for event bookings
+  // Validate attendee details for event bookings
   eventBookings.value.forEach((booking) => {
     booking.attendees.forEach((attendee, attendeeIndex) => {
       if (isSyncedAttendeeField(booking, attendeeIndex)) {
@@ -864,6 +899,7 @@ const validateForm = () => {
 
       const firstNameKey = `attendee-${booking.itemKey}-${attendeeIndex}-firstName`
       const lastNameKey = `attendee-${booking.itemKey}-${attendeeIndex}-lastName`
+      const dateOfBirthKey = `attendee-${booking.itemKey}-${attendeeIndex}-dateOfBirth`
 
       if (!attendee.firstName.trim()) {
         errors.value[firstNameKey] = 'First name is required'
@@ -871,6 +907,16 @@ const validateForm = () => {
 
       if (!attendee.lastName.trim()) {
         errors.value[lastNameKey] = 'Last name is required'
+      }
+
+      const dateOfBirth = attendee.dateOfBirth?.trim() || ''
+
+      if (!dateOfBirth) {
+        errors.value[dateOfBirthKey] = 'Date of birth is required'
+      } else if (!isValidDateOnly(dateOfBirth)) {
+        errors.value[dateOfBirthKey] = 'Enter a valid date of birth'
+      } else if (compareDateOnly(dateOfBirth, maxAttendeeDateOfBirth) > 0) {
+        errors.value[dateOfBirthKey] = 'Date of birth cannot be in the future'
       }
     })
   })
@@ -945,6 +991,7 @@ const buildCheckoutItems = () => {
         lastName: attendee.lastName.trim(),
         email: attendee.email?.trim() || '',
         phone: attendee.phone?.trim() || '',
+        dateOfBirth: attendee.dateOfBirth?.trim() || '',
         allergies: attendee.allergies?.trim().slice(0, 240) || '',
         notes: attendee.notes?.trim() || ''
       }))

@@ -200,6 +200,19 @@
                   </div>
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">
+                      Date of Birth *
+                    </label>
+                    <input
+                      v-model="attendee.dateOfBirth"
+                      type="date"
+                      required
+                      min="1900-01-01"
+                      :max="maxAttendeeDateOfBirth"
+                      class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">
                       Email (optional)
                     </label>
                     <input
@@ -310,11 +323,13 @@ import {
   shouldUseCategoryWorkshopListing
 } from '../utils/workshopDisplay'
 import { getTermCourseKey } from '../utils/termGroups'
+import { getTodayDateString } from '../utils/attendeeAge'
 
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
 const toastStore = useToastStore()
+const maxAttendeeDateOfBirth = getTodayDateString()
 
 // State
 const workshop = ref(null)
@@ -331,7 +346,7 @@ const enquiryEmail = 'hello@lolaasone.com'
 const bookingForm = ref({
   numberOfAttendees: 1,
   attendees: [
-    { firstName: '', lastName: '', email: '', notes: '' }
+    { firstName: '', lastName: '', email: '', dateOfBirth: '', notes: '' }
   ],
   customerEmail: '',
   customerPhone: ''
@@ -733,7 +748,7 @@ watch(() => bookingForm.value.numberOfAttendees, (newCount, oldCount) => {
   if (newCount > oldCount) {
     // Add new attendees
     for (let i = oldCount; i < newCount; i++) {
-      currentAttendees.push({ firstName: '', lastName: '', email: '', notes: '' })
+      currentAttendees.push({ firstName: '', lastName: '', email: '', dateOfBirth: '', notes: '' })
     }
   } else if (newCount < oldCount) {
     // Remove attendees

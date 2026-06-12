@@ -137,8 +137,20 @@
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">#{{ booking.order.order_number }}</div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">{{ booking.number_of_attendees }} {{ booking.number_of_attendees === 1 ? 'person' : 'people' }}</div>
+                <td class="px-6 py-4">
+                  <div class="text-sm text-gray-900 mb-1">{{ booking.number_of_attendees }} {{ booking.number_of_attendees === 1 ? 'person' : 'people' }}</div>
+                  <div v-if="booking.booking_attendees && booking.booking_attendees.length > 0" class="space-y-1">
+                    <div v-for="attendee in booking.booking_attendees" :key="attendee.id" class="text-xs text-gray-600">
+                      <font-awesome-icon icon="user" class="w-3 h-3 mr-1 text-gray-400" />
+                      {{ attendee.first_name }} {{ attendee.last_name }}
+                      <span class="text-gray-500">
+                        - Age {{ formatAttendeeAge(attendee.date_of_birth, event?.event_date) }}
+                      </span>
+                    </div>
+                  </div>
+                  <div v-else class="text-xs text-gray-400 italic">
+                    No attendee details
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span
@@ -179,6 +191,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { supabase } from '../../lib/supabase'
 import { useToastStore } from '../../stores/toast'
+import { formatAttendeeAge } from '../../utils/attendeeAge'
 
 const route = useRoute()
 const eventId = route.params.id
@@ -228,7 +241,8 @@ const fetchBookings = async () => {
       .from('bookings')
       .select(`
         *,
-        order:orders(order_number)
+        order:orders(order_number),
+        booking_attendees(*)
       `)
       .eq('offering_event_id', eventId)
       .eq('status', 'confirmed')
@@ -276,10 +290,16 @@ const filteredBookings = computed(() => {
     // Search filter
     if (filters.value.search) {
       const searchLower = filters.value.search.toLowerCase()
+      const attendeeMatches = (booking.booking_attendees || []).some((attendee) => {
+        const attendeeName = `${attendee.first_name || ''} ${attendee.last_name || ''}`.trim().toLowerCase()
+        return attendeeName.includes(searchLower)
+      })
+
       return (
         booking.customer_name.toLowerCase().includes(searchLower) ||
         booking.customer_email.toLowerCase().includes(searchLower) ||
-        booking.order.order_number.toLowerCase().includes(searchLower)
+        booking.order.order_number.toLowerCase().includes(searchLower) ||
+        attendeeMatches
       )
     }
 
@@ -340,4 +360,3 @@ onMounted(async () => {
   await fetchBookings()
 })
 </script>
-
