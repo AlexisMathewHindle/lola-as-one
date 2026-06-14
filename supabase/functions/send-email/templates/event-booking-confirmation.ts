@@ -15,6 +15,16 @@ interface Attendee {
   notes?: string
 }
 
+interface EventBookingSummary {
+  eventName: string
+  eventDate: string
+  eventTime?: string
+  location?: string
+  numberOfAttendees: number
+  bookingReference: string
+  attendees?: Attendee[]
+}
+
 interface EventBookingData {
   customerName: string
   eventName: string
@@ -42,6 +52,7 @@ interface EventBookingData {
   parkingInfo?: string
   cancellationPolicy?: string
   attendees?: Attendee[]
+  events?: EventBookingSummary[]
   supportEmail?: string
 }
 
@@ -83,6 +94,33 @@ function normaliseOrderItems(data: EventBookingData): OrderItem[] {
   }]
 }
 
+function normaliseEvents(data: EventBookingData): EventBookingSummary[] {
+  const eventBookings = Array.isArray(data.events) ? data.events : []
+  const validEventBookings = eventBookings.filter((event) => event?.eventName)
+
+  if (validEventBookings.length > 0) {
+    return validEventBookings.map((event, index) => ({
+      eventName: event.eventName,
+      eventDate: event.eventDate || 'TBA',
+      eventTime: event.eventTime || 'TBA',
+      location: event.location || LOLA_LOCATION,
+      numberOfAttendees: amount(event.numberOfAttendees, 1),
+      bookingReference: event.bookingReference || data.bookingReference || `Booking ${index + 1}`,
+      attendees: Array.isArray(event.attendees) ? event.attendees : undefined,
+    }))
+  }
+
+  return [{
+    eventName: data.eventName || 'your workshop',
+    eventDate: data.eventDate || 'TBA',
+    eventTime: data.eventTime || 'TBA',
+    location: data.location || LOLA_LOCATION,
+    numberOfAttendees: amount(data.numberOfAttendees, 1),
+    bookingReference: data.bookingReference || data.orderNumber,
+    attendees: Array.isArray(data.attendees) ? data.attendees : undefined,
+  }]
+}
+
 function locationForSentence(location: string): string {
   const trimmedLocation = location.trim()
 
@@ -101,63 +139,81 @@ function attendeeName(attendee: Attendee, index: number): string {
 export default function eventBookingConfirmation(data: EventBookingData) {
   const supportEmail = data.supportEmail || 'hello@lotsoflovelyart.com'
   const orderItems = normaliseOrderItems(data)
+  const eventBookings = normaliseEvents(data)
+  const hasMultipleEvents = eventBookings.length > 1
+  const hasAttendeeDetails = eventBookings.some((event) => event.attendees && event.attendees.length > 0)
+  const primaryEvent = eventBookings[0]
   const itemTotal = orderItems.reduce((sum, item) => sum + item.price, 0)
   const subtotal = amount(data.subtotal, itemTotal)
   const shipping = amount(data.shipping, 0)
   const total = amount(data.total, subtotal + shipping)
   const vat = amount(data.vat, total > 0 ? total * 0.20 / 1.20 : 0)
   const paymentMethod = data.paymentMethod || 'Card ending in ****'
-  const location = data.location || LOLA_LOCATION
   const html = baseLayout(`
-    <h2>Your workshop is confirmed</h2>
+    <h2>${hasMultipleEvents ? 'Your workshops are confirmed' : 'Your workshop is confirmed'}</h2>
 
     <p>Hi ${data.customerName},</p>
     
-    <p>Your booking for <strong>${data.eventName}</strong> is confirmed. We look forward to seeing you at ${locationForSentence(location)}.</p>
+    ${hasMultipleEvents
+      ? '<p>Your bookings are confirmed. We look forward to seeing you at your workshops.</p>'
+      : `<p>Your booking for <strong>${primaryEvent.eventName}</strong> is confirmed. We look forward to seeing you at ${locationForSentence(primaryEvent.location || LOLA_LOCATION)}.</p>`}
     
     <div class="info-box">
-      <strong>Booking Reference:</strong> ${data.bookingReference}<br>
+      ${!hasMultipleEvents ? `<strong>Booking Reference:</strong> ${primaryEvent.bookingReference}<br>` : ''}
       <strong>Order Number:</strong> ${data.orderNumber}
     </div>
     
     <h3>Workshop Details</h3>
     <table class="table">
-      <tr>
-        <td><strong>Workshop</strong></td>
-        <td>${data.eventName}</td>
-      </tr>
-      <tr>
-        <td><strong>Date</strong></td>
-        <td>${data.eventDate}</td>
-      </tr>
-      <tr>
-        <td><strong>Time</strong></td>
-        <td>${data.eventTime || 'TBA'}</td>
-      </tr>
-      <tr>
-        <td><strong>Location</strong></td>
-        <td>${location}</td>
-      </tr>
-      <tr>
-        <td><strong>Attendees</strong></td>
-        <td>${data.numberOfAttendees}</td>
-      </tr>
-    </table>
-
-    ${data.attendees && data.attendees.length > 0 ? `
-      <h3>Attendees</h3>
-      <table class="table">
-        ${data.attendees.map((attendee, index) => `
+      <thead>
+        <tr>
+          <th>Workshop</th>
+          <th>Date & Time</th>
+          <th>Attendees</th>
+          <th>Reference</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${eventBookings.map((event) => `
           <tr>
-            <td><strong>${attendeeName(attendee, index)}</strong></td>
             <td>
-              ${attendee.email ? `<a href="mailto:${attendee.email}">${attendee.email}</a><br>` : ''}
-              ${attendee.phone ? `${attendee.phone}<br>` : ''}
-              ${attendee.allergies ? `<span class="muted">Allergies: ${attendee.allergies}</span>` : ''}
+              <strong>${event.eventName}</strong>
+              ${event.location ? `<br><span class="muted">${event.location}</span>` : ''}
             </td>
+            <td>
+              ${event.eventDate}
+              ${event.eventTime ? `<br>${event.eventTime}` : ''}
+            </td>
+            <td>${event.numberOfAttendees}</td>
+            <td>${event.bookingReference}</td>
           </tr>
         `).join('')}
-      </table>
+      </tbody>
+    </table>
+
+    ${hasAttendeeDetails ? `
+      <h3>Attendees</h3>
+      ${eventBookings.map((event) => event.attendees && event.attendees.length > 0 ? `
+        <p><strong>${event.eventName}</strong></p>
+        <table class="table">
+          ${event.attendees.map((attendee, index) => `
+            <tr>
+              <td><strong>${attendeeName(attendee, index)}</strong></td>
+              <td>
+                ${attendee.email ? `<a href="mailto:${attendee.email}">${attendee.email}</a><br>` : ''}
+                ${attendee.phone ? `${attendee.phone}<br>` : ''}
+                ${attendee.allergies ? `<span class="muted">Allergies: ${attendee.allergies}</span>` : ''}
+              </td>
+            </tr>
+          `).join('')}
+        </table>
+      ` : '').join('')}
+    ` : ''}
+
+    ${hasMultipleEvents ? `
+      <div class="info-box">
+        Please keep this email for all ${eventBookings.length} workshop bookings in this order.
+      </div>
     ` : ''}
 
     <h3>Payment Summary</h3>
@@ -236,28 +292,39 @@ export default function eventBookingConfirmation(data: EventBookingData) {
   `, LOLA_LAYOUT)
 
   const text = plainTextLayout(`
-Your workshop is confirmed
+${hasMultipleEvents ? 'Your workshops are confirmed' : 'Your workshop is confirmed'}
 
 Hi ${data.customerName},
 
-Your booking for ${data.eventName} is confirmed. We look forward to seeing you at ${locationForSentence(location)}.
+${hasMultipleEvents
+  ? 'Your bookings are confirmed. We look forward to seeing you at your workshops.'
+  : `Your booking for ${primaryEvent.eventName} is confirmed. We look forward to seeing you at ${locationForSentence(primaryEvent.location || LOLA_LOCATION)}.`}
 
-Booking Reference: ${data.bookingReference}
+${!hasMultipleEvents ? `Booking Reference: ${primaryEvent.bookingReference}` : ''}
 Order Number: ${data.orderNumber}
 
 WORKSHOP DETAILS
-Workshop: ${data.eventName}
-Date: ${data.eventDate}
-Time: ${data.eventTime || 'TBA'}
-Location: ${location}
-Attendees: ${data.numberOfAttendees}
+${eventBookings.map((event) => `
+Workshop: ${event.eventName}
+Date: ${event.eventDate}
+Time: ${event.eventTime || 'TBA'}
+Location: ${event.location || LOLA_LOCATION}
+Attendees: ${event.numberOfAttendees}
+Booking Reference: ${event.bookingReference}
+`).join('\n')}
 
-${data.attendees && data.attendees.length > 0 ? `
+${hasAttendeeDetails ? `
 ATTENDEES
-${data.attendees.map((attendee, index) => {
-  const contact = [attendee.email, attendee.phone].filter(Boolean).join(', ')
-  const allergies = attendee.allergies ? ` - Allergies: ${attendee.allergies}` : ''
-  return `${attendeeName(attendee, index)}${contact ? ` (${contact})` : ''}${allergies}`
+${eventBookings.map((event) => {
+  if (!event.attendees || event.attendees.length === 0) {
+    return ''
+  }
+
+  return `${event.eventName}\n${event.attendees.map((attendee, index) => {
+    const contact = [attendee.email, attendee.phone].filter(Boolean).join(', ')
+    const allergies = attendee.allergies ? ` - Allergies: ${attendee.allergies}` : ''
+    return `${attendeeName(attendee, index)}${contact ? ` (${contact})` : ''}${allergies}`
+  }).join('\n')}`
 }).join('\n')}
 ` : ''}
 
@@ -303,7 +370,9 @@ The LoLA Team
   `, LOLA_LAYOUT)
 
   return {
-    subject: `Workshop confirmed: ${data.eventName}`,
+    subject: hasMultipleEvents
+      ? `Workshops confirmed: ${eventBookings.length} bookings`
+      : `Workshop confirmed: ${primaryEvent.eventName}`,
     html,
     text,
   }

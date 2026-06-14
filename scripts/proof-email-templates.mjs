@@ -37,7 +37,7 @@ const data = {
   orderNumber: 'EMAIL-PROOF',
   orderItems: [
     {
-      name: 'Proof workshop',
+      name: 'Proof workshop one',
       quantity: 1,
       price: 12,
       type: 'event',
@@ -54,6 +54,24 @@ const data = {
         },
       ],
     },
+    {
+      name: 'Proof workshop two',
+      quantity: 1,
+      price: 10,
+      type: 'event',
+      eventDate: 'Sunday, 21 June 2026',
+      eventTime: '14:00 - 15:30',
+      location: 'Lola Creative Space',
+      bookingReference: 'BKG-EMAIL-PROOF-2',
+      attendees: [
+        {
+          firstName: 'Second',
+          lastName: 'Proof',
+          email: 'proof-two@example.com',
+          allergies: 'None',
+        },
+      ],
+    },
     { name: 'Proof art kit', quantity: 2, price: 8, type: 'product_physical' },
   ],
   deliveredItems: [
@@ -61,10 +79,10 @@ const data = {
     { name: 'Proof art kit', quantity: 2 },
   ],
   deliveryDate: '5 June 2026',
-  subtotal: 28,
+  subtotal: 38,
   shipping: 0,
   vat: 0,
-  total: 28,
+  total: 38,
   paymentMethod: 'Proof only',
   estimatedDelivery: 'Proof only',
   shippingAddress: {
@@ -79,7 +97,41 @@ const data = {
   location: 'Lola Creative Space',
   numberOfAttendees: 1,
   bookingReference: 'BKG-EMAIL-PROOF',
-  pricePaid: 12,
+  pricePaid: 22,
+  events: [
+    {
+      eventName: 'Proof Workshop One',
+      eventDate: 'Saturday, 20 June 2026',
+      eventTime: '10:00 - 12:00',
+      location: 'Lola Creative Space',
+      numberOfAttendees: 1,
+      bookingReference: 'BKG-EMAIL-PROOF',
+      attendees: [
+        {
+          firstName: 'Email',
+          lastName: 'Proof',
+          email: 'proof@example.com',
+          allergies: 'None',
+        },
+      ],
+    },
+    {
+      eventName: 'Proof Workshop Two',
+      eventDate: 'Sunday, 21 June 2026',
+      eventTime: '14:00 - 15:30',
+      location: 'Lola Creative Space',
+      numberOfAttendees: 1,
+      bookingReference: 'BKG-EMAIL-PROOF-2',
+      attendees: [
+        {
+          firstName: 'Second',
+          lastName: 'Proof',
+          email: 'proof-two@example.com',
+          allergies: 'None',
+        },
+      ],
+    },
+  ],
   whatToBring: 'Nothing. This is an email proof.',
   parkingInfo: 'Proof parking information.',
   cancellationPolicy: 'Proof cancellation policy.',
@@ -91,7 +143,7 @@ const data = {
       allergies: 'None',
     },
   ],
-  orderTotal: 28,
+  orderTotal: 38,
   hasEvents: true,
   hasPhysicalProducts: false,
   eventId: 'proof-event',

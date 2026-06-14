@@ -85,6 +85,24 @@ send_test_email "event-booking-confirmation" '{
     "bookingReference": "BOOK-12345",
     "orderNumber": "TEST-002",
     "pricePaid": 90.00,
+    "events": [
+        {
+            "eventName": "Watercolor Landscapes Workshop",
+            "eventDate": "Saturday, June 20, 2026",
+            "eventTime": "10:00 AM - 1:00 PM",
+            "location": "Lola Studio, 123 Creative Lane, London",
+            "numberOfAttendees": 2,
+            "bookingReference": "BOOK-12345"
+        },
+        {
+            "eventName": "Botanical Printmaking Workshop",
+            "eventDate": "Sunday, June 21, 2026",
+            "eventTime": "2:00 PM - 4:00 PM",
+            "location": "Lola Studio, 123 Creative Lane, London",
+            "numberOfAttendees": 1,
+            "bookingReference": "BOOK-67890"
+        }
+    ],
     "whatToBring": "Please bring an apron and enthusiasm! All art supplies will be provided.",
     "parkingInfo": "Free parking available on Creative Lane. Nearest tube: Angel Station (5 min walk)",
     "cancellationPolicy": "Free cancellation up to 48 hours before the event. Cancellations within 48 hours are non-refundable."

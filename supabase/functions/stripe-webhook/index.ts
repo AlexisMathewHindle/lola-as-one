@@ -1116,16 +1116,18 @@ serve(async (req) => {
           // Don't throw - email failure shouldn't fail the webhook
         }
 
-        // Send event booking confirmation emails for each created booking.
+        // Send one event booking confirmation email for the full checkout.
         if (hasEvents && eventBookingEmailItems.length === 0) {
           console.warn('⚠️ Event items were present, but no booking records were available for email sending')
         }
+
+        const customerEventBookings: any[] = []
 
         for (const eventBooking of eventBookingEmailItems) {
           const { item, booking, offeringEventId } = eventBooking
 
           try {
-            console.log('📧 Preparing event confirmation email for:', item.title)
+            console.log('📧 Preparing event confirmation details for:', item.title)
 
             const { data: offeringEvent, error: eventLookupError } = await supabase
               .from('offering_events')
@@ -1138,7 +1140,6 @@ serve(async (req) => {
               continue
             }
 
-            console.log('📧 Sending event confirmation email...')
             console.log('📧 Attendee details present:', Array.isArray(item.attendees) && item.attendees.length > 0)
 
             const locationParts = [
@@ -1150,6 +1151,34 @@ serve(async (req) => {
             const fullLocation = locationParts.length > 0 ? locationParts.join(', ') : 'TBA'
             const bookingReference = `BKG-${booking.id.substring(0, 8)}`
 
+            customerEventBookings.push({
+              eventName: item.title,
+              eventDate: new Date(offeringEvent.event_date).toLocaleDateString('en-GB', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              }),
+              eventTime: offeringEvent.event_start_time || item.eventTime,
+              location: fullLocation,
+              numberOfAttendees: item.quantity,
+              bookingReference,
+              bookingId: booking.id,
+              offeringEventId: offeringEvent.id,
+              pricePaid: item.price * item.quantity,
+              attendees: Array.isArray(item.attendees) ? item.attendees : undefined,
+            })
+          } catch (emailError) {
+            console.error('❌ Error preparing event booking email details:', emailError)
+            // Don't throw - email failure shouldn't fail the webhook
+          }
+        }
+
+        if (customerEventBookings.length > 0) {
+          try {
+            console.log('📧 Sending combined event confirmation email:', customerEventBookings.length)
+
+            const primaryEventBooking = customerEventBookings[0]
             const emailResponse = await invokeSendEmail(
               supabaseUrl,
               supabaseServiceKey,
@@ -1158,19 +1187,29 @@ serve(async (req) => {
                 to: metadata.customer_email,
                 data: {
                   customerName: `${metadata.customer_first_name} ${metadata.customer_last_name}`,
-                  eventName: item.title,
-                  eventDate: new Date(offeringEvent.event_date).toLocaleDateString('en-GB', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  }),
-                  eventTime: offeringEvent.event_start_time || item.eventTime,
-                  location: fullLocation,
-                  numberOfAttendees: item.quantity,
-                  bookingReference,
+                  eventName: primaryEventBooking.eventName,
+                  eventDate: primaryEventBooking.eventDate,
+                  eventTime: primaryEventBooking.eventTime,
+                  location: primaryEventBooking.location,
+                  numberOfAttendees: customerEventBookings.reduce(
+                    (sum, eventBooking) => sum + Number(eventBooking.numberOfAttendees || 0),
+                    0,
+                  ),
+                  bookingReference: primaryEventBooking.bookingReference,
+                  events: customerEventBookings.map((eventBooking) => ({
+                    eventName: eventBooking.eventName,
+                    eventDate: eventBooking.eventDate,
+                    eventTime: eventBooking.eventTime,
+                    location: eventBooking.location,
+                    numberOfAttendees: eventBooking.numberOfAttendees,
+                    bookingReference: eventBooking.bookingReference,
+                    attendees: eventBooking.attendees,
+                  })),
                   orderNumber: order.order_number,
-                  pricePaid: item.price * item.quantity,
+                  pricePaid: customerEventBookings.reduce(
+                    (sum, eventBooking) => sum + Number(eventBooking.pricePaid || 0),
+                    0,
+                  ),
                   orderItems: emailOrderItems,
                   subtotal: subtotalAmount,
                   shipping: shippingAmount,
@@ -1184,13 +1223,13 @@ serve(async (req) => {
                     country: metadata.shipping_country || 'GB',
                   } : undefined,
                   paymentMethod: 'Card ending in ****',
-                  attendees: Array.isArray(item.attendees) ? item.attendees : undefined,
+                  attendees: primaryEventBooking.attendees,
                 },
                 metadata: {
                   orderNumber: order.order_number,
                   stripeCheckoutSessionId: session.id,
-                  bookingId: booking.id,
-                  offeringEventId: offeringEvent.id,
+                  bookingIds: customerEventBookings.map((eventBooking) => eventBooking.bookingId),
+                  offeringEventIds: customerEventBookings.map((eventBooking) => eventBooking.offeringEventId),
                 },
               },
             )
@@ -1203,15 +1242,15 @@ serve(async (req) => {
                 metadata: {
                   orderNumber: order.order_number,
                   stripeCheckoutSessionId: session.id,
-                  bookingId: booking.id,
-                  offeringEventId: offeringEvent.id,
+                  bookingIds: customerEventBookings.map((eventBooking) => eventBooking.bookingId),
+                  offeringEventIds: customerEventBookings.map((eventBooking) => eventBooking.offeringEventId),
                 },
               }, emailResponse.error)
             } else {
-              console.log('✅ Event booking confirmation email sent for:', item.title)
+              console.log('✅ Combined event booking confirmation email sent')
             }
           } catch (emailError) {
-            console.error('❌ Error sending event booking email:', emailError)
+            console.error('❌ Error sending combined event booking email:', emailError)
             // Don't throw - email failure shouldn't fail the webhook
           }
         }
