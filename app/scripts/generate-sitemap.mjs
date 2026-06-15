@@ -17,6 +17,17 @@ const STATIC_PATHS = [
   '/privacy-policy',
   '/terms-and-conditions'
 ]
+const CATEGORY_CANONICAL_PATHS = new Map([
+  ['adult-art-workshops', '/adult-workshops'],
+  ['adult-workshop', '/adult-workshops'],
+  ['adult-workshops', '/adult-workshops'],
+  ['half-term', '/half-term'],
+  ['holiday-workshops', '/half-term'],
+  ['summer', '/summer-holiday'],
+  ['summer-holiday', '/summer-holiday'],
+  ['summer-workshops', '/summer-holiday']
+])
+const WORKSHOP_DETAIL_LAYOUT_KEYS = new Set(['adult_workshop', 'enquiry_only'])
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const sitemapPath = path.join(appRoot, 'public', 'sitemap.xml')
@@ -120,10 +131,9 @@ async function fetchWorkshopPaths(supabase) {
   )
 
   return [...new Set(rows
-    .filter(usesWorkshopDetailPage)
-    .map((row) => row.offering?.slug)
+    .map(getWorkshopPublicPath)
     .filter(Boolean)
-    .map((slug) => `/workshops/${slug}`))]
+  )]
 }
 
 function getWorkshopLayoutKey(row) {
@@ -146,7 +156,21 @@ function usesWorkshopDetailPage(row) {
   }
 
   const layoutKey = getWorkshopLayoutKey(row)
-  return layoutKey === 'adult_workshop' || layoutKey === 'enquiry_only'
+  return WORKSHOP_DETAIL_LAYOUT_KEYS.has(layoutKey)
+}
+
+function getWorkshopPublicPath(row) {
+  if (usesWorkshopDetailPage(row)) {
+    const slug = row?.offering?.slug
+    return slug ? `/workshops/${slug}` : null
+  }
+
+  const categorySlug = row?.category?.slug
+  return categorySlug ? getCategoryCanonicalPath(categorySlug) : null
+}
+
+function getCategoryCanonicalPath(categorySlug) {
+  return CATEGORY_CANONICAL_PATHS.get(categorySlug) || `/category/${categorySlug}`
 }
 
 async function fetchBlogPaths(supabase) {

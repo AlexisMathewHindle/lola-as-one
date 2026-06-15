@@ -307,17 +307,14 @@ const handleSubmit = async () => {
   try {
     formSubmitting.value = true
 
-    const { error } = await supabase
-      .from('contact_submissions')
-      .insert([
-        {
-          name: form.value.name.trim(),
-          email: form.value.email.trim(),
-          subject: form.value.subject.trim() || null,
-          message: form.value.message.trim(),
-          status: 'new'
-        }
-      ])
+    const { error } = await supabase.functions.invoke('submit-contact-form', {
+      body: {
+        name: form.value.name.trim(),
+        email: form.value.email.trim(),
+        subject: form.value.subject.trim() || defaultEnquirySubject,
+        message: form.value.message.trim()
+      }
+    })
 
     if (error) throw error
 

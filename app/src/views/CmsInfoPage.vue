@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isLegacyAboutPage" class="min-h-screen bg-white">
+  <div v-if="isLegacyAboutPage" class="min-h-screen bg-dark-50">
     <h1 class="sr-only">{{ pageTitle }}</h1>
 
     <section v-if="pageMedia.heroImage" class="bg-white">
@@ -11,15 +11,15 @@
       >
     </section>
 
-    <section class="py-10 sm:py-12">
-      <div class="container mx-auto max-w-5xl px-4">
-        <div v-if="loading" class="rounded-lg border border-gray-200 bg-white p-6 text-gray-600">
+    <section class="section-shell py-10 sm:py-14 lg:py-16">
+      <div>
+        <div v-if="loading" class="rounded-lg border border-dark-200 bg-white p-6 text-dark-600 shadow-sm">
           Loading page content...
         </div>
 
-        <div v-else-if="error" class="rounded-lg border border-red-200 bg-red-50 p-6">
+        <div v-else-if="error" class="rounded-lg border border-danger-200 bg-danger-50 p-6">
           <h2 class="text-2xl font-bold text-red-900">Page unavailable</h2>
-          <p class="mt-3 text-sm leading-6 text-red-800">
+          <p class="mt-3 text-sm leading-6 text-danger-800">
             {{ error }}
           </p>
           <router-link class="mt-5 inline-flex text-sm font-semibold text-primary-600 hover:text-primary-700" to="/contact">
@@ -30,41 +30,39 @@
         <div v-else>
           <div
             v-if="aboutIntroHtml"
-            class="cms-copy mx-auto mb-10 max-w-3xl text-center text-gray-700"
+            class="cms-copy mx-auto mb-8 max-w-3xl text-center text-base leading-8 text-dark-600 sm:mb-10"
             v-html="aboutIntroHtml"
           />
 
-          <article class="about-legacy-card">
-            <div class="grid gap-8 md:grid-cols-2 md:items-start">
-              <figure v-if="pageMedia.featureImage" class="about-legacy-feature">
-                <img
-                  :src="pageMedia.featureImage.src"
-                  :alt="pageMedia.featureImage.alt"
-                  class="w-full object-contain"
-                  :style="imagePositionStyle(pageMedia.featureImage)"
-                >
-              </figure>
+          <article class="about-story-panel rounded-lg border border-dark-200 bg-white p-5 shadow-sm sm:p-7 lg:p-8">
+            <figure v-if="pageMedia.featureImage" class="about-story-feature overflow-hidden rounded-lg border border-dark-200 bg-dark-50">
+              <img
+                :src="pageMedia.featureImage.src"
+                :alt="pageMedia.featureImage.alt"
+                class="w-full object-contain"
+                :style="imagePositionStyle(pageMedia.featureImage)"
+              >
+            </figure>
 
-              <div class="cms-copy max-w-none text-gray-700">
-                <template
-                  v-for="section in visibleSections"
-                  :key="section.section_key"
-                >
-                  <p v-if="sectionConfig(section).eyebrow" class="text-sm font-semibold uppercase tracking-wide text-primary-600">
-                    {{ sectionConfig(section).eyebrow }}
-                  </p>
-                  <div
-                    v-if="sectionConfig(section).body_html"
-                    v-html="sectionConfig(section).body_html"
-                  />
-                </template>
-              </div>
+            <div class="about-story-copy cms-copy text-dark-600">
+              <template
+                v-for="section in visibleSections"
+                :key="section.section_key"
+              >
+                <p v-if="sectionConfig(section).eyebrow" class="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-600">
+                  {{ sectionConfig(section).eyebrow }}
+                </p>
+                <div
+                  v-if="sectionConfig(section).body_html"
+                  v-html="sectionConfig(section).body_html"
+                />
+              </template>
             </div>
           </article>
 
           <div
             v-if="aboutContactHtml"
-            class="cms-copy mx-auto mt-10 max-w-3xl text-center text-gray-700"
+            class="cms-copy mx-auto mt-10 max-w-3xl text-center text-dark-600"
             v-html="aboutContactHtml"
           />
         </div>
@@ -312,8 +310,8 @@ watch(() => props.pageKey, loadPage, { immediate: true })
 <style scoped>
 .cms-copy :deep(h2),
 .cms-copy :deep(h3) {
-  color: #111827;
-  font-weight: 700;
+  color: #332f2c;
+  font-weight: 400;
   line-height: 1.2;
   margin: 2rem 0 0.75rem;
 }
@@ -343,10 +341,16 @@ watch(() => props.pageKey, loadPage, { immediate: true })
 }
 
 .cms-copy :deep(a) {
-  color: #2563eb;
+  color: #9e584a;
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
+  transition: color 160ms ease, text-decoration-color 160ms ease;
+}
+
+.cms-copy :deep(a:hover) {
+  color: #84483e;
+  text-decoration-color: #d7ad9b;
 }
 
 .about-banner {
@@ -365,16 +369,50 @@ watch(() => props.pageKey, loadPage, { immediate: true })
   min-height: 13rem;
 }
 
-.about-legacy-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
-  padding: 1.75rem;
+.about-story-panel {
+  margin-inline: auto;
+  width: 100%;
 }
 
-.about-legacy-feature {
-  margin: 0;
+.about-story-feature {
+  margin: 0 auto;
+  max-width: 52rem;
+}
+
+.about-story-feature img {
+  display: block;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.about-story-copy {
+  margin-inline: auto;
+  max-width: 52rem;
+  padding-top: 2rem;
+}
+
+.about-story-copy :deep(a) {
+  border: 1px solid #efddaf;
+  border-radius: 0.35rem;
+  color: #b26758 !important;
+  display: inline-flex;
+  margin-top: 0.25rem;
+  padding: 0.5rem 0.9rem;
+  text-decoration: none;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.about-story-copy :deep(a:hover) {
+  background: #fcf8ee;
+  border-color: #e5ca82;
+  color: #9e584a !important;
+}
+
+.about-story-copy :deep(a u) {
+  text-decoration: none;
 }
 
 @media (min-width: 640px) {
@@ -384,6 +422,9 @@ watch(() => props.pageKey, loadPage, { immediate: true })
 
   .about-banner-bottom {
     min-height: 16rem;
+  }
+  .about-story-copy {
+    padding-top: 2.25rem;
   }
 }
 </style>
