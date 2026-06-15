@@ -141,6 +141,7 @@
 import { computed, ref, watch } from 'vue'
 import { getPageWithSectionsByKey } from '@/lib/cms'
 import { infoPageDefaultsFor, infoPageMediaFor } from '@/constants/infoPageDefaults'
+import { setPageSeo } from '@/lib/seo'
 
 const props = defineProps({
   pageKey: {
@@ -193,6 +194,15 @@ const aboutIntroHtml = computed(() => (
 const aboutContactHtml = computed(() => (
   firstSectionConfig.value?.contact_html || ''
 ))
+
+function pathForPageKey(pageKey) {
+  return {
+    about: '/about',
+    'workshop-faqs': '/workshop-faqs',
+    'privacy-policy': '/privacy-policy',
+    'terms-and-conditions': '/terms-and-conditions'
+  }[pageKey] || `/${pageKey}`
+}
 
 function fallbackTitle(pageKey) {
   return infoPageDefaultsFor(pageKey)?.title || 'Information'
@@ -274,14 +284,22 @@ async function loadPage() {
     const pageData = await getPageWithSectionsByKey(props.pageKey)
     page.value = pageData
     sections.value = (pageData?.sections || []).filter(section => section.is_enabled !== false)
-    document.title = pageData?.seo_title || `${pageTitle.value} | Lola As One`
+    setPageSeo({
+      title: pageData?.seo_title || pageTitle.value,
+      description: pageData?.seo_description || pageSummary.value,
+      path: pageData?.path || pathForPageKey(props.pageKey)
+    })
   } catch (err) {
     page.value = null
     sections.value = []
     error.value = fallbackSectionsFor(props.pageKey).length
       ? ''
       : (err?.message || 'This page could not be loaded from the CMS.')
-    document.title = `${fallbackTitle(props.pageKey)} | Lola As One`
+    setPageSeo({
+      title: fallbackTitle(props.pageKey),
+      description: fallbackSummary(props.pageKey),
+      path: pathForPageKey(props.pageKey)
+    })
     console.error('Error loading CMS page:', err)
   } finally {
     loading.value = false

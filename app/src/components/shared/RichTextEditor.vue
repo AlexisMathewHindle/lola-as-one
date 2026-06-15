@@ -153,7 +153,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 
 const props = defineProps({
   modelValue: {
-    type: String,
+    type: [String, Object],
     default: ''
   },
   placeholder: {

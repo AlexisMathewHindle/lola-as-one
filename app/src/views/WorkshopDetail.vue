@@ -309,6 +309,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
+import { setPageSeo } from '../lib/seo'
 import { useCartStore } from '../stores/cart'
 import { useToastStore } from '../stores/toast'
 import JoinEventWaitlistModal from '../components/JoinEventWaitlistModal.vue'
@@ -394,6 +395,7 @@ const fetchWorkshop = async () => {
     }
 
     workshop.value = data
+    updateWorkshopSeo(data)
 
     if (shouldUseCategoryWorkshopListing(data)) {
       await router.replace(getWorkshopBookingPath(data))
@@ -412,9 +414,66 @@ const fetchWorkshop = async () => {
   } catch (err) {
     console.error('Error fetching workshop:', err)
     error.value = err.message || 'Failed to load workshop details. Please try again.'
+    setPageSeo({
+      title: 'Workshop Not Found',
+      description: 'This workshop could not be found. Browse current Lola Creative Space workshops instead.',
+      path: `/workshops/${route.params.slug || ''}`,
+      noindex: true
+    })
   } finally {
     loading.value = false
   }
+}
+
+const normalizeSeoText = (value) => String(value || '')
+  .replace(/<[^>]*>/g, ' ')
+  .replace(/&nbsp;/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+
+const truncateSeoText = (value, maxLength = 155) => {
+  const cleanValue = normalizeSeoText(value)
+
+  if (cleanValue.length <= maxLength) {
+    return cleanValue
+  }
+
+  return `${cleanValue.slice(0, maxLength - 3).trim()}...`
+}
+
+const formatSeoDate = (dateString) => {
+  if (!dateString) return ''
+
+  try {
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+  } catch {
+    return ''
+  }
+}
+
+const updateWorkshopSeo = (workshopData) => {
+  const offering = workshopData?.offering || {}
+  const category = workshopData?.category || {}
+  const title = offering.title || 'Art Workshop'
+  const dateLabel = formatSeoDate(workshopData?.event_date)
+  const summary = offering.description_short || offering.description_long || category.description
+  const descriptionPrefix = dateLabel
+    ? `Book ${title} at Lola Creative Space on ${dateLabel}.`
+    : `Book ${title} at Lola Creative Space.`
+  const description = truncateSeoText(`${descriptionPrefix} ${normalizeSeoText(summary)}`)
+
+  setPageSeo({
+    title,
+    description,
+    path: `/workshops/${offering.slug || route.params.slug || ''}`,
+    image: offering.featured_image_url || category.featured_image_url || undefined,
+    type: 'event'
+  })
 }
 
 // Fetch capacity

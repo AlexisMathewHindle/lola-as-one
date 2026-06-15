@@ -7,8 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const DEFAULT_CHECKOUT_APP_URL = 'https://lola-as-one.netlify.app'
-const LEGACY_CHECKOUT_HOSTS = new Set(['lola-workshops.netlify.app'])
+const DEFAULT_CHECKOUT_APP_URL = 'https://lolacreativespace.com'
+const LEGACY_CHECKOUT_HOSTS = new Set(['lola-workshops.netlify.app', 'lola-as-one.netlify.app'])
 
 function getCheckoutAppUrl(): string {
   const configuredUrl = Deno.env.get('CHECKOUT_APP_URL') || Deno.env.get('APP_URL')

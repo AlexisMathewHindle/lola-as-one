@@ -108,7 +108,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-    const siteUrl = Deno.env.get('SITE_URL') || 'https://www.lotsoflovelyart.com'
+    const siteUrl = Deno.env.get('SITE_URL') || 'https://lolacreativespace.com'
     const timeZone = Deno.env.get('EVENT_EMAIL_TIME_ZONE') || 'Europe/London'
 
     if (!supabaseUrl || !supabaseServiceKey) {

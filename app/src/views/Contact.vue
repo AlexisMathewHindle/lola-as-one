@@ -1,213 +1,184 @@
 <template>
-  <div class="min-h-screen bg-white">
-    <section class="border-b border-gray-200 bg-gray-50">
-      <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
-        <p class="text-sm font-semibold uppercase tracking-wide text-primary-600">Contact</p>
-        <h1 class="mt-3 max-w-3xl text-4xl font-bold text-gray-900 sm:text-5xl">
-          {{ pageTitle }}
-        </h1>
-        <p v-if="pageSummary" class="mt-5 max-w-3xl text-lg leading-8 text-gray-600">
-          {{ pageSummary }}
-        </p>
+  <div class="min-h-screen bg-dark-50">
+    <section class="border-b border-dark-200 bg-white">
+      <div class="section-shell py-9 sm:py-11 lg:py-12">
+        <div class="max-w-3xl">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-600">
+            Get In Touch
+          </p>
+          <h1 class="mt-3 text-4xl font-light leading-tight text-dark-900 sm:text-5xl">
+            {{ heroTitle }}
+          </h1>
+          <p v-if="heroSummary" class="mt-5 max-w-2xl text-base leading-8 text-dark-600 sm:text-lg">
+            {{ heroSummary }}
+          </p>
+        </div>
       </div>
     </section>
 
-    <section class="bg-white py-12 sm:py-16">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 gap-12 lg:grid-cols-2">
-          <div class="space-y-8">
-            <div>
-              <h2 class="text-3xl font-bold text-gray-900">
-                {{ contactSectionTitle }}
-              </h2>
-              <div
-                v-if="contactBodyHtml"
-                class="cms-copy mt-5 max-w-none text-gray-700"
-                v-html="contactBodyHtml"
-              />
-            </div>
+    <section class="section-shell py-10 sm:py-14 lg:py-16">
+      <div class="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_25rem] xl:gap-12">
+        <section class="rounded-lg border border-dark-200 bg-white p-5 shadow-sm sm:p-7 lg:p-8">
+          <div class="max-w-2xl">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-600">
+              Message The Studio
+            </p>
+            <h2 class="mt-3 text-3xl font-light leading-tight text-dark-900 sm:text-4xl">
+              How can we help?
+            </h2>
+            <p class="mt-4 text-[15px] leading-7 text-dark-600">
+              Choose the closest enquiry type and send the team the details. For booking changes, include the workshop name, date, and booking email address.
+            </p>
+            <div
+              v-if="hasCustomContactCopy"
+              class="cms-copy mt-5 rounded-lg border border-dark-200 bg-dark-50 p-4 text-sm text-dark-700"
+              v-html="contactBodyHtml"
+            />
+          </div>
 
-            <div class="space-y-5">
-              <div class="flex items-start rounded-lg border border-gray-200 bg-gray-50 p-5">
-                <div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100">
-                  <font-awesome-icon icon="envelope" class="text-lg text-primary-600" />
-                </div>
-                <div class="ml-4">
-                  <h3 class="text-base font-semibold text-gray-900">Email</h3>
-                  <a :href="`mailto:${contactEmail}`" class="mt-1 inline-flex text-primary-600 hover:text-primary-700">
-                    {{ contactEmail }}
-                  </a>
-                  <p class="mt-1 text-sm text-gray-500">We'll respond as soon as we can.</p>
-                </div>
-              </div>
-
-              <div
-                v-if="contactVenue || addressLines.length"
-                class="flex items-start rounded-lg border border-gray-200 bg-gray-50 p-5"
-              >
-                <div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-secondary-100">
-                  <font-awesome-icon icon="map-marker-alt" class="text-lg text-secondary-600" />
-                </div>
-                <div class="ml-4">
-                  <h3 class="text-base font-semibold text-gray-900">Address</h3>
-                  <p v-if="contactVenue" class="mt-1 font-medium text-gray-700">{{ contactVenue }}</p>
-                  <div class="mt-1 text-gray-600">
-                    <p v-for="line in addressLines" :key="line">{{ line }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                v-if="openingTimes.length"
-                class="rounded-lg border border-gray-200 bg-gray-50 p-5"
-              >
-                <div class="mb-4 flex items-center">
-                  <div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-success-100">
-                    <font-awesome-icon icon="clock" class="text-lg text-success-600" />
-                  </div>
-                  <h3 class="ml-4 text-base font-semibold text-gray-900">Opening Times</h3>
-                </div>
-                <div class="space-y-2 text-sm text-gray-600">
-                  <div
-                    v-for="entry in openingTimes"
-                    :key="entry.day"
-                    class="flex justify-between gap-4"
-                  >
-                    <span class="font-medium text-gray-800">{{ entry.day }}</span>
-                    <span class="text-right">{{ entry.hours }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="socialItems.length" class="rounded-lg border border-gray-200 bg-gray-50 p-5">
-                <h3 class="text-base font-semibold text-gray-900">Follow Us</h3>
-                <div class="mt-4 flex flex-wrap gap-2">
-                  <a
-                    v-for="item in socialItems"
-                    :key="item.label"
-                    :href="item.href"
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    class="inline-flex items-center rounded-full border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:border-primary-500 hover:text-primary-600"
-                  >
-                    {{ item.label }}
-                    <font-awesome-icon icon="external-link-alt" class="ml-2 h-3 w-3" />
-                  </a>
-                </div>
+          <div v-if="formSuccess" class="mt-6 rounded-lg border border-success-200 bg-success-50 p-4">
+            <div class="flex items-start gap-3">
+              <font-awesome-icon icon="check-circle" class="mt-0.5 text-xl text-success-600" />
+              <div>
+                <p class="font-semibold text-success-900">Message sent successfully.</p>
+                <p class="text-sm text-success-700">We'll get back to you as soon as possible.</p>
               </div>
             </div>
           </div>
 
-          <div>
-            <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-              <h2 class="text-3xl font-bold text-gray-900">
-                Send a Message
-              </h2>
-
-              <div v-if="formSuccess" class="mt-6 rounded-lg border border-success-200 bg-success-50 p-4">
-                <div class="flex items-center">
-                  <font-awesome-icon icon="check-circle" class="mr-3 text-xl text-success-600" />
-                  <div>
-                    <p class="font-semibold text-success-900">Message sent successfully!</p>
-                    <p class="text-sm text-success-700">We'll get back to you as soon as possible.</p>
-                  </div>
-                </div>
+          <div v-if="formError" class="mt-6 rounded-lg border border-danger-200 bg-danger-50 p-4">
+            <div class="flex items-start gap-3">
+              <font-awesome-icon icon="exclamation-circle" class="mt-0.5 text-xl text-danger-600" />
+              <div>
+                <p class="font-semibold text-danger-900">Failed to send message</p>
+                <p class="text-sm text-danger-700">{{ formError }}</p>
               </div>
+            </div>
+          </div>
 
-              <div v-if="formError" class="mt-6 rounded-lg border border-danger-200 bg-danger-50 p-4">
-                <div class="flex items-center">
-                  <font-awesome-icon icon="exclamation-circle" class="mr-3 text-xl text-danger-600" />
-                  <div>
-                    <p class="font-semibold text-danger-900">Failed to send message</p>
-                    <p class="text-sm text-danger-700">{{ formError }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <form class="mt-6 space-y-6" @submit.prevent="handleSubmit">
-                <div>
-                  <label for="name" class="mb-2 block text-sm font-medium text-gray-700">
-                    Name <span class="text-danger-600">*</span>
-                  </label>
-                  <input
-                    id="name"
-                    v-model="form.name"
-                    type="text"
-                    required
-                    class="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-transparent focus:ring-2 focus:ring-primary-500"
-                    :class="{ 'border-danger-500': errors.name }"
-                    placeholder="Your name"
-                    :disabled="formSubmitting"
-                  >
-                  <p v-if="errors.name" class="mt-1 text-sm text-danger-600">{{ errors.name }}</p>
-                </div>
-
-                <div>
-                  <label for="email" class="mb-2 block text-sm font-medium text-gray-700">
-                    Email <span class="text-danger-600">*</span>
-                  </label>
-                  <input
-                    id="email"
-                    v-model="form.email"
-                    type="email"
-                    required
-                    class="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-transparent focus:ring-2 focus:ring-primary-500"
-                    :class="{ 'border-danger-500': errors.email }"
-                    placeholder="your@email.com"
-                    :disabled="formSubmitting"
-                  >
-                  <p v-if="errors.email" class="mt-1 text-sm text-danger-600">{{ errors.email }}</p>
-                </div>
-
-                <div>
-                  <label for="subject" class="mb-2 block text-sm font-medium text-gray-700">
-                    Subject
-                  </label>
-                  <input
-                    id="subject"
-                    v-model="form.subject"
-                    type="text"
-                    class="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-transparent focus:ring-2 focus:ring-primary-500"
-                    placeholder="What is this about?"
-                    :disabled="formSubmitting"
-                  >
-                </div>
-
-                <div>
-                  <label for="message" class="mb-2 block text-sm font-medium text-gray-700">
-                    Message <span class="text-danger-600">*</span>
-                  </label>
-                  <textarea
-                    id="message"
-                    v-model="form.message"
-                    rows="5"
-                    required
-                    class="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-transparent focus:ring-2 focus:ring-primary-500"
-                    :class="{ 'border-danger-500': errors.message }"
-                    placeholder="How can we help you?"
-                    :disabled="formSubmitting"
-                  />
-                  <p v-if="errors.message" class="mt-1 text-sm text-danger-600">{{ errors.message }}</p>
-                </div>
-
-                <button
-                  type="submit"
-                  class="w-full rounded-lg bg-primary-600 px-6 py-4 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+          <form class="mt-7 space-y-5" @submit.prevent="handleSubmit">
+            <div class="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label for="name" class="mb-2 block text-sm font-medium text-dark-700">
+                  Name <span class="text-danger-600">*</span>
+                </label>
+                <input
+                  id="name"
+                  v-model="form.name"
+                  type="text"
+                  required
+                  class="w-full rounded-lg border border-dark-300 bg-white px-4 py-3 text-[15px] text-dark-900 shadow-sm transition-colors placeholder:text-dark-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:bg-dark-50"
+                  :class="{ 'border-danger-500 focus:border-danger-500 focus:ring-danger-100': errors.name }"
+                  placeholder="Your name"
                   :disabled="formSubmitting"
                 >
-                  <span v-if="!formSubmitting" class="flex items-center justify-center">
-                    <font-awesome-icon icon="envelope" class="mr-2" />
-                    Send Message
-                  </span>
-                  <span v-else class="flex items-center justify-center">
-                    <span class="mr-2 h-5 w-5 animate-spin rounded-full border-b-2 border-white"></span>
-                    Sending...
-                  </span>
-                </button>
-              </form>
+                <p v-if="errors.name" class="mt-1 text-sm text-danger-600">{{ errors.name }}</p>
+              </div>
+
+              <div>
+                <label for="email" class="mb-2 block text-sm font-medium text-dark-700">
+                  Email <span class="text-danger-600">*</span>
+                </label>
+                <input
+                  id="email"
+                  v-model="form.email"
+                  type="email"
+                  required
+                  class="w-full rounded-lg border border-dark-300 bg-white px-4 py-3 text-[15px] text-dark-900 shadow-sm transition-colors placeholder:text-dark-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:bg-dark-50"
+                  :class="{ 'border-danger-500 focus:border-danger-500 focus:ring-danger-100': errors.email }"
+                  placeholder="you@example.com"
+                  :disabled="formSubmitting"
+                >
+                <p v-if="errors.email" class="mt-1 text-sm text-danger-600">{{ errors.email }}</p>
+              </div>
             </div>
-          </div>
-        </div>
+
+            <div>
+              <label for="subject" class="mb-2 block text-sm font-medium text-dark-700">
+                Enquiry type
+              </label>
+              <select
+                id="subject"
+                v-model="form.subject"
+                class="w-full rounded-lg border border-dark-300 bg-white px-4 py-3 text-[15px] text-dark-900 shadow-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:bg-dark-50"
+                :disabled="formSubmitting"
+              >
+                <option
+                  v-for="option in enquiryOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label for="message" class="mb-2 block text-sm font-medium text-dark-700">
+                Message <span class="text-danger-600">*</span>
+              </label>
+              <textarea
+                id="message"
+                v-model="form.message"
+                rows="7"
+                required
+                class="w-full resize-y rounded-lg border border-dark-300 bg-white px-4 py-3 text-[15px] text-dark-900 shadow-sm transition-colors placeholder:text-dark-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:bg-dark-50"
+                :class="{ 'border-danger-500 focus:border-danger-500 focus:ring-danger-100': errors.message }"
+                placeholder="Tell us what you need help with."
+                :disabled="formSubmitting"
+              />
+              <p v-if="errors.message" class="mt-1 text-sm text-danger-600">{{ errors.message }}</p>
+            </div>
+
+            <button
+              type="submit"
+              class="inline-flex w-full items-center justify-center rounded-lg bg-primary-600 px-6 py-4 text-base font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="formSubmitting"
+            >
+              <span v-if="!formSubmitting" class="flex items-center justify-center">
+                <font-awesome-icon icon="envelope" class="mr-2" />
+                Send Message
+              </span>
+              <span v-else class="flex items-center justify-center">
+                <span class="mr-2 h-5 w-5 animate-spin rounded-full border-b-2 border-white"></span>
+                Sending...
+              </span>
+            </button>
+          </form>
+        </section>
+
+        <aside class="space-y-5 lg:sticky lg:top-8 lg:self-start">
+          <section class="overflow-hidden rounded-lg border border-dark-200 bg-white shadow-sm">
+            <img
+              src="/img/images/about_page_02.png"
+              alt="Painted paper houses and art materials on a workshop table"
+              class="h-44 w-full object-cover"
+            >
+
+            <div class="space-y-5 p-5 sm:p-6">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-600">
+                Helpful Details
+              </p>
+              <h2 class="mt-2 text-2xl font-light text-dark-900">
+                A few things worth including
+              </h2>
+              <ul class="space-y-4 text-[15px] leading-7 text-dark-600">
+                <li class="flex gap-3">
+                  <font-awesome-icon icon="calendar-check" class="mt-1 text-primary-500" />
+                  <span>For booking changes, include the workshop name, date, and booking email address.</span>
+                </li>
+                <li class="flex gap-3">
+                  <font-awesome-icon icon="users" class="mt-1 text-secondary-700" />
+                  <span>For parties or private events, share the preferred date, group size, and age range.</span>
+                </li>
+                <li class="flex gap-3">
+                  <font-awesome-icon icon="box" class="mt-1 text-success-700" />
+                  <span>For art boxes or orders, include your order number if you have one.</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </aside>
       </div>
     </section>
   </div>
@@ -216,7 +187,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { infoPageDefaultsFor } from '../constants/infoPageDefaults'
-import { getPageWithSectionsByKey, getPublicSettingsMap } from '../lib/cms'
+import { getPageWithSectionsByKey } from '../lib/cms'
+import { setPageSeo } from '../lib/seo'
 import { supabase } from '../lib/supabase'
 
 const CONTACT_PAGE_KEY = 'contact'
@@ -227,34 +199,22 @@ const contactDefaults = infoPageDefaultsFor(CONTACT_PAGE_KEY) || {
   bodyHtml: ''
 }
 
-const fallbackAddressLines = [
-  '50B Northbrook Street',
-  'Newbury RG14 1DT'
+const enquiryOptions = [
+  { value: 'Workshop booking', label: 'Workshop booking' },
+  { value: 'Art boxes', label: 'Art boxes' },
+  { value: 'Parties and private events', label: 'Parties and private events' },
+  { value: 'General question', label: 'General question' }
 ]
 
-const fallbackOpeningTimes = [
-  { day: 'Mon', hours: 'Closed' },
-  { day: 'Tues', hours: '9am - 5pm' },
-  { day: 'Wed', hours: '9am - 6pm' },
-  { day: 'Thurs', hours: '9am - 6pm' },
-  { day: 'Fri', hours: '9am - 5pm' },
-  { day: 'Sat', hours: '9.30am - 3pm' },
-  { day: 'Sun', hours: '9.30am - 1pm' }
-]
-
-const fallbackSocialLinks = {
-  instagram: 'https://www.instagram.com/lotsoflovelyart/',
-  facebook: 'https://www.facebook.com/lotsoflovelyart'
-}
+const defaultEnquirySubject = enquiryOptions[0].value
 
 const page = ref(null)
 const pageSections = ref([])
-const settings = ref({})
 
 const form = ref({
   name: '',
   email: '',
-  subject: '',
+  subject: defaultEnquirySubject,
   message: ''
 })
 
@@ -265,24 +225,19 @@ const errors = ref({})
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-const normalizeOpeningTimes = (entries) => {
-  if (!Array.isArray(entries)) return []
-
-  return entries
-    .map(entry => ({
-      day: String(entry?.day || '').trim(),
-      hours: String(entry?.hours || '').trim()
-    }))
-    .filter(entry => entry.day && entry.hours)
-}
-
-const settingValue = (key, fallback = '') => {
-  const value = settings.value?.[key]?.value
-  return value === undefined || value === null || value === '' ? fallback : value
-}
-
 const pageTitle = computed(() => page.value?.title || contactDefaults.title)
 const pageSummary = computed(() => page.value?.seo_description || contactDefaults.summary)
+
+const heroTitle = computed(() => {
+  const title = String(pageTitle.value || '').trim()
+  return !title || title.toLowerCase() === 'contact' ? 'Contact LoLA' : title
+})
+
+const heroSummary = computed(() =>
+  pageSummary.value ||
+  contactDefaults.summary ||
+  "Questions about workshops, bookings, parties or art boxes? Send us a note."
+)
 
 const contactSection = computed(() =>
   pageSections.value.find(section => section.section_key === 'contact_content') ||
@@ -292,27 +247,11 @@ const contactSection = computed(() =>
 )
 
 const contactSectionConfig = computed(() => contactSection.value?.config_json || {})
-const contactSectionTitle = computed(() => contactSectionConfig.value.title || contactDefaults.sectionTitle)
 const contactBodyHtml = computed(() => contactSectionConfig.value.body_html || contactDefaults.bodyHtml)
-
-const contactEmail = computed(() => settingValue('contact_email', 'hello@lotsoflovelyart.com'))
-const contactVenue = computed(() => settingValue('contact_venue', 'LoLA Lots of Lovely Art Creative Space'))
-const addressLines = computed(() => {
-  const lines = settings.value?.contact_address_lines?.value
-  return Array.isArray(lines) && lines.length ? lines : fallbackAddressLines
-})
-const openingTimes = computed(() => {
-  const savedOpeningTimes = normalizeOpeningTimes(settings.value?.opening_times?.value)
-  return savedOpeningTimes.length ? savedOpeningTimes : fallbackOpeningTimes
-})
-const socialItems = computed(() => {
-  const links = settings.value?.social_links || fallbackSocialLinks
-
-  return [
-    links.instagram ? { label: 'Instagram', href: links.instagram } : null,
-    links.facebook ? { label: 'Facebook', href: links.facebook } : null,
-    links.youtube ? { label: 'YouTube', href: links.youtube } : null
-  ].filter(Boolean)
+const normalizedDefaultContactBody = String(contactDefaults.bodyHtml || '').replace(/\s+/g, ' ').trim()
+const hasCustomContactCopy = computed(() => {
+  const copy = String(contactBodyHtml.value || '').replace(/\s+/g, ' ').trim()
+  return Boolean(copy && copy !== normalizedDefaultContactBody)
 })
 
 const loadContactPage = async () => {
@@ -320,21 +259,20 @@ const loadContactPage = async () => {
     const pageData = await getPageWithSectionsByKey(CONTACT_PAGE_KEY)
     page.value = pageData
     pageSections.value = pageData?.sections || []
-    document.title = pageData?.seo_title || `${pageTitle.value} | Lola As One`
+    setPageSeo({
+      title: pageData?.seo_title || pageTitle.value,
+      description: pageData?.seo_description || pageSummary.value,
+      path: '/contact'
+    })
   } catch (err) {
     page.value = null
     pageSections.value = []
-    document.title = `${contactDefaults.title} | Lola As One`
+    setPageSeo({
+      title: contactDefaults.title,
+      description: contactDefaults.summary,
+      path: '/contact'
+    })
     console.error('Error loading contact CMS content:', err)
-  }
-}
-
-const loadContactSettings = async () => {
-  try {
-    settings.value = await getPublicSettingsMap()
-  } catch (err) {
-    settings.value = {}
-    console.error('Error loading contact settings:', err)
   }
 }
 
@@ -387,7 +325,7 @@ const handleSubmit = async () => {
     form.value = {
       name: '',
       email: '',
-      subject: '',
+      subject: defaultEnquirySubject,
       message: ''
     }
 
@@ -404,7 +342,6 @@ const handleSubmit = async () => {
 
 onMounted(() => {
   loadContactPage()
-  loadContactSettings()
 })
 </script>
 

@@ -16,7 +16,8 @@
   
   [context.production.environment]
     NODE_VERSION = "20"
-    VITE_APP_URL = "https://lola-as-one.netlify.app"
+    VITE_APP_ENV = "production"
+    VITE_APP_URL = "https://lolacreativespace.com"
 
 # Staging context (staging branch) - This gives you a stable URL!
 [context.staging]
@@ -24,6 +25,7 @@
   
   [context.staging.environment]
     NODE_VERSION = "20"
+    VITE_APP_ENV = "staging"
     # Use staging environment variables
     VITE_APP_URL = "https://staging--lola-as-one.netlify.app"
 
@@ -33,12 +35,25 @@
   
   [context.deploy-preview.environment]
     NODE_VERSION = "20"
+    VITE_APP_ENV = "preview"
 
 # Branch deploys - enable for specific branches
 [context.branch-deploy]
   command = "npm run build"
 
 # Redirects for SPA (Vue Router)
+[[redirects]]
+  from = "https://lola-as-one.netlify.app/*"
+  to = "https://lolacreativespace.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.lolacreativespace.com/*"
+  to = "https://lolacreativespace.com/:splat"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/adult-art-workshops"
   to = "/adult-workshops"
@@ -67,6 +82,36 @@
 [[redirects]]
   from = "/registration"
   to = "/workshops"
+  status = 301
+
+[[redirects]]
+  from = "/holiday-programs/half-term"
+  to = "/half-term"
+  status = 301
+
+[[redirects]]
+  from = "/holiday-programs/summer-holiday"
+  to = "/summer-holiday"
+  status = 301
+
+[[redirects]]
+  from = "/faqs"
+  to = "/workshop-faqs"
+  status = 301
+
+[[redirects]]
+  from = "/faq"
+  to = "/workshop-faqs"
+  status = 301
+
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy-policy"
+  status = 301
+
+[[redirects]]
+  from = "/terms"
+  to = "/terms-and-conditions"
   status = 301
 
 [[redirects]]

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '../lib/supabase'
+import { setPageSeo } from '../lib/seo'
 
 const titleFromSlug = (slug) => String(slug || 'Workshops')
   .split('-')
@@ -8,6 +9,99 @@ const titleFromSlug = (slug) => String(slug || 'Workshops')
   .join(' ')
 
 const currentSummerHolidayCategorySlug = `summer-holiday-${new Date().getFullYear()}`
+
+const routeSeo = {
+  Home: {
+    title: 'Lola Creative Space',
+    description: 'Book art workshops, creative classes, holiday programmes and events for children, adults and families.'
+  },
+  Workshops: {
+    title: 'Art Workshops',
+    description: 'Browse upcoming art workshops, creative classes and bookable sessions at Lola Creative Space.'
+  },
+  AdultWorkshops: {
+    title: 'Adult Art Workshops',
+    description: 'Creative art workshops and relaxed making sessions for adults.'
+  },
+  HalfTerm: {
+    title: 'Half Term Art Classes',
+    description: 'Find and book half term art workshops for children and families.',
+    canonicalPath: '/half-term'
+  },
+  SummerHoliday: {
+    title: 'Summer Holiday Art Workshops',
+    description: 'Browse summer holiday art workshops and open studio sessions for children and families.',
+    canonicalPath: '/summer-holiday'
+  },
+  CategoryWorkshops: {
+    title: 'Art Workshops',
+    description: 'Browse upcoming workshops and book the sessions that work for your family.'
+  },
+  WorkshopDetail: {
+    title: 'Art Workshop',
+    description: 'View workshop details, dates, availability and booking options.'
+  },
+  Blog: {
+    title: 'Creative Journal',
+    description: 'News, ideas and updates from Lola Creative Space.'
+  },
+  BlogPost: {
+    title: 'Creative Journal',
+    description: 'Read the latest news, ideas and updates from Lola Creative Space.',
+    type: 'article'
+  },
+  About: {
+    title: 'About',
+    description: 'Learn more about Lola Creative Space and its creative workshops.'
+  },
+  Contact: {
+    title: 'Contact',
+    description: 'Contact Lola Creative Space about workshops, bookings and creative events.'
+  },
+  WorkshopFAQs: {
+    title: 'Workshop FAQs',
+    description: 'Answers to common questions about Lola Creative Space workshops.',
+    canonicalPath: '/workshop-faqs'
+  },
+  PrivacyPolicy: {
+    title: 'Privacy Policy',
+    description: 'Privacy information for Lola Creative Space.',
+    canonicalPath: '/privacy-policy'
+  },
+  TermsAndConditions: {
+    title: 'Terms and Conditions',
+    description: 'Booking terms and conditions for Lola Creative Space.',
+    canonicalPath: '/terms-and-conditions'
+  }
+}
+
+const noindexRouteNames = new Set([
+  'Account',
+  'Login',
+  'UserDebug',
+  'DesignSystem',
+  'Cart',
+  'Checkout',
+  'OrderSuccess',
+  'Boxes',
+  'BoxDetail',
+  'Shop',
+  'ProductDetail',
+  'SubscriptionDetail'
+])
+
+function seoForRoute(route) {
+  const base = routeSeo[route.name] || {}
+  const requiresPrivateAccess = route.matched.some(record => record.meta.requiresAuth || record.meta.requiresAdmin)
+  const noindex = requiresPrivateAccess || noindexRouteNames.has(route.name) || base.noindex
+  const path = base.canonicalPath || route.path
+
+  return {
+    ...base,
+    path,
+    noindex
+  }
+}
 
 const routes = [
   {
@@ -444,6 +538,10 @@ router.beforeEach(async (to, from, next) => {
   }
   
   next()
+})
+
+router.afterEach((to) => {
+  setPageSeo(seoForRoute(to))
 })
 
 export default router

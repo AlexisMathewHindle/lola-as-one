@@ -323,6 +323,33 @@ const generateSlug = (title) => {
     .replace(/^-+|-+$/g, '')
 }
 
+const textFromTiptapContent = (content) => {
+  if (!Array.isArray(content)) return ''
+
+  return content.map((node) => {
+    const childText = textFromTiptapContent(node.content)
+    return [node.text, childText].filter(Boolean).join(' ')
+  }).filter(Boolean).join(' ')
+}
+
+const stripHtmlToText = (value) => String(value || '')
+  .replace(/<[^>]*>/g, ' ')
+  .replace(/&nbsp;/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+
+const bodyToPlainText = (body) => {
+  if (typeof body === 'string') {
+    return stripHtmlToText(body)
+  }
+
+  if (body?.type === 'doc') {
+    return textFromTiptapContent(body.content).replace(/\s+/g, ' ').trim()
+  }
+
+  return ''
+}
+
 // Load existing blog post data
 const loadBlogPost = async () => {
   if (!isEdit) return
@@ -377,7 +404,7 @@ const validateForm = () => {
     return false
   }
 
-  if (!form.value.body?.trim()) {
+  if (!bodyToPlainText(form.value.body)) {
     error.value = 'Content is required'
     return false
   }
@@ -422,23 +449,19 @@ const handleSubmit = async () => {
 
     if (isEdit) {
       // Update existing blog post
-      const { data, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('blog_posts')
         .update(blogData)
         .eq('id', route.params.id)
-        .select()
-        .single()
 
       if (updateError) throw updateError
     } else {
       // Create new blog post
       blogData.created_by = user.id
 
-      const { data, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('blog_posts')
         .insert(blogData)
-        .select()
-        .single()
 
       if (insertError) throw insertError
     }
@@ -469,5 +492,3 @@ onMounted(() => {
   loadBlogPost()
 })
 </script>
-
-

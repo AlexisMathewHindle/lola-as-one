@@ -132,7 +132,7 @@ Implemented new-app capabilities:
 Known new-app gaps or risks:
 
 - `app/src/views/Account.vue` is still a placeholder shell; real order, booking, subscription, address, and claim history are not implemented there.
-- Contact form writes to `contact_submissions`, but the migration for that table was not found in the current migration list and the UI still has a TODO for email sending.
+- Contact form writes to `contact_submissions`; the table migration now exists, but contact-form email notification wiring is still not implemented.
 - Subscription detail lets customers configure curated boxes and add a subscription to the cart, but subscription checkout and webhook fulfillment still need production verification.
 - Curated subscription items in the cart flow currently go through the standard `create-checkout-session` payment-mode function unless explicitly routed elsewhere; direct subscription checkout from `BoxDetail.vue` uses `create-subscription-checkout-session`.
 - Some detailed docs say older milestones are complete, while newer code and epic notes show remaining work. Use code and current migrations as the planning source of truth.

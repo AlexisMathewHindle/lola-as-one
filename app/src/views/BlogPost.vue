@@ -192,6 +192,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
+import { setPageSeo } from '../lib/seo'
 
 const route = useRoute()
 const router = useRouter()
@@ -281,6 +282,57 @@ const renderTiptapContent = (content) => {
   }).join('')
 }
 
+const textFromTiptapContent = (content) => {
+  if (!Array.isArray(content)) return ''
+
+  return content.map((node) => {
+    const childText = textFromTiptapContent(node.content)
+    return [node.text, childText].filter(Boolean).join(' ')
+  }).filter(Boolean).join(' ')
+}
+
+const normalizeSeoText = (value) => String(value || '')
+  .replace(/<[^>]*>/g, ' ')
+  .replace(/&nbsp;/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+
+const truncateSeoText = (value, maxLength = 155) => {
+  const cleanValue = normalizeSeoText(value)
+
+  if (cleanValue.length <= maxLength) {
+    return cleanValue
+  }
+
+  return `${cleanValue.slice(0, maxLength - 3).trim()}...`
+}
+
+const descriptionFromPost = (postData) => {
+  if (postData?.excerpt) {
+    return truncateSeoText(postData.excerpt)
+  }
+
+  if (typeof postData?.body === 'string') {
+    return truncateSeoText(postData.body)
+  }
+
+  if (postData?.body?.type === 'doc') {
+    return truncateSeoText(textFromTiptapContent(postData.body.content))
+  }
+
+  return 'Read the latest news, ideas and updates from Lola Creative Space.'
+}
+
+const updatePostSeo = (postData) => {
+  setPageSeo({
+    title: postData?.title || 'Creative Journal',
+    description: descriptionFromPost(postData),
+    path: `/blog/${postData?.slug || route.params.slug || ''}`,
+    image: postData?.featured_image_url || undefined,
+    type: 'article'
+  })
+}
+
 // Get initials from name
 const getInitials = (name) => {
   if (!name) return 'LT'
@@ -325,6 +377,7 @@ const fetchPost = async () => {
     if (!postData) throw new Error('Post not found')
 
     post.value = postData
+    updatePostSeo(postData)
 
     // Fetch category
     const { data: categoryData, error: categoryError } = await supabase
@@ -374,6 +427,12 @@ const fetchPost = async () => {
   } catch (err) {
     console.error('Error fetching blog post:', err)
     error.value = err.message || 'Failed to load blog post'
+    setPageSeo({
+      title: 'Post Not Found',
+      description: 'This journal post could not be found. Browse the Lola Creative Space journal instead.',
+      path: `/blog/${route.params.slug || ''}`,
+      noindex: true
+    })
   } finally {
     loading.value = false
   }

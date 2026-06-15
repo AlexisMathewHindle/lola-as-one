@@ -8,6 +8,10 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+function maskEmail(email = '') {
+  return email.replace(/^(.).+(@.+)$/, '$1***$2')
+}
+
 async function checkRecentOrders() {
   console.log('📦 Checking Recent Orders and Email Logs...\n')
   console.log('='.repeat(60))
@@ -33,17 +37,17 @@ async function checkRecentOrders() {
 
   for (const order of orders) {
     console.log(`Order: ${order.order_number}`)
-    console.log(`  Customer: ${order.customer_email}`)
+    console.log(`  Customer: ${maskEmail(order.customer_email)}`)
     console.log(`  Total: £${order.total_gbp.toFixed(2)}`)
     console.log(`  Status: ${order.status}`)
     console.log(`  Created: ${new Date(order.created_at).toLocaleString()}`)
 
-    // Check for emails sent for this order
+    // Check for emails sent for this exact order. Matching by recipient and
+    // timestamp over-counts for repeat customers.
     const { data: emails, error: emailsError } = await supabase
       .from('email_logs')
       .select('*')
-      .eq('recipient', order.customer_email)
-      .gte('sent_at', order.created_at)
+      .contains('metadata', { orderNumber: order.order_number })
       .order('sent_at', { ascending: false })
 
     if (emailsError) {
@@ -51,7 +55,10 @@ async function checkRecentOrders() {
     } else if (emails && emails.length > 0) {
       console.log(`  📧 Emails sent: ${emails.length}`)
       emails.forEach(email => {
-        console.log(`     - ${email.template} (${email.status}) at ${new Date(email.sent_at).toLocaleTimeString()}`)
+        console.log(`     - ${email.template} to ${maskEmail(email.recipient)} (${email.status}) at ${new Date(email.sent_at).toLocaleTimeString()}`)
+        if (email.error_message) {
+          console.log(`       Error: ${email.error_message}`)
+        }
       })
     } else {
       console.log('  ⚠️  No emails found for this order!')
@@ -67,7 +74,7 @@ async function checkRecentOrders() {
   const { data: adminEmails, error: adminEmailsError } = await supabase
     .from('email_logs')
     .select('*')
-    .eq('template', 'new-order-admin')
+    .in('template', ['new-order-admin', 'event-booking-admin'])
     .order('sent_at', { ascending: false })
     .limit(5)
 
@@ -91,4 +98,3 @@ async function checkRecentOrders() {
 }
 
 checkRecentOrders()
-

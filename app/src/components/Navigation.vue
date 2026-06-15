@@ -147,15 +147,15 @@
 
           <button
             type="button"
-            class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-dark-300 bg-white text-dark-700 transition-colors hover:border-primary-500 hover:text-primary-500"
+            class="relative z-10 inline-flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-full border border-dark-300 bg-white text-dark-700 transition-colors hover:border-primary-500 hover:text-primary-500"
             :aria-expanded="mobileMenuOpen ? 'true' : 'false'"
             aria-label="Toggle menu"
-            @click="mobileMenuOpen = !mobileMenuOpen"
+            @click.stop="mobileMenuOpen = !mobileMenuOpen"
           >
-            <svg v-if="!mobileMenuOpen" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg v-if="!mobileMenuOpen" class="pointer-events-none h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7h16M4 12h16M4 17h16" />
             </svg>
-            <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg v-else class="pointer-events-none h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>

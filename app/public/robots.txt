@@ -1,0 +1,11 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /account
+Disallow: /checkout
+Disallow: /cart
+Disallow: /order/success
+Disallow: /debug
+Disallow: /design-system
+
+Sitemap: https://lolacreativespace.com/sitemap.xml
+

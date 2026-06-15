@@ -131,12 +131,53 @@
                 v-for="item in socialItems"
                 :key="item.label"
                 :href="item.href"
+                :aria-label="item.label"
+                :title="item.label"
                 target="_blank"
                 rel="noreferrer noopener"
-                class="inline-flex items-center rounded-full border border-dark-300 bg-white px-3 py-1.5 text-[12px] font-medium text-dark-700 transition-colors hover:border-primary-500 hover:text-primary-500"
+                :class="[
+                  'inline-flex items-center justify-center border border-dark-300 bg-white text-dark-700 transition-colors hover:border-primary-500 hover:text-primary-500',
+                  item.icon ? 'h-10 w-10 rounded-full' : 'rounded-full px-3 py-1.5 text-[12px] font-medium'
+                ]"
               >
-                {{ item.label }}
-                <font-awesome-icon icon="external-link-alt" class="ml-2 h-3 w-3" />
+                <svg
+                  v-if="item.icon === 'instagram'"
+                  aria-hidden="true"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <rect
+                    width="16"
+                    height="16"
+                    x="4"
+                    y="4"
+                    rx="4.5"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="3.2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <circle cx="16.7" cy="7.3" r="1.2" fill="currentColor" />
+                </svg>
+                <svg
+                  v-else-if="item.icon === 'facebook'"
+                  aria-hidden="true"
+                  class="h-5 w-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M14 8h2V4h-2c-3 0-5 2-5 5v3H6v4h3v8h4v-8h3l1-4h-4V9c0-.6.4-1 1-1Z" />
+                </svg>
+                <template v-else>
+                  {{ item.label }}
+                  <font-awesome-icon icon="external-link-alt" class="ml-2 h-3 w-3" />
+                </template>
               </a>
             </div>
           </div>
@@ -216,8 +257,8 @@ const socialItems = computed(() => {
   const links = socialLinks.value || {}
 
   return [
-    links.instagram ? { label: 'Instagram', href: links.instagram } : null,
-    links.facebook ? { label: 'Facebook', href: links.facebook } : null,
+    links.instagram ? { label: 'Instagram', href: links.instagram, icon: 'instagram' } : null,
+    links.facebook ? { label: 'Facebook', href: links.facebook, icon: 'facebook' } : null,
     links.youtube ? { label: 'YouTube', href: links.youtube } : null
   ].filter(Boolean)
 })
