@@ -54,9 +54,12 @@ interface EventBookingData {
   attendees?: Attendee[]
   events?: EventBookingSummary[]
   supportEmail?: string
+  siteUrl?: string
 }
 
-const LOLA_LOCATION = 'LoLA Creative Space, 50B Northbrook Street Newbury RG14 1DT'
+const LOLA_LOCATION = 'LoLA Creative Space, 50B Northbrook Street, Newbury, RG14 1DT'
+const DEFAULT_SITE_URL = 'https://lolacreativespace.com'
+const FAQ_PATH = '/workshop-faqs'
 const LOLA_LAYOUT = {
   brandName: 'LoLA',
   plainHeader: 'LoLA',
@@ -131,6 +134,23 @@ function locationForSentence(location: string): string {
   return /^(the|our)\b/i.test(trimmedLocation) ? trimmedLocation : `the ${trimmedLocation}`
 }
 
+function buildFaqUrl(siteUrl?: string): string {
+  const siteUrlValue = siteUrl?.trim() || DEFAULT_SITE_URL
+  const normalizedSiteUrl = /^https?:\/\//i.test(siteUrlValue)
+    ? siteUrlValue
+    : `https://${siteUrlValue}`
+
+  return `${normalizedSiteUrl.replace(/\/+$/, '')}${FAQ_PATH}`
+}
+
+function questionsSentenceHtml(supportEmail: string, faqUrl: string): string {
+  return `If you have any questions about your booking, please refer to our <a href="${faqUrl}">FAQ page</a> for further information or contact us at <a href="mailto:${supportEmail}">${supportEmail}</a>.`
+}
+
+function questionsSentenceText(supportEmail: string, faqUrl: string): string {
+  return `If you have any questions about your booking, please refer to our FAQ page (${faqUrl}) for further information or contact us at ${supportEmail}.`
+}
+
 function attendeeName(attendee: Attendee, index: number): string {
   const name = `${attendee.firstName || ''} ${attendee.lastName || ''}`.trim()
   return name || `Attendee ${index + 1}`
@@ -138,6 +158,7 @@ function attendeeName(attendee: Attendee, index: number): string {
 
 export default function eventBookingConfirmation(data: EventBookingData) {
   const supportEmail = data.supportEmail || 'hello@lotsoflovelyart.com'
+  const faqUrl = buildFaqUrl(data.siteUrl)
   const orderItems = normaliseOrderItems(data)
   const eventBookings = normaliseEvents(data)
   const hasMultipleEvents = eventBookings.length > 1
@@ -155,7 +176,7 @@ export default function eventBookingConfirmation(data: EventBookingData) {
     <p>Hi ${data.customerName},</p>
     
     ${hasMultipleEvents
-      ? '<p>Your bookings are confirmed. We look forward to seeing you at your workshops.</p>'
+      ? `<p>Your bookings are confirmed. We look forward to seeing you at ${locationForSentence(LOLA_LOCATION)}.</p>`
       : `<p>Your booking for <strong>${primaryEvent.eventName}</strong> is confirmed. We look forward to seeing you at ${locationForSentence(primaryEvent.location || LOLA_LOCATION)}.</p>`}
     
     <div class="info-box">
@@ -178,7 +199,6 @@ export default function eventBookingConfirmation(data: EventBookingData) {
           <tr>
             <td>
               <strong>${event.eventName}</strong>
-              ${event.location ? `<br><span class="muted">${event.location}</span>` : ''}
             </td>
             <td>
               ${event.eventDate}
@@ -286,7 +306,7 @@ export default function eventBookingConfirmation(data: EventBookingData) {
       <p class="muted">${data.cancellationPolicy}</p>
     ` : ''}
     
-    <p>If you have any questions about your booking, please don't hesitate to contact us at <a href="mailto:${supportEmail}">${supportEmail}</a></p>
+    <p>${questionsSentenceHtml(supportEmail, faqUrl)}</p>
     
     <p>With thanks,<br>The LoLA Team</p>
   `, LOLA_LAYOUT)
@@ -297,7 +317,7 @@ ${hasMultipleEvents ? 'Your workshops are confirmed' : 'Your workshop is confirm
 Hi ${data.customerName},
 
 ${hasMultipleEvents
-  ? 'Your bookings are confirmed. We look forward to seeing you at your workshops.'
+  ? `Your bookings are confirmed. We look forward to seeing you at ${locationForSentence(LOLA_LOCATION)}.`
   : `Your booking for ${primaryEvent.eventName} is confirmed. We look forward to seeing you at ${locationForSentence(primaryEvent.location || LOLA_LOCATION)}.`}
 
 ${!hasMultipleEvents ? `Booking Reference: ${primaryEvent.bookingReference}` : ''}
@@ -308,7 +328,6 @@ ${eventBookings.map((event) => `
 Workshop: ${event.eventName}
 Date: ${event.eventDate}
 Time: ${event.eventTime || 'TBA'}
-Location: ${event.location || LOLA_LOCATION}
 Attendees: ${event.numberOfAttendees}
 Booking Reference: ${event.bookingReference}
 `).join('\n')}
@@ -363,7 +382,7 @@ CANCELLATION POLICY
 ${data.cancellationPolicy}
 ` : ''}
 
-If you have any questions about your booking, please don't hesitate to contact us at ${supportEmail}
+${questionsSentenceText(supportEmail, faqUrl)}
 
 With thanks,
 The LoLA Team
