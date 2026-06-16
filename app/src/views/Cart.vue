@@ -148,31 +148,39 @@
                 <!-- Price and Quantity -->
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-4">
-                    <!-- Quantity Selector (not for events) -->
-                    <div v-if="item.type !== 'event'" class="flex items-center border border-gray-300 rounded-lg">
-                      <button
-                        @click="decrementQuantity(item)"
-                        class="px-3 py-2 text-gray-600 hover:bg-gray-50 transition-colors"
-                        :disabled="item.quantity <= 1"
-                      >
-                        <font-awesome-icon icon="minus" class="w-3 h-3" />
-                      </button>
-                      <input
-                        type="number"
-                        :value="item.quantity"
-                        @input="updateItemQuantity(item, $event)"
-                        min="1"
-                        class="w-16 text-center border-x border-gray-300 py-2 focus:outline-none"
-                      />
-                      <button
-                        @click="incrementQuantity(item)"
-                        class="px-3 py-2 text-gray-600 hover:bg-gray-50 transition-colors"
-                      >
-                        <font-awesome-icon icon="plus" class="w-3 h-3" />
-                      </button>
-                    </div>
-                    <div v-else class="text-sm text-gray-600">
-                      Quantity: {{ item.quantity }}
+                    <!-- Quantity Selector -->
+                    <div>
+                      <div class="mb-1 text-xs font-medium text-gray-500">
+                        {{ item.type === 'event' ? 'Attendees' : 'Quantity' }}
+                      </div>
+                      <div class="flex items-center border border-gray-300 rounded-lg">
+                        <button
+                          type="button"
+                          @click="decrementQuantity(item)"
+                          class="px-3 py-2 text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                          :disabled="item.quantity <= 1"
+                          :aria-label="`Decrease ${item.type === 'event' ? 'attendee' : 'quantity'} for ${item.title || item.name}`"
+                        >
+                          <font-awesome-icon icon="minus" class="w-3 h-3" />
+                        </button>
+                        <input
+                          type="number"
+                          :value="item.quantity"
+                          @input="updateItemQuantity(item, $event)"
+                          min="1"
+                          inputmode="numeric"
+                          :aria-label="`${item.type === 'event' ? 'Attendees' : 'Quantity'} for ${item.title || item.name}`"
+                          class="w-16 border-x border-gray-300 py-2 text-center focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          @click="incrementQuantity(item)"
+                          class="px-3 py-2 text-gray-600 hover:bg-gray-50 transition-colors"
+                          :aria-label="`Increase ${item.type === 'event' ? 'attendee' : 'quantity'} for ${item.title || item.name}`"
+                        >
+                          <font-awesome-icon icon="plus" class="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 

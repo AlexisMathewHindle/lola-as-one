@@ -10,8 +10,43 @@ export const useCartStore = defineStore('cart', () => {
   const itemCount = computed(() => items.value.reduce((total, item) => total + item.quantity, 0))
   const subtotal = computed(() => items.value.reduce((total, item) => total + (Number(item.price || 0) * item.quantity), 0))
 
+  function createEmptyAttendee() {
+    return {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      dateOfBirth: '',
+      allergies: '',
+      notes: ''
+    }
+  }
+
+  function normalizeEventAttendees(attendees = [], quantity = 0) {
+    const nextAttendees = Array.isArray(attendees)
+      ? attendees.slice(0, quantity).map(attendee => ({ ...attendee }))
+      : []
+
+    while (nextAttendees.length < quantity) {
+      nextAttendees.push(createEmptyAttendee())
+    }
+
+    return nextAttendees
+  }
+
+  function normalizeQuantity(quantity) {
+    const parsedQuantity = Number(quantity)
+
+    if (!Number.isFinite(parsedQuantity)) {
+      return 1
+    }
+
+    return Math.max(0, Math.floor(parsedQuantity))
+  }
+
   function addItem(product, quantity = 1, variantId = null, attendees = null, options = {}) {
     // Handle both old and new product structures
+    const nextQuantity = normalizeQuantity(quantity)
     const productType = product.type || product.productType
     const eventId = product.event_id || null
     const offeringId = product.offering_id || product.id || product.productId || null
@@ -29,16 +64,20 @@ export const useCartStore = defineStore('cart', () => {
     )
 
     if (existingItem) {
-      existingItem.quantity += quantity
+      existingItem.quantity += nextQuantity
       if (Array.isArray(product.items)) {
         existingItem.items = product.items
       }
       existingItem.categoryLayout = categoryLayout || existingItem.categoryLayout || null
       existingItem.categorySlug = categorySlug || existingItem.categorySlug || null
       existingItem.categoryName = categoryName || existingItem.categoryName || null
-      // If attendees are provided, update them
-      if (attendees && productType === 'event') {
-        existingItem.attendees = attendees
+      if (productType === 'event') {
+        const existingAttendees = Array.isArray(existingItem.attendees) ? existingItem.attendees : []
+        const incomingAttendees = Array.isArray(attendees) ? attendees : []
+        existingItem.attendees = normalizeEventAttendees([
+          ...existingAttendees,
+          ...incomingAttendees
+        ], existingItem.quantity)
       }
       // Show toast for updated quantity
       if (showToast) {
@@ -52,7 +91,7 @@ export const useCartStore = defineStore('cart', () => {
         title: productName,
         name: productName, // Keep for backward compatibility
         price: productPrice,
-        quantity,
+        quantity: nextQuantity,
         image: productImage,
         type: productType,
         slug: product.slug,
@@ -71,11 +110,13 @@ export const useCartStore = defineStore('cart', () => {
         // Optional: subscription configuration for subscription items
         subscriptionConfig: product.subscriptionConfig || null,
         // Store attendee details for events
-        attendees: attendees || null
+        attendees: productType === 'event'
+          ? normalizeEventAttendees(attendees, nextQuantity)
+          : attendees || null
       })
       // Show toast for new item
       if (showToast) {
-        const quantityText = quantity > 1 ? `${quantity} x ` : ''
+        const quantityText = nextQuantity > 1 ? `${nextQuantity} x ` : ''
         toastStore.success(`${quantityText}${productName} added to cart!`)
       }
     }
@@ -91,11 +132,15 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   function updateQuantity(productId, quantity, variantId = null) {
+    const nextQuantity = normalizeQuantity(quantity)
     const item = items.value.find(item => 
       item.productId === productId && item.variantId === variantId
     )
     if (item) {
-      item.quantity = quantity
+      item.quantity = nextQuantity
+      if (item.type === 'event') {
+        item.attendees = normalizeEventAttendees(item.attendees, nextQuantity)
+      }
       if (item.quantity <= 0) {
         removeItem(productId, variantId)
       } else {
