@@ -17,7 +17,7 @@
   [context.production.environment]
     NODE_VERSION = "20"
     VITE_APP_ENV = "production"
-    VITE_APP_URL = "https://lolacreativespace.com"
+    VITE_APP_URL = "https://lola-as-one.netlify.app"
 
 # Staging context (staging branch) - This gives you a stable URL!
 [context.staging]
@@ -42,12 +42,6 @@
   command = "npm run build"
 
 # Redirects for SPA (Vue Router)
-[[redirects]]
-  from = "https://lola-as-one.netlify.app/*"
-  to = "https://lolacreativespace.com/:splat"
-  status = 301
-  force = true
-
 [[redirects]]
   from = "https://www.lolacreativespace.com/*"
   to = "https://lolacreativespace.com/:splat"

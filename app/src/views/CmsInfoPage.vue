@@ -374,8 +374,14 @@ watch(() => props.pageKey, loadPage, { immediate: true })
   width: 100%;
 }
 
+.about-story-panel::after {
+  clear: both;
+  content: "";
+  display: block;
+}
+
 .about-story-feature {
-  margin: 0 auto;
+  margin: 0 auto 2rem;
   max-width: 52rem;
 }
 
@@ -388,7 +394,17 @@ watch(() => props.pageKey, loadPage, { immediate: true })
 .about-story-copy {
   margin-inline: auto;
   max-width: 52rem;
-  padding-top: 2rem;
+}
+
+.about-story-copy :deep(h2:first-child),
+.about-story-copy :deep(h3:first-child),
+.about-story-copy :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.about-story-copy :deep(h2:not(:first-of-type)) {
+  clear: left;
+  padding-top: 1rem;
 }
 
 .about-story-copy :deep(a) {
@@ -423,8 +439,18 @@ watch(() => props.pageKey, loadPage, { immediate: true })
   .about-banner-bottom {
     min-height: 16rem;
   }
+}
+
+@media (min-width: 768px) {
+  .about-story-feature {
+    float: left;
+    margin: 0 2rem 1.5rem 0;
+    max-width: 32rem;
+    width: min(42%, 32rem);
+  }
+
   .about-story-copy {
-    padding-top: 2.25rem;
+    max-width: none;
   }
 }
 </style>
