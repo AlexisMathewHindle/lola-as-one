@@ -265,14 +265,19 @@
 
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cart'
 import { useToastStore } from '../stores/toast'
+import { clearCartForCompletedPendingCheckout } from '../utils/pendingCheckoutSession'
 
 const router = useRouter()
 const cartStore = useCartStore()
 const toastStore = useToastStore()
+
+onMounted(() => {
+  clearCartForCompletedPendingCheckout(cartStore)
+})
 
 // Helper function to get unique key for each cart item
 const getItemKey = (item) => {

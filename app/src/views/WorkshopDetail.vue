@@ -343,7 +343,7 @@ const error = ref(null)
 const submitting = ref(false)
 const showWaitlistModal = ref(false)
 const selectedWaitlistEvent = ref(null)
-const enquiryEmail = 'hello@lolaasone.com'
+const enquiryEmail = 'hello@lotsoflovelyart.com'
 
 // Booking form
 const bookingForm = ref({

@@ -592,6 +592,7 @@ import { useCartStore } from '../stores/cart'
 import { useToastStore } from '../stores/toast'
 import { supabase } from '../lib/supabase'
 import { compareDateOnly, getTodayDateString, isValidDateOnly } from '../utils/attendeeAge'
+import { rememberPendingCheckoutSession } from '../utils/pendingCheckoutSession'
 
 const cartStore = useCartStore()
 const toastStore = useToastStore()
@@ -1064,6 +1065,8 @@ const handleCheckout = async () => {
     if (!data || !data.url) {
       throw new Error('Invalid response from checkout service')
     }
+
+    rememberPendingCheckoutSession(data.sessionId, cartStore.items)
 
     // Redirect to Stripe Checkout
     window.location.href = data.url

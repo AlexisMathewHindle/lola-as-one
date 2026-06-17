@@ -342,6 +342,10 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCartStore } from '../stores/cart'
+import {
+  clearPendingCheckoutSession,
+  fetchOrderByCheckoutSession
+} from '../utils/pendingCheckoutSession'
 
 const route = useRoute()
 const cartStore = useCartStore()
@@ -641,23 +645,7 @@ const fetchOrderDetails = async () => {
       return
     }
 
-    // Call Supabase Edge Function to fetch order
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-order-by-session?session_id=${sessionId}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        }
-      }
-    )
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Failed to fetch order')
-    }
-
-    const data = await response.json()
+    const data = await fetchOrderByCheckoutSession(sessionId)
 
     if (data?.pending) {
       scheduleOrderRetry()
@@ -691,6 +679,7 @@ const fetchOrderDetails = async () => {
 
     // Clear cart after successful order
     cartStore.clearCart()
+    clearPendingCheckoutSession(sessionId)
 
   } catch (err) {
     console.error('Error fetching order:', err)
