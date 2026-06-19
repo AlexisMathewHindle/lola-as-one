@@ -7,7 +7,7 @@
       <div class="border-b border-dark-200 pb-8">
         <div class="max-w-3xl">
           <p class="text-[10px] font-semibold uppercase tracking-[0.32em] text-dark-500">
-            Lola As One
+            Creative Studio
           </p>
           <h2 class="mt-3 text-[1.85rem] font-light leading-tight text-dark-900 sm:text-[2.15rem]">
             {{ siteName }}

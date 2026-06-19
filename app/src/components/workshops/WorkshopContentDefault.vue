@@ -1,9 +1,9 @@
 <template>
   <div class="space-y-6">
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <div v-if="workshop.offering.featured_image_url" class="aspect-video bg-gray-100">
+      <div v-if="workshop.offering.featured_image_url || workshop.category?.featured_image_url" class="aspect-video bg-gray-100">
         <img
-          :src="workshop.offering.featured_image_url"
+          :src="workshop.offering.featured_image_url || workshop.category?.featured_image_url"
           :alt="workshop.offering.title"
           class="w-full h-full object-cover"
         />

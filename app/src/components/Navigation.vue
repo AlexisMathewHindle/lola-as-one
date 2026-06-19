@@ -46,7 +46,7 @@
                     :class="dropdownNavClass(item)"
                     @click="closeDesktopDropdown"
                   >
-                    All Summer Holiday Events
+                    {{ item.viewAllLabel || 'View All' }}
                   </router-link>
                   <router-link
                     v-for="child in item.children"
@@ -192,7 +192,7 @@
                   :class="mobileDropdownItemClass(item)"
                   @click="closeMobileMenu"
                 >
-                  All Summer Holiday Events
+                  {{ item.viewAllLabel || 'View All' }}
                 </router-link>
                 <router-link
                   v-for="child in item.children"
@@ -298,6 +298,14 @@ const isSummerHolidayNavItem = (item) => {
     item.href === '/summer-holiday'
 }
 
+const isWorkshopsNavItem = (item) => {
+  if (!item) return false
+
+  return item.pageKey === 'workshops' ||
+    item.routeName === 'Workshops' ||
+    item.href === '/workshops'
+}
+
 const isActiveNavItem = (item) => {
   if (!item?.href) return false
   if (hasDropdownItems(item) && item.children.some((child) => isActiveNavItem(child))) return true
@@ -368,6 +376,28 @@ const handleDocumentClick = (event) => {
   closeMobileMenu()
 }
 
+const workshopsDropdownItems = [
+  { id: 'workshops-little-ones-tues', label: 'Little Ones Tues', itemType: 'page', href: '/category/little-ones-tues-2-4' },
+  { id: 'workshops-little-ones-fri', label: 'Little Ones Fri', itemType: 'page', href: '/category/little-ones-fri-2-4' },
+  { id: 'workshops-little-ones-sat', label: 'Little Ones Sat', itemType: 'page', href: '/category/little-ones-sat-2-5' },
+  { id: 'workshops-creative-saturdays', label: 'Creative Saturdays', itemType: 'page', href: '/category/creative-saturdays-5-plus' },
+  { id: 'workshops-afterschool-wed-4plus', label: 'Afterschool Club Wednesday (age 4+)', itemType: 'page', href: '/category/art-club-4-plus' },
+  { id: 'workshops-afterschool-thu-4plus', label: 'Afterschool Club Thursday (age 4+)', itemType: 'page', href: '/category/story-of-art-club-4-8' },
+  { id: 'workshops-afterschool-thu-8plus', label: 'Afterschool Club Thursday (age 8+)', itemType: 'page', href: '/category/story-of-art-club-9-13' }
+]
+
+const withWorkshopsDropdown = (items) => {
+  return items.map((item) => {
+    if (!isWorkshopsNavItem(item)) return item
+
+    return {
+      ...item,
+      viewAllLabel: 'All Workshops',
+      children: workshopsDropdownItems
+    }
+  })
+}
+
 const withSummerHolidayDropdown = async (items) => {
   const dropdownItems = await getSummerHolidayDropdownItems()
   if (!dropdownItems.length) return items
@@ -377,6 +407,7 @@ const withSummerHolidayDropdown = async (items) => {
 
     return {
       ...item,
+      viewAllLabel: 'All Summer Holiday Events',
       children: dropdownItems
     }
   })
@@ -386,12 +417,14 @@ const loadNavigation = async () => {
   try {
     const menu = await getMenuByKey('header_primary')
     const items = menu?.items?.length ? menu.items : fallbackNavigationItems
-    navigationItems.value = await withSummerHolidayDropdown(items)
+    const withWorkshops = withWorkshopsDropdown(items)
+    navigationItems.value = await withSummerHolidayDropdown(withWorkshops)
   } catch (error) {
     console.error('Error loading header navigation:', error)
 
     try {
-      navigationItems.value = await withSummerHolidayDropdown(fallbackNavigationItems)
+      const withWorkshops = withWorkshopsDropdown(fallbackNavigationItems)
+      navigationItems.value = await withSummerHolidayDropdown(withWorkshops)
     } catch (dropdownError) {
       console.error('Error loading summer holiday dropdown:', dropdownError)
     }
