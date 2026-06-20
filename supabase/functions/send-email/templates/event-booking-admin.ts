@@ -3,6 +3,7 @@ import { baseLayout, plainTextLayout } from './base-layout.ts'
 type AdminAttendee = {
   firstName?: string
   lastName?: string
+  dateOfBirth?: string
   email?: string
   phone?: string
   allergies?: string
@@ -57,41 +58,56 @@ function attendeeCount(attendees: AdminAttendees | undefined, fallbackQuantity: 
   return fallbackQuantity
 }
 
+function calculateAge(dateOfBirth: string | undefined, referenceDate: string | undefined): number | null {
+  if (!dateOfBirth || !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) return null
+  const ref = referenceDate && /^\d{4}-\d{2}-\d{2}$/.test(referenceDate) ? referenceDate : new Date().toISOString().slice(0, 10)
+  const [by, bm, bd] = dateOfBirth.split('-').map(Number)
+  const [ry, rm, rd] = ref.split('-').map(Number)
+  let age = ry - by
+  if (rm < bm || (rm === bm && rd < bd)) age -= 1
+  return age >= 0 ? age : null
+}
+
 function attendeeName(attendee: AdminAttendee, index: number): string {
   const name = `${attendee.firstName || ''} ${attendee.lastName || ''}`.trim()
   return name || `Attendee ${index + 1}`
 }
 
-function attendeeHtml(attendees: AdminAttendees | undefined): string {
+function attendeeHtml(attendees: AdminAttendees | undefined, eventDate?: string): string {
   if (!Array.isArray(attendees) || attendees.length === 0) {
     return ''
   }
 
   return `
     <div style="margin-top: 8px;">
-      ${attendees.map((attendee, index) => `
+      ${attendees.map((attendee, index) => {
+        const age = calculateAge(attendee.dateOfBirth, eventDate)
+        return `
         <div style="margin-bottom: 8px;">
           ${attendeeName(attendee, index)}
+          ${age !== null ? `<br><span class="muted">Age at event: ${age} ${age === 1 ? 'year old' : 'years old'}</span>` : ''}
           ${attendee.email ? `<br><a href="mailto:${attendee.email}">${attendee.email}</a>` : ''}
           ${attendee.phone ? `<br>${attendee.phone}` : ''}
           ${attendee.allergies ? `<br><span class="muted">Allergies: ${attendee.allergies}</span>` : ''}
           ${attendee.notes ? `<br><span class="muted">Notes: ${attendee.notes}</span>` : ''}
         </div>
-      `).join('')}
+      `}).join('')}
     </div>
   `
 }
 
-function attendeeText(attendees: AdminAttendees | undefined): string {
+function attendeeText(attendees: AdminAttendees | undefined, eventDate?: string): string {
   if (!Array.isArray(attendees) || attendees.length === 0) {
     return ''
   }
 
   return attendees.map((attendee, index) => {
+    const age = calculateAge(attendee.dateOfBirth, eventDate)
+    const ageLabel = age !== null ? ` - Age at event: ${age} ${age === 1 ? 'year old' : 'years old'}` : ''
     const contact = [attendee.email, attendee.phone].filter(Boolean).join(', ')
     const allergies = attendee.allergies ? ` - Allergies: ${attendee.allergies}` : ''
     const notes = attendee.notes ? ` - Notes: ${attendee.notes}` : ''
-    return `    ${attendeeName(attendee, index)}${contact ? ` (${contact})` : ''}${allergies}${notes}`
+    return `    ${attendeeName(attendee, index)}${ageLabel}${contact ? ` (${contact})` : ''}${allergies}${notes}`
   }).join('\n')
 }
 
@@ -157,7 +173,7 @@ export default function eventBookingAdmin(data: EventBookingAdminData) {
             </td>
             <td>
               <strong>${attendeeCount(item.attendees, item.quantity)} attendee${attendeeCount(item.attendees, item.quantity) > 1 ? 's' : ''}</strong>
-              ${attendeeHtml(item.attendees)}
+              ${attendeeHtml(item.attendees, item.eventDate)}
             </td>
             <td>${formatMoney(item.price)}</td>
           </tr>
@@ -233,7 +249,7 @@ ${eventItems.map((item) => {
   const location = item.location ? `\n  Location: ${item.location}` : ''
   const bookingReference = item.bookingReference ? `\n  Booking Reference: ${item.bookingReference}` : ''
   const attendees = `${attendeeCount(item.attendees, item.quantity)} attendee${attendeeCount(item.attendees, item.quantity) > 1 ? 's' : ''}`
-  const attendeeDetails = attendeeText(item.attendees)
+  const attendeeDetails = attendeeText(item.attendees, item.eventDate)
   return `${item.name}\n  ${dateTime}${location}${bookingReference}\n  ${attendees}${attendeeDetails ? `\n${attendeeDetails}` : ''}\n  ${formatMoney(item.price)}`
 }).join('\n\n')}
 
