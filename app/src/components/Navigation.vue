@@ -381,6 +381,7 @@ const workshopsDropdownItems = [
   { id: 'workshops-little-ones-fri', label: 'Little Ones Fri', itemType: 'page', href: '/category/little-ones-fri-2-4' },
   { id: 'workshops-little-ones-sat', label: 'Little Ones Sat', itemType: 'page', href: '/category/little-ones-sat-2-5' },
   { id: 'workshops-creative-saturdays', label: 'Creative Saturdays', itemType: 'page', href: '/category/creative-saturdays-5-plus' },
+  { id: 'workshops-afterschool-tue-5plus', label: 'Afterschool Club Tuesday (age 5+)', itemType: 'page', href: '/category/story-of-art-club-5' },
   { id: 'workshops-afterschool-wed-4plus', label: 'Afterschool Club Wednesday (age 4+)', itemType: 'page', href: '/category/art-club-4-plus' },
   { id: 'workshops-afterschool-thu-4plus', label: 'Afterschool Club Thursday (age 4+)', itemType: 'page', href: '/category/story-of-art-club-4-8' },
   { id: 'workshops-afterschool-thu-8plus', label: 'Afterschool Club Thursday (age 8+)', itemType: 'page', href: '/category/story-of-art-club-9-13' }

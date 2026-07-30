@@ -170,16 +170,7 @@
                   Age
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Allergies
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Notes
                 </th>
               </tr>
             </thead>
@@ -194,17 +185,8 @@
                     DOB {{ formatDateOnlyForDisplay(attendee.date_of_birth) }}
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">{{ attendee.email || 'N/A' }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">{{ attendee.phone || 'N/A' }}</div>
-                </td>
                 <td class="px-6 py-4">
-                  <div class="text-sm text-gray-900 whitespace-pre-line">{{ attendee.allergies || 'N/A' }}</div>
-                </td>
-                <td class="px-6 py-4">
-                  <div class="text-sm text-gray-900">{{ attendee.notes || 'N/A' }}</div>
+                  <div class="text-sm text-gray-900 whitespace-pre-line">{{ attendee.allergies || 'None' }}</div>
                 </td>
               </tr>
             </tbody>
