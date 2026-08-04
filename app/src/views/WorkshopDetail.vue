@@ -108,7 +108,7 @@
                 class="w-full px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center"
               >
                 <font-awesome-icon icon="envelope" class="w-4 h-4 mr-2" />
-                Email {{ enquiryEmail }}
+                Email to enquire
               </a>
 
               <router-link

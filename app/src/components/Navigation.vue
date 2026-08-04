@@ -273,11 +273,14 @@ const mobileMenuOpen = ref(false)
 const navigationRoot = ref(null)
 const siteName = ref('LoLA')
 
+const partiesNavigationItem = { id: 'parties', label: 'Parties', itemType: 'page', href: '/parties', pageKey: 'parties', routeName: 'Parties' }
+
 const fallbackNavigationItems = [
   { id: 'workshops', label: 'Workshops', itemType: 'page', href: '/workshops', pageKey: 'workshops' },
   { id: 'half-term', label: 'Half Term', itemType: 'page', href: '/half-term', pageKey: 'half-term' },
   { id: 'summer-holiday', label: 'Summer Holiday', itemType: 'page', href: '/summer-holiday', pageKey: 'summer-holiday' },
   { id: 'adult-workshops', label: 'Adult Workshops', itemType: 'page', href: '/adult-workshops', pageKey: 'adult-workshops' },
+  partiesNavigationItem,
   { id: 'boxes', label: 'Boxes', itemType: 'page', href: '/boxes', pageKey: 'boxes' },
   { id: 'blog', label: 'Blog', itemType: 'page', href: '/blog', pageKey: 'blog' },
   { id: 'about', label: 'About', itemType: 'page', href: '/about', pageKey: 'about' },
@@ -304,6 +307,27 @@ const isWorkshopsNavItem = (item) => {
   return item.pageKey === 'workshops' ||
     item.routeName === 'Workshops' ||
     item.href === '/workshops'
+}
+
+const isPartiesNavItem = (item) => {
+  if (!item) return false
+
+  return item.pageKey === 'parties' ||
+    item.routeName === 'Parties' ||
+    item.href === '/parties' ||
+    item.href === '/private-parties' ||
+    item.href === '/category/private-party'
+}
+
+const asPartiesNavigationItem = (item = {}) => {
+  const itemWithoutDropdown = { ...item }
+  delete itemWithoutDropdown.children
+  delete itemWithoutDropdown.viewAllLabel
+
+  return {
+    ...itemWithoutDropdown,
+    ...partiesNavigationItem
+  }
 }
 
 const isActiveNavItem = (item) => {
@@ -399,6 +423,28 @@ const withWorkshopsDropdown = (items) => {
   })
 }
 
+const withPartiesNavigationItem = (items) => {
+  const normalizedItems = items.map((item) => (
+    isPartiesNavItem(item) ? asPartiesNavigationItem(item) : item
+  ))
+
+  if (normalizedItems.some((item) => isPartiesNavItem(item))) return normalizedItems
+
+  const nextItems = [...normalizedItems]
+  const adultWorkshopsIndex = nextItems.findIndex((item) =>
+    item.pageKey === 'adult-workshops' ||
+    item.routeName === 'AdultWorkshops' ||
+    item.href === '/adult-workshops'
+  )
+
+  const insertionIndex = adultWorkshopsIndex >= 0
+    ? adultWorkshopsIndex + 1
+    : Math.min(4, nextItems.length)
+
+  nextItems.splice(insertionIndex, 0, partiesNavigationItem)
+  return nextItems
+}
+
 const withSummerHolidayDropdown = async (items) => {
   const dropdownItems = await getSummerHolidayDropdownItems()
   if (!dropdownItems.length) return items
@@ -418,13 +464,15 @@ const loadNavigation = async () => {
   try {
     const menu = await getMenuByKey('header_primary')
     const items = menu?.items?.length ? menu.items : fallbackNavigationItems
-    const withWorkshops = withWorkshopsDropdown(items)
+    const withParties = withPartiesNavigationItem(items)
+    const withWorkshops = withWorkshopsDropdown(withParties)
     navigationItems.value = await withSummerHolidayDropdown(withWorkshops)
   } catch (error) {
     console.error('Error loading header navigation:', error)
 
     try {
-      const withWorkshops = withWorkshopsDropdown(fallbackNavigationItems)
+      const withParties = withPartiesNavigationItem(fallbackNavigationItems)
+      const withWorkshops = withWorkshopsDropdown(withParties)
       navigationItems.value = await withSummerHolidayDropdown(withWorkshops)
     } catch (dropdownError) {
       console.error('Error loading summer holiday dropdown:', dropdownError)

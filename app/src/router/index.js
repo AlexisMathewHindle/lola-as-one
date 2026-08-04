@@ -23,6 +23,11 @@ const routeSeo = {
     title: 'Adult Art Workshops',
     description: 'Creative art workshops and relaxed making sessions for adults.'
   },
+  Parties: {
+    title: 'Parties',
+    description: 'Birthday art workshops and creative party enquiries at LoLA Creative Space.',
+    canonicalPath: '/parties'
+  },
   HalfTerm: {
     title: 'Half Term Art Classes',
     description: 'Find and book half term art workshops for children and families.',
@@ -130,13 +135,7 @@ const routes = [
   },
   {
     path: '/private-parties',
-    name: 'LegacyPrivatePartiesRedirect',
-    component: () => import('../views/LegacyWorkshopRedirect.vue'),
-    props: {
-      mode: 'category',
-      categorySlug: 'private-party',
-      fallbackPath: '/workshops'
-    }
+    redirect: '/parties'
   },
   {
     path: '/category/adult-art-workshops',
@@ -153,6 +152,10 @@ const routes = [
   {
     path: '/category/half-term',
     redirect: '/half-term'
+  },
+  {
+    path: '/category/private-party',
+    redirect: '/parties'
   },
   {
     path: '/category/holiday-workshops',
@@ -212,6 +215,15 @@ const routes = [
     path: '/adult-workshops',
     name: 'AdultWorkshops',
     component: () => import('../views/AdultWorkshops.vue')
+  },
+  {
+    path: '/parties',
+    name: 'Parties',
+    alias: ['/art-parties'],
+    component: () => import('../views/Parties.vue'),
+    props: {
+      categorySlug: 'private-party'
+    }
   },
   {
     path: '/half-term',

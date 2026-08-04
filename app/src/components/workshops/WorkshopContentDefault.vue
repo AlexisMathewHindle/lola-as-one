@@ -40,8 +40,8 @@
           This event is booked by enquiry. Use the email option on the right to check availability and arrange details.
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          <div class="flex items-start">
+        <div v-if="hasWorkshopMeta" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div v-if="workshop.event_date" class="flex items-start">
             <font-awesome-icon icon="calendar" class="w-5 h-5 text-primary-600 mr-3 mt-1" />
             <div>
               <div class="text-sm font-medium text-gray-500">Date</div>
@@ -49,7 +49,7 @@
             </div>
           </div>
 
-          <div class="flex items-start">
+          <div v-if="workshop.event_start_time || workshop.event_end_time" class="flex items-start">
             <font-awesome-icon icon="clock" class="w-5 h-5 text-primary-600 mr-3 mt-1" />
             <div>
               <div class="text-sm font-medium text-gray-500">Time</div>
@@ -60,7 +60,7 @@
             </div>
           </div>
 
-          <div class="flex items-start">
+          <div v-if="hasLocation" class="flex items-start">
             <font-awesome-icon icon="map-marker-alt" class="w-5 h-5 text-primary-600 mr-3 mt-1" />
             <div>
               <div class="text-sm font-medium text-gray-500">Location</div>
@@ -143,6 +143,20 @@ const props = defineProps({
 defineEmits(['select-related'])
 
 const layoutLabel = computed(() => getWorkshopLayoutLabel(props.workshop))
+
+const hasLocation = computed(() => Boolean(
+  props.workshop.location_name ||
+  props.workshop.location_city ||
+  props.workshop.location_postcode
+))
+
+const hasWorkshopMeta = computed(() => Boolean(
+  props.workshop.event_date ||
+  props.workshop.event_start_time ||
+  props.workshop.event_end_time ||
+  hasLocation.value ||
+  props.ageGroup
+))
 
 const formatDate = (dateString) => {
   if (!dateString) return ''

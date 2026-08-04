@@ -8,6 +8,7 @@ const STATIC_PATHS = [
   '/',
   '/workshops',
   '/adult-workshops',
+  '/parties',
   '/half-term',
   '/summer-holiday',
   '/blog',
@@ -25,8 +26,10 @@ const CATEGORY_CANONICAL_PATHS = new Map([
   ['holiday-workshops', '/half-term'],
   ['summer', '/summer-holiday'],
   ['summer-holiday', '/summer-holiday'],
-  ['summer-workshops', '/summer-holiday']
+  ['summer-workshops', '/summer-holiday'],
+  ['private-party', '/parties']
 ])
+const CATEGORY_ONLY_PUBLIC_SLUGS = new Set(['private-party'])
 const WORKSHOP_DETAIL_LAYOUT_KEYS = new Set(['adult_workshop', 'enquiry_only'])
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -153,6 +156,10 @@ function usesWorkshopDetailPage(row) {
 
   if (!categorySlug) {
     return true
+  }
+
+  if (CATEGORY_ONLY_PUBLIC_SLUGS.has(categorySlug)) {
+    return false
   }
 
   const layoutKey = getWorkshopLayoutKey(row)
