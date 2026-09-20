@@ -231,8 +231,11 @@ const handleSubmit = async () => {
     submitting.value = true
     error.value = null
 
-    // Insert into product_waitlist_entries table
-    const { data, error: insertError } = await supabase
+    // Insert into product_waitlist_entries table.
+    // Note: no .select() read-back — anonymous visitors are not permitted to
+    // SELECT waitlist rows (only owners/admins are), so requesting the row back
+    // would trip the RLS policy even though the insert itself is allowed.
+    const { error: insertError } = await supabase
       .from('product_waitlist_entries')
       .insert({
         offering_product_id: props.productId,
@@ -243,8 +246,6 @@ const handleSubmit = async () => {
         notes: form.value.notes || null,
         status: 'waiting'
       })
-      .select()
-      .single()
 
     if (insertError) throw insertError
 
@@ -252,7 +253,7 @@ const handleSubmit = async () => {
     submitted.value = true
 
     // Emit success event
-    emit('success', data)
+    emit('success', { offering_product_id: props.productId })
 
     // Auto-close after 3 seconds
     setTimeout(() => {
