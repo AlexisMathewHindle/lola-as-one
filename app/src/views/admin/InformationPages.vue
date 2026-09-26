@@ -253,7 +253,8 @@ const pageOptions = [
   { key: 'contact', label: 'Contact', path: '/contact' },
   { key: 'workshop-faqs', label: 'Workshop FAQs', path: '/workshop-faqs' },
   { key: 'privacy-policy', label: 'Privacy Policy', path: '/privacy-policy' },
-  { key: 'terms-and-conditions', label: 'Terms and Conditions', path: '/terms-and-conditions' }
+  { key: 'terms-and-conditions', label: 'Terms and Conditions', path: '/terms-and-conditions' },
+  { key: 'feedback', label: 'Feedback', path: '/feedback' }
 ]
 
 const selectedPageKey = ref('about')

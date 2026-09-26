@@ -74,6 +74,12 @@ export const INFO_PAGE_DEFAULTS = {
     summary: '',
     sectionTitle: 'Terms and Conditions',
     bodyHtml: '<p>The terms and conditions are being updated. Please contact the studio for booking questions.</p>'
+  },
+  feedback: {
+    title: 'Feedback',
+    summary: 'Tell us about your visit to Lola As One. Your feedback helps us improve our workshops, art boxes, and creative space.',
+    sectionTitle: 'We would love your feedback',
+    bodyHtml: '<p>Thank you for spending time with us at Lola As One. Tell us what you thought of your visit, workshop, or art box. Your answers go straight to our team and help us make the space better.</p>'
   }
 }
 

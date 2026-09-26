@@ -63,6 +63,11 @@ const routeSeo = {
     title: 'Contact',
     description: 'Contact Lola Creative Space about workshops, bookings and creative events.'
   },
+  Feedback: {
+    title: 'Feedback',
+    description: 'Tell us about your visit to Lola As One and help us improve our workshops, art boxes and creative space.',
+    canonicalPath: '/feedback'
+  },
   WorkshopFAQs: {
     title: 'Workshop FAQs',
     description: 'Answers to common questions about Lola Creative Space workshops.',
@@ -314,6 +319,11 @@ const routes = [
     component: () => import('../views/Contact.vue')
   },
   {
+    path: '/feedback',
+    name: 'Feedback',
+    component: () => import('../views/Feedback.vue')
+  },
+  {
     path: '/workshop-faqs',
     alias: ['/faqs', '/faq'],
     name: 'WorkshopFAQs',
@@ -510,6 +520,16 @@ const routes = [
         path: 'pages',
         name: 'AdminInformationPages',
         component: () => import('../views/admin/InformationPages.vue')
+      },
+      {
+        path: 'feedback',
+        name: 'AdminFeedbackQuestions',
+        component: () => import('../views/admin/FeedbackQuestions.vue')
+      },
+      {
+        path: 'feedback/submissions',
+        name: 'AdminFeedbackSubmissions',
+        component: () => import('../views/admin/FeedbackSubmissionsList.vue')
       },
       {
         path: 'settings',

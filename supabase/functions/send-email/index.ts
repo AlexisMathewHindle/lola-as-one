@@ -25,6 +25,8 @@ type EmailTemplate =
   | 'welcome-email'
   | 'contact-form-customer'
   | 'contact-form-admin'
+  | 'feedback-form-customer'
+  | 'feedback-form-admin'
   | 'newsletter-subscription-confirmed'
   | 'newsletter-unsubscribed'
   | 'digital-download-ready'
@@ -260,6 +262,8 @@ async function getEmailContent(template: EmailTemplate, data: Record<string, any
     'welcome-email': await import('./templates/welcome-email.ts'),
     'contact-form-customer': await import('./templates/contact-form-customer.ts'),
     'contact-form-admin': await import('./templates/contact-form-admin.ts'),
+    'feedback-form-customer': await import('./templates/feedback-form-customer.ts'),
+    'feedback-form-admin': await import('./templates/feedback-form-admin.ts'),
     'newsletter-subscription-confirmed': await import('./templates/newsletter-subscription-confirmed.ts'),
     'newsletter-unsubscribed': await import('./templates/newsletter-unsubscribed.ts'),
     'digital-download-ready': await import('./templates/digital-download-ready.ts'),
