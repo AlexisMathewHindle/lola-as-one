@@ -73,6 +73,19 @@
                     {{ item.label }}
                   </a>
                 </template>
+                <router-link
+                  to="/cookie-policy"
+                  class="block text-[15px] text-dark-700 transition-colors hover:text-primary-500"
+                >
+                  Cookie Policy
+                </router-link>
+                <button
+                  type="button"
+                  class="block text-left text-[15px] text-dark-700 transition-colors hover:text-primary-500"
+                  @click="consent.openPreferences()"
+                >
+                  Cookie settings
+                </button>
               </nav>
             </div>
           </div>
@@ -191,8 +204,10 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { getMenuByKey, getPublicSettingsMap } from '../lib/cms'
+import { useConsentStore } from '../stores/consent'
 
 const route = useRoute()
+const consent = useConsentStore()
 
 const fallbackFooterPrimaryItems = [
   { id: 'footer-workshops', label: 'Workshops', itemType: 'page', href: '/workshops' },

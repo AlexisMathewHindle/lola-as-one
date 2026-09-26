@@ -5,6 +5,7 @@ import Navigation from './components/Navigation.vue'
 import Footer from './components/Footer.vue'
 import Toast from './components/Toast.vue'
 import WorkshopTopBanner from './components/WorkshopTopBanner.vue'
+import CookieBanner from './components/cookies/CookieBanner.vue'
 import { useCartStore } from './stores/cart'
 import { clearCartForCompletedPendingCheckout } from './utils/pendingCheckoutSession'
 
@@ -25,6 +26,7 @@ onMounted(() => {
     <router-view />
     <Footer v-if="!isAdminRoute" />
     <Toast />
+    <CookieBanner />
   </div>
 </template>
 

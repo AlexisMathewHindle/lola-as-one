@@ -264,6 +264,60 @@
           </div>
         </div>
       </section>
+
+      <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+        <div class="mb-6">
+          <h2 class="text-lg font-semibold text-gray-900">Analytics and Marketing</h2>
+          <p class="mt-1 text-sm text-gray-600">
+            Turn tracking on or off and set the IDs. These only run for visitors who
+            agree in the cookie banner. Changes take effect on a visitor's next page load.
+          </p>
+        </div>
+
+        <div class="space-y-8">
+          <div>
+            <label class="flex items-center gap-3">
+              <input
+                v-model="form.gaEnabled"
+                type="checkbox"
+                class="h-5 w-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              >
+              <span class="text-sm font-medium text-gray-700">Google Analytics enabled</span>
+            </label>
+            <div class="mt-3">
+              <label class="mb-2 block text-sm font-medium text-gray-700">Measurement ID</label>
+              <input
+                v-model="form.gaMeasurementId"
+                type="text"
+                class="w-full max-w-sm rounded-lg border border-gray-300 px-4 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="G-XXXXXXXXXX"
+              >
+              <p class="mt-1 text-xs text-gray-500">Starts with "G-". Leave blank to keep Google Analytics off.</p>
+            </div>
+          </div>
+
+          <div class="border-t border-gray-100 pt-8">
+            <label class="flex items-center gap-3">
+              <input
+                v-model="form.pixelEnabled"
+                type="checkbox"
+                class="h-5 w-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              >
+              <span class="text-sm font-medium text-gray-700">Meta (Facebook) Pixel enabled</span>
+            </label>
+            <div class="mt-3">
+              <label class="mb-2 block text-sm font-medium text-gray-700">Pixel ID</label>
+              <input
+                v-model="form.pixelId"
+                type="text"
+                class="w-full max-w-sm rounded-lg border border-gray-300 px-4 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="e.g. 123456789012345"
+              >
+              <p class="mt-1 text-xs text-gray-500">The numeric Pixel ID from Meta Events Manager. Leave blank to keep the Pixel off.</p>
+            </div>
+          </div>
+        </div>
+      </section>
     </template>
   </div>
 </template>
@@ -323,7 +377,11 @@ const form = reactive({
   facebook: 'https://www.facebook.com/lotsoflovelyart',
   youtube: '',
   copyrightText: `Copyright ${new Date().getFullYear()} All rights reserved`,
-  openingTimes: cloneOpeningTimes()
+  openingTimes: cloneOpeningTimes(),
+  gaEnabled: false,
+  gaMeasurementId: '',
+  pixelEnabled: false,
+  pixelId: ''
 })
 
 const settingDefinitions = [
@@ -407,6 +465,28 @@ const settingDefinitions = [
       facebook: form.facebook.trim() || null,
       youtube: form.youtube.trim() || null
     })
+  },
+  {
+    key: 'analytics_ga',
+    group: 'analytics',
+    label: 'Google Analytics',
+    sortOrder: 10,
+    description: 'Google Analytics on/off and Measurement ID. Read by the cookie-consent tag gate.',
+    value: () => ({
+      enabled: form.gaEnabled === true,
+      measurement_id: form.gaMeasurementId.trim()
+    })
+  },
+  {
+    key: 'marketing_meta_pixel',
+    group: 'marketing',
+    label: 'Meta Pixel',
+    sortOrder: 10,
+    description: 'Meta (Facebook) Pixel on/off and Pixel ID. Read by the cookie-consent tag gate.',
+    value: () => ({
+      enabled: form.pixelEnabled === true,
+      pixel_id: form.pixelId.trim()
+    })
   }
 ]
 
@@ -445,6 +525,16 @@ const applySettingsToForm = (settings) => {
     form.instagram = settingsMap.social_links.instagram || ''
     form.facebook = settingsMap.social_links.facebook || ''
     form.youtube = settingsMap.social_links.youtube || ''
+  }
+
+  if (settingsMap.analytics_ga) {
+    form.gaEnabled = settingsMap.analytics_ga.enabled === true
+    form.gaMeasurementId = settingsMap.analytics_ga.measurement_id || ''
+  }
+
+  if (settingsMap.marketing_meta_pixel) {
+    form.pixelEnabled = settingsMap.marketing_meta_pixel.enabled === true
+    form.pixelId = settingsMap.marketing_meta_pixel.pixel_id || ''
   }
 }
 

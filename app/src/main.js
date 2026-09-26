@@ -2,6 +2,8 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import router from './router'
 import { useAuthStore } from './stores/auth'
+import { useConsentStore } from './stores/consent'
+import { initConsentedTags } from './lib/consentedTags'
 import './style.css'
 import App from './App.vue'
 
@@ -58,5 +60,11 @@ app.use(router)
 // Initialize auth store
 const authStore = useAuthStore()
 authStore.initialize()
+
+// Load any saved cookie-consent decision, then wire up the tag gate. Tags load
+// only when the admin has enabled them AND the visitor has consented.
+const consentStore = useConsentStore()
+consentStore.initialize()
+initConsentedTags()
 
 app.mount('#app')

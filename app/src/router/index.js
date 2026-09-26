@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import { setPageSeo } from '../lib/seo'
+import { trackPageView } from '../lib/consentedTags'
 
 const titleFromSlug = (slug) => String(slug || 'Workshops')
   .split('-')
@@ -345,6 +346,13 @@ const routes = [
     props: { pageKey: 'terms-and-conditions' }
   },
   {
+    path: '/cookie-policy',
+    alias: ['/cookies'],
+    name: 'CookiePolicy',
+    component: () => import('../views/CmsInfoPage.vue'),
+    props: { pageKey: 'cookie-policy' }
+  },
+  {
     path: '/design-system',
     name: 'DesignSystem',
     component: () => import('../views/DesignSystem.vue')
@@ -575,6 +583,8 @@ router.beforeEach(async (to, from, next) => {
 
 router.afterEach((to) => {
   setPageSeo(seoForRoute(to))
+  // Send a page view to any consented, admin-enabled tag (no-op otherwise).
+  trackPageView(to.fullPath)
 })
 
 export default router
