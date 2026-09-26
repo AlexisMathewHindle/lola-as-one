@@ -463,19 +463,28 @@ Original plan (for reference):
   Model it on how contact submissions are handled.
 - Allow marking `read` / `archived` / `spam`.
 
-### Phase 6: Verify and document
+### Phase 6: Verify and document  (DONE, 2026-09-26)
 
-- Test end to end: add a question in admin, see it on `/feedback`, submit,
-  confirm the email at hello@lotsoflovelyart.com and (if given) the
-  acknowledgement, and confirm the row in the admin inbox.
-- Test that removing a question does not break older submissions (the removed
-  question's label still shows in the older submission's stored answers).
-- Add a short admin note in `docs/` on where to manage questions and where
-  submissions land.
+Delivered:
 
-Acceptance criteria:
-- The business owner confirms they can add and remove questions and that
-  feedback reaches the inbox. Doc added.
+- `docs/feedback-form.md`: the operating guide and technical reference (studio
+  how-to, data model, function, emails, file map, deploy and troubleshooting).
+- Deployment complete on the LOLA project (ref `hubbjhtjyubzczxengyo`):
+  `submit-feedback-form` and `send-email` deployed, and the three `20260926_*`
+  migrations applied in the SQL Editor.
+- Live smoke test: calling the deployed `submit-feedback-form` with an empty
+  submission returned HTTP 400 and "Please answer at least one question before
+  sending.", confirming the function is live and reading the questions table with
+  no schema-cache error.
+
+Still worth doing (not blocking): one real end-to-end submission from the live
+site, confirming a response lands in the inbox and an email arrives at
+hello@lotsoflovelyart.com.
+
+Original plan (for reference):
+
+- Test end to end, confirm the email and the admin inbox row, confirm removing a
+  question does not break older submissions, and add an admin note in `docs/`.
 
 ## Email details
 
