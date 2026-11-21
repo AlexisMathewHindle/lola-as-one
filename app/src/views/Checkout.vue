@@ -526,6 +526,28 @@
               </p>
             </div>
 
+            <!-- Gift Card -->
+            <div class="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <label for="giftCardCode" class="block text-sm font-medium text-gray-700 mb-2">
+                Gift Card
+              </label>
+              <input
+                id="giftCardCode"
+                v-model="form.giftCardCode"
+                type="text"
+                autocapitalize="characters"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                :class="{ 'border-red-500': errors.giftCardCode }"
+                placeholder="Enter your gift card code"
+              />
+              <p v-if="errors.giftCardCode" class="text-red-500 text-sm mt-1">
+                {{ errors.giftCardCode }}
+              </p>
+              <p class="text-xs text-gray-500 mt-2">
+                We’ll take the gift card balance off your total at the payment step. Any remaining balance stays on the card.
+              </p>
+            </div>
+
             <!-- Totals -->
             <div class="border-t border-gray-200 pt-4 space-y-3">
               <div class="flex justify-between text-sm">
@@ -605,6 +627,7 @@ const form = ref({
   email: '',
   phone: '',
   discountCode: '',
+  giftCardCode: '',
   healthSafetyAccepted: false,
   privacyPolicyAccepted: false,
   newsletterOptIn: false,
@@ -1027,12 +1050,14 @@ const handleCheckout = async () => {
     processing.value = true
     const items = buildCheckoutItems()
     const discountCode = form.value.discountCode.trim().toUpperCase()
+    const giftCardCode = form.value.giftCardCode.trim().toUpperCase()
 
     // Call Supabase Edge Function to create checkout session
     const { data, error } = await supabase.functions.invoke('create-checkout-session', {
       body: {
         items,
         discountCode: discountCode || null,
+        giftCardCode: giftCardCode || null,
         customer: {
           email: form.value.email,
           firstName: form.value.firstName,
@@ -1098,6 +1123,13 @@ const handleCheckout = async () => {
     } else if (errorMessage.toLowerCase().includes('discount code')) {
       errors.value.discountCode = errorMessage
       const element = document.getElementById('discountCode')
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        element.focus()
+      }
+    } else if (errorMessage.toLowerCase().includes('gift card')) {
+      errors.value.giftCardCode = errorMessage
+      const element = document.getElementById('giftCardCode')
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' })
         element.focus()

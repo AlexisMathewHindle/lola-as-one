@@ -88,7 +88,7 @@
             <div class="mb-6">
               <div class="flex items-baseline gap-2">
                 <span class="text-4xl font-bold text-gray-900">
-                  £{{ product.price_gbp.toFixed(2) }}
+                  £{{ displayPrice.toFixed(2) }}
                 </span>
                 <span class="text-sm text-gray-500">(inc. VAT)</span>
               </div>
@@ -126,14 +126,88 @@
           </div>
 
           <!-- Gift Card Information -->
-          <div v-if="product.product_type === 'gift_card'" class="bg-primary-50 border border-primary-200 rounded-lg p-4">
-            <h3 class="text-sm font-semibold text-primary-900 mb-2 flex items-center">
-              <font-awesome-icon icon="heart" class="w-4 h-4 mr-2" />
-              Gift Card Details
-            </h3>
-            <p class="text-sm text-primary-800">
-              This gift card can be used for any workshop, box, or product on our site. The recipient will receive a unique code via email.
+          <div v-if="product.product_type === 'gift_card'" class="bg-primary-50 border border-primary-200 rounded-lg p-4 space-y-5">
+            <div>
+              <h3 class="text-sm font-semibold text-primary-900 mb-2 flex items-center">
+                <font-awesome-icon icon="heart" class="w-4 h-4 mr-2" />
+                Gift Card Details
+              </h3>
+              <p class="text-sm text-primary-800">
+                This gift card can be used for any workshop, box, or product on our site. The recipient will receive a unique code by email.
+              </p>
+            </div>
+
+            <!-- Choose amount -->
+            <div v-if="denominations.length > 0">
+              <label class="block text-sm font-semibold text-primary-900 mb-2">Choose an amount</label>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="denom in denominations"
+                  :key="denom.id"
+                  type="button"
+                  @click="selectedDenominationId = denom.id"
+                  :class="[
+                    'px-4 py-2 rounded-lg border text-sm font-semibold transition-colors',
+                    selectedDenominationId === denom.id
+                      ? 'bg-primary-600 text-white border-primary-600'
+                      : 'bg-white text-primary-800 border-primary-300 hover:border-primary-500'
+                  ]"
+                >
+                  £{{ denom.amount_gbp.toFixed(2) }}
+                </button>
+              </div>
+            </div>
+            <p v-else class="text-sm text-primary-800 italic">
+              Gift cards are not available to buy just now. Please check back soon.
             </p>
+
+            <!-- Recipient details (optional) -->
+            <div v-if="denominations.length > 0" class="space-y-3">
+              <div>
+                <label for="gift-recipient-name" class="block text-sm font-medium text-primary-900 mb-1">
+                  Recipient's name <span class="text-primary-500 font-normal">(optional)</span>
+                </label>
+                <input
+                  id="gift-recipient-name"
+                  v-model="giftRecipientName"
+                  type="text"
+                  maxlength="120"
+                  placeholder="e.g. Sam"
+                  class="w-full px-3 py-2 border border-primary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+              </div>
+              <div>
+                <label for="gift-recipient-email" class="block text-sm font-medium text-primary-900 mb-1">
+                  Send the card to their email <span class="text-primary-500 font-normal">(optional)</span>
+                </label>
+                <input
+                  id="gift-recipient-email"
+                  v-model="giftRecipientEmail"
+                  type="email"
+                  maxlength="200"
+                  placeholder="their@email.com"
+                  class="w-full px-3 py-2 border border-primary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                <p class="text-xs text-primary-700 mt-1">
+                  Leave blank to have the card sent to you, so you can pass it on yourself.
+                </p>
+              </div>
+              <div>
+                <label for="gift-message" class="block text-sm font-medium text-primary-900 mb-1">
+                  Personal message <span class="text-primary-500 font-normal">(optional)</span>
+                </label>
+                <textarea
+                  id="gift-message"
+                  v-model="giftMessage"
+                  rows="3"
+                  maxlength="500"
+                  placeholder="Add a message to show in the gift email"
+                  class="w-full px-3 py-2 border border-primary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                ></textarea>
+              </div>
+            </div>
+
+            <p v-if="giftError" class="text-sm text-red-600">{{ giftError }}</p>
           </div>
 
           <!-- Instant Delivery Notice -->
@@ -155,10 +229,11 @@
           <div class="space-y-3">
             <button
               @click="addToCart"
-              class="w-full bg-primary-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg flex items-center justify-center"
+              :disabled="isGiftCard && denominations.length === 0"
+              class="w-full bg-primary-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <font-awesome-icon icon="shopping-cart" class="w-5 h-5 mr-2" />
-              Add to Cart - £{{ product.price_gbp.toFixed(2) }}
+              Add to Cart - £{{ displayPrice.toFixed(2) }}
             </button>
             <p class="text-xs text-center text-gray-500">
               Secure checkout powered by Stripe
@@ -191,7 +266,7 @@
               <font-awesome-icon icon="pound-sign" class="w-5 h-5 text-gray-400 mr-3 mt-1" />
               <div>
                 <div class="text-sm font-medium text-gray-500">Price</div>
-                <div class="text-base text-gray-900">£{{ product.price_gbp.toFixed(2) }} (inc. VAT)</div>
+                <div class="text-base text-gray-900">£{{ displayPrice.toFixed(2) }} (inc. VAT)</div>
               </div>
             </div>
 
@@ -285,6 +360,28 @@ const relatedProducts = ref([])
 const loading = ref(true)
 const error = ref(null)
 
+// Gift card state
+const denominations = ref([])
+const selectedDenominationId = ref(null)
+const giftRecipientName = ref('')
+const giftRecipientEmail = ref('')
+const giftMessage = ref('')
+const giftError = ref('')
+
+const isGiftCard = computed(() => product.value?.product_type === 'gift_card')
+
+const selectedDenomination = computed(() =>
+  denominations.value.find((denom) => denom.id === selectedDenominationId.value) || null
+)
+
+// Price shown and charged: a gift card uses the chosen amount; everything else
+// uses the product's own price.
+const displayPrice = computed(() => {
+  if (!product.value) return 0
+  if (isGiftCard.value) return selectedDenomination.value ? Number(selectedDenomination.value.amount_gbp) : 0
+  return Number(product.value.price_gbp) || 0
+})
+
 // Computed: Product type icon
 const productTypeIcon = computed(() => {
   if (!product.value) return 'download'
@@ -349,6 +446,28 @@ const fetchProduct = async () => {
 
     product.value = data
 
+    // For a gift card, load the amounts a customer can choose from
+    if (data.product_type === 'gift_card') {
+      const { data: denoms, error: denomError } = await supabase
+        .from('gift_card_denominations')
+        .select('id, amount_gbp, sort_order')
+        .eq('offering_id', data.offering.id)
+        .eq('active', true)
+        .order('sort_order', { ascending: true })
+        .order('amount_gbp', { ascending: true })
+
+      if (denomError) throw denomError
+
+      denominations.value = (denoms || []).map((denom) => ({
+        id: denom.id,
+        amount_gbp: parseFloat(denom.amount_gbp)
+      }))
+
+      if (denominations.value.length > 0) {
+        selectedDenominationId.value = denominations.value[0].id
+      }
+    }
+
     // Fetch related digital products (same type, exclude current)
     fetchRelatedProducts()
   } catch (err) {
@@ -388,6 +507,11 @@ const fetchRelatedProducts = async () => {
 const addToCart = () => {
   if (!product.value) return
 
+  if (isGiftCard.value) {
+    addGiftCardToCart()
+    return
+  }
+
   cartStore.addItem({
     id: product.value.offering.id,
     type: 'product_digital',
@@ -397,6 +521,47 @@ const addToCart = () => {
     productType: product.value.product_type,
     slug: product.value.offering.slug
   }, 1)
+}
+
+const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+const addGiftCardToCart = () => {
+  giftError.value = ''
+
+  if (!selectedDenomination.value) {
+    giftError.value = 'Please choose an amount.'
+    return
+  }
+
+  const recipientEmail = giftRecipientEmail.value.trim()
+  if (recipientEmail && !isValidEmail(recipientEmail)) {
+    giftError.value = 'Please enter a valid recipient email, or leave it blank to receive the card yourself.'
+    return
+  }
+
+  const amount = Number(selectedDenomination.value.amount_gbp)
+
+  cartStore.addItem({
+    id: product.value.offering.id,
+    type: 'product_digital',
+    title: `${product.value.offering.title} (£${amount.toFixed(2)})`,
+    price: amount,
+    image: product.value.offering.featured_image_url,
+    productType: 'gift_card',
+    slug: product.value.offering.slug,
+    giftCard: {
+      denominationId: selectedDenomination.value.id,
+      amount,
+      recipientName: giftRecipientName.value.trim() || null,
+      recipientEmail: recipientEmail || null,
+      personalMessage: giftMessage.value.trim() || null
+    }
+  }, 1, `gift-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+
+  // Reset the gift inputs so a second card starts clean
+  giftRecipientName.value = ''
+  giftRecipientEmail.value = ''
+  giftMessage.value = ''
 }
 
 // Navigate to product

@@ -360,6 +360,7 @@ const form = ref({
 
 const typeSpecificData = ref({})
 const duplicateMetadata = ref(null)
+const existingMetadata = ref(null)
 
 const createDefaultEventData = () => ({
   event_date: '',
@@ -650,7 +651,15 @@ const validateForm = async () => {
       error.value = 'Digital product type is required'
       return false
     }
-    if (typeSpecificData.value.price_gbp === undefined || typeSpecificData.value.price_gbp < 0) {
+    if (typeSpecificData.value.product_type === 'gift_card') {
+      const validAmounts = (typeSpecificData.value.denominations || []).filter(
+        (denom) => Number(denom.amount_gbp) > 0
+      )
+      if (validAmounts.length === 0) {
+        error.value = 'Add at least one gift card amount'
+        return false
+      }
+    } else if (typeSpecificData.value.price_gbp === undefined || typeSpecificData.value.price_gbp < 0) {
       error.value = 'Price is required and must be 0 or greater'
       return false
     }
@@ -705,17 +714,30 @@ const handleSubmit = async () => {
       offeringData.term_half = typeSpecificData.value.term_half || null
       offeringData.term_year = typeSpecificData.value.term_year || null
 
-      // Also store in metadata for backward compatibility
-      if (typeSpecificData.value.term_season && typeSpecificData.value.term_half) {
-        const legacyTerm = typeSpecificData.value.term_half === 'full'
+      // Work from the metadata we're about to write: the duplicated clone, the
+      // existing offering's metadata on edit, or a fresh object on create.
+      const baseMetadata =
+        offeringData.metadata ??
+        (isEdit.value && existingMetadata.value
+          ? cloneValue(existingMetadata.value)
+          : {})
+
+      const isTermEvent = !!(
+        typeSpecificData.value.term_season && typeSpecificData.value.term_half
+      )
+
+      if (isTermEvent) {
+        // Store legacy term string in metadata for backward compatibility
+        baseMetadata.term = typeSpecificData.value.term_half === 'full'
           ? `${typeSpecificData.value.term_season}_term`
           : `${typeSpecificData.value.term_season}_${typeSpecificData.value.term_half}_half_term`
-
-        offeringData.metadata = {
-          ...offeringData.metadata,
-          term: legacyTerm
-        }
+      } else {
+        // Single event: drop any stale legacy term so the storefront stops
+        // grouping these sessions into a term bundle.
+        delete baseMetadata.term
       }
+
+      offeringData.metadata = baseMetadata
     }
 
     // Set published_at if status is published and it's a new offering
@@ -777,6 +799,9 @@ const saveTypeSpecificData = async (offeringId) => {
 		await syncSubscriptionPlanBoxes(offeringId)
 	} else if (selectedType.value === 'product_digital') {
 		await saveDigitalProductData(offeringId)
+		if (typeSpecificData.value.product_type === 'gift_card') {
+			await syncGiftCardDenominations(offeringId)
+		}
 	}
 }
 
@@ -991,17 +1016,22 @@ const loadAvailableBoxProducts = async () => {
 }
 
 const saveDigitalProductData = async (offeringId) => {
+  const isGiftCard = typeSpecificData.value.product_type === 'gift_card'
+
   const digitalProductData = {
     offering_id: offeringId,
     product_type: typeSpecificData.value.product_type,
-    price_gbp: typeSpecificData.value.price_gbp,
+    // A gift card's price is driven by its amounts (denominations), so the
+    // single price is not used; store 0 to satisfy the not-null column.
+    price_gbp: isGiftCard ? 0 : typeSpecificData.value.price_gbp,
     vat_rate: 20.00,
     file_url: typeSpecificData.value.file_url || null,
     file_size_bytes: typeSpecificData.value.file_size_mb ? Math.round(typeSpecificData.value.file_size_mb * 1024 * 1024) : null,
     file_type: typeSpecificData.value.file_type || null,
     download_limit: typeSpecificData.value.download_limit || null,
     download_expiry_days: typeSpecificData.value.download_expiry_days || null,
-    stripe_product_id: typeSpecificData.value.stripe_product_id || null
+    stripe_product_id: typeSpecificData.value.stripe_product_id || null,
+    gift_card_expiry_months: typeSpecificData.value.gift_card_expiry_months || 12
   }
 
   if (isEdit.value) {
@@ -1068,6 +1098,7 @@ const loadOffering = async () => {
     }
 
     selectedType.value = offering.type
+    existingMetadata.value = offering.metadata ? cloneValue(offering.metadata) : null
 
     // Load type-specific data
     await loadTypeSpecificData(offering.id, offering.type, offering.metadata)
@@ -1248,7 +1279,26 @@ const loadTypeSpecificData = async (offeringId, type, metadata, options = {}) =>
         file_size_mb: data.file_size_bytes ? data.file_size_bytes / (1024 * 1024) : 0,
         download_limit: data.download_limit,
         download_expiry_days: data.download_expiry_days,
-        stripe_product_id: data.stripe_product_id
+        stripe_product_id: data.stripe_product_id,
+        gift_card_expiry_months: data.gift_card_expiry_months ?? 12,
+        denominations: []
+      }
+
+      if (data.product_type === 'gift_card') {
+        const { data: denoms, error: denomError } = await supabase
+          .from('gift_card_denominations')
+          .select('id, amount_gbp, active, sort_order')
+          .eq('offering_id', offeringId)
+          .order('sort_order', { ascending: true })
+
+        if (denomError) throw denomError
+
+        typeSpecificData.value.denominations = (denoms || []).map((denom) => ({
+          id: denom.id,
+          amount_gbp: parseFloat(denom.amount_gbp),
+          active: denom.active,
+          sort_order: denom.sort_order
+        }))
       }
     }
 	}
@@ -1325,6 +1375,89 @@ const syncSubscriptionPlanBoxes = async (offeringId) => {
 	} catch (err) {
 		console.error('Error syncing subscription plan boxes:', err)
 		error.value = 'Failed to save eligible boxes for this subscription plan'
+		throw err
+	}
+}
+
+// Sync gift_card_denominations with the amounts entered in the UI.
+// Unlike the subscription-boxes sync, an amount can be edited on an existing
+// row, so this also has an update branch (not just insert/delete).
+const syncGiftCardDenominations = async (offeringId) => {
+	try {
+		const desired = (typeSpecificData.value.denominations || []).filter(
+			(denom) => Number(denom.amount_gbp) > 0
+		)
+
+		const { data: existing, error: existingError } = await supabase
+			.from('gift_card_denominations')
+			.select('id, amount_gbp, active, sort_order')
+			.eq('offering_id', offeringId)
+
+		if (existingError) throw existingError
+
+		const existingById = new Map((existing || []).map((row) => [row.id, row]))
+		const desiredIds = new Set(desired.filter((d) => d.id).map((d) => d.id))
+
+		// Insert new amounts (rows the UI has no id for yet)
+		const toInsert = desired
+			.filter((denom) => !denom.id)
+			.map((denom, index) => ({
+				offering_id: offeringId,
+				amount_gbp: Number(denom.amount_gbp),
+				active: denom.active !== false,
+				sort_order: denom.sort_order ?? index
+			}))
+
+		if (toInsert.length > 0) {
+			const { error: insertError } = await supabase
+				.from('gift_card_denominations')
+				.insert(toInsert)
+
+			if (insertError) throw insertError
+		}
+
+		// Update existing amounts whose value, visibility, or order changed
+		for (const denom of desired.filter((d) => d.id)) {
+			const prev = existingById.get(denom.id)
+			if (!prev) continue
+
+			const nextActive = denom.active !== false
+			const nextSort = denom.sort_order ?? 0
+
+			if (
+				Number(prev.amount_gbp) !== Number(denom.amount_gbp) ||
+				prev.active !== nextActive ||
+				prev.sort_order !== nextSort
+			) {
+				const { error: updateError } = await supabase
+					.from('gift_card_denominations')
+					.update({
+						amount_gbp: Number(denom.amount_gbp),
+						active: nextActive,
+						sort_order: nextSort
+					})
+					.eq('id', denom.id)
+
+				if (updateError) throw updateError
+			}
+		}
+
+		// Delete amounts removed in the UI
+		const toDeleteIds = (existing || [])
+			.filter((row) => !desiredIds.has(row.id))
+			.map((row) => row.id)
+
+		if (toDeleteIds.length > 0) {
+			const { error: deleteError } = await supabase
+				.from('gift_card_denominations')
+				.delete()
+				.in('id', toDeleteIds)
+
+			if (deleteError) throw deleteError
+		}
+	} catch (err) {
+		console.error('Error syncing gift card denominations:', err)
+		error.value = 'Failed to save gift card amounts'
 		throw err
 	}
 }

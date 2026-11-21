@@ -173,6 +173,7 @@ const navSections = [
     items: [
       { label: 'Orders', path: '/admin/orders', icon: 'shopping-cart' },
       { label: 'Coupons', path: '/admin/coupons', icon: 'tags' },
+      { label: 'Gift Cards', path: '/admin/gift-cards', icon: 'heart' },
       { label: 'Subscriptions', path: '/admin/subscriptions', icon: 'calendar' },
       { label: 'Inventory', path: '/admin/inventory', icon: 'box' }
     ]
@@ -205,6 +206,7 @@ const pageTitle = computed(() => {
     '/admin/bookings': 'Booking Details',
     '/admin/orders': 'Orders',
     '/admin/coupons': 'Coupons',
+    '/admin/gift-cards': 'Gift Cards',
     '/admin/subscriptions': 'Subscriptions',
     '/admin/customers': 'Customers',
     '/admin/inventory': 'Inventory',

@@ -109,6 +109,8 @@ export const useCartStore = defineStore('cart', () => {
         categoryName,
         // Optional: subscription configuration for subscription items
         subscriptionConfig: product.subscriptionConfig || null,
+        // Optional: gift-card configuration (chosen amount, recipient, message)
+        giftCard: product.giftCard || null,
         // Store attendee details for events
         attendees: productType === 'event'
           ? normalizeEventAttendees(attendees, nextQuantity)

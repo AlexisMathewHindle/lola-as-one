@@ -470,6 +470,11 @@ const routes = [
         component: () => import('../views/admin/CouponsList.vue')
       },
       {
+        path: 'gift-cards',
+        name: 'AdminGiftCards',
+        component: () => import('../views/admin/GiftCardsList.vue')
+      },
+      {
         path: 'orders/:id',
         name: 'AdminOrderDetails',
         component: () => import('../views/admin/OrderDetails.vue')
