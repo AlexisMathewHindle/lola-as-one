@@ -177,7 +177,7 @@
             <!-- Price -->
             <div class="flex items-center justify-between mb-4">
               <span class="text-2xl font-bold text-gray-900">
-                £{{ formatPrice(product.price_gbp) }}
+                {{ cardPriceLabel(product) }}
               </span>
               <span v-if="product.productType === 'physical' && product.available_for_subscription" class="text-sm text-gray-500">
                 or subscribe
@@ -276,7 +276,41 @@ const fetchProducts = async () => {
       // Treat subscription offerings separately from standard physical products
       productType: p.offering?.type === 'subscription' ? 'subscription' : 'physical'
     }))
-    digitalProducts.value = (digitalData || []).map(p => ({ ...p, productType: 'digital' }))
+    let digitalMapped = (digitalData || []).map(p => ({ ...p, productType: 'digital' }))
+
+    // Gift cards have no single price (the amounts live in a separate list), so
+    // load the active amounts and attach the lowest one for a "From £X" label.
+    const giftOfferingIds = digitalMapped
+      .filter(p => p.product_type === 'gift_card')
+      .map(p => p.offering_id || p.offering?.id)
+      .filter(Boolean)
+
+    if (giftOfferingIds.length > 0) {
+      const { data: denoms, error: denomError } = await supabase
+        .from('gift_card_denominations')
+        .select('offering_id, amount_gbp, active')
+        .in('offering_id', giftOfferingIds)
+        .eq('active', true)
+
+      if (denomError) {
+        console.error('Error fetching gift card amounts:', denomError)
+      } else {
+        const lowestByOffering = {}
+        for (const d of (denoms || [])) {
+          const amount = Number(d.amount_gbp)
+          if (lowestByOffering[d.offering_id] == null || amount < lowestByOffering[d.offering_id]) {
+            lowestByOffering[d.offering_id] = amount
+          }
+        }
+        digitalMapped = digitalMapped.map(p => (
+          p.product_type === 'gift_card'
+            ? { ...p, giftFromAmount: lowestByOffering[p.offering_id || p.offering?.id] ?? null }
+            : p
+        ))
+      }
+    }
+
+    digitalProducts.value = digitalMapped
 
     console.log('Fetched products:', {
       physical: physicalProducts.value.length,
@@ -520,6 +554,17 @@ const actionButtonText = (product) => {
 // Helper: Format price
 const formatPrice = (price) => {
   return parseFloat(price || 0).toFixed(2)
+}
+
+// Price label for a shop card. Gift cards show "From £X" (their lowest amount)
+// rather than a single price; everything else shows its price.
+const cardPriceLabel = (product) => {
+  if (product.product_type === 'gift_card') {
+    return product.giftFromAmount != null
+      ? `From £${formatPrice(product.giftFromAmount)}`
+      : 'Choose an amount'
+  }
+  return `£${formatPrice(product.price_gbp)}`
 }
 
 // Clear all filters
